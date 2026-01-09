@@ -1,1 +1,1 @@
-let () = Dbsportas.League.fetch_league ()
+let () = Dbsportas.League.parse_league_page ()

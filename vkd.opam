@@ -13,6 +13,13 @@ depends: [
   "dune" {>= "3.19"}
   "ocaml" {>="5.2"}
   "core" {="v0.16.2"}
+  "ezcurl" {="0.2.4"}
+  "yojson" {="2.2.2"}
+  "lambdasoup" {="1.1.1"}
+  "ppx_jane" {="v0.16.0"}
+  "ppx_inline_test" {="v0.16.1"}
+  "ppx_expect" {="v0.16.1"}
+  "ppx_deriving" {="6.0.3"}
   "odoc" {with-doc}
 ]
 build: [
