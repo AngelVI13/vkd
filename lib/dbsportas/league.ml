@@ -10,18 +10,43 @@ let fetch_page ~(name : string) url =
     (sprintf "/home/angel/Documents/ocaml/vkd/%s.html" name)
     ~data:out
 
-module Course = struct
-  type t = { url : string; id : string; distance : float; controls : int }
-  [@@deriving show { with_path = false }]
+module AgeGroup = struct
+  type t = {
+    url : string; (* url to overall league standings for the age group *)
+    group : string;
+  }
+  [@@deriving show { with_path = false }, fields]
+end
 
-  let make ~url ~id ~distance ~controls = { url; id; distance; controls }
+module CourseResult = struct
+  type t = {
+    position : int;
+    number : int;
+        (* no clue what this number means, maybe its participant id or sth *)
+    group : AgeGroup.t;
+    name : string; (* stored in the format: LASTNAME FIRSTNAME *)
+    club : string;
+    time : string;
+    points : int;
+    pace : string; (* in min/km i.e.: 6:40 *)
+  }
+  [@@deriving show { with_path = false }, fields]
+end
+
+module Course = struct
+  type t = {
+    url : string;
+    id : string;
+    distance : float;
+    controls : int;
+    results : CourseResult.t list;
+  }
+  [@@deriving show { with_path = false }, fields]
 end
 
 module EventResults = struct
   type t = { url : string; courses : Course.t list }
-  [@@deriving show { with_path = false }]
-
-  let make ~url ~courses = { url; courses }
+  [@@deriving show { with_path = false }, fields]
 end
 
 module LeagueEvent = struct
@@ -64,28 +89,36 @@ module League = struct
   let with_url l url = { l with url }
 end
 
-let parse_league_page page_html_chan =
+let parse_course page_html_chan =
   let open Soup in
   let soup = read_channel page_html_chan |> parse in
-  let rows = soup $ ".w3-table" $$ "tr" |> to_list in
-  let events =
+  (* skip header row *)
+  let rows = soup $ ".w3-table" $$ "tr" |> to_list |> List.tl_exn in
+  let results =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
-           let results =
-             tr $? ".w3-text-green"
-             |> Option.bind ~f:(fun a ->
-                    let url = R.attribute "href" a in
-                    (* TODO: add courses here *)
-                    Some (EventResults.make ~url ~courses:[]))
+           let group_col = tr $ ".w3-text-green" in
+           let group_results_url = group_col |> R.attribute "href" in
+           let group_name = group_col |> R.leaf_text |> String.strip in
+
+           let columns = tr $$ "td" |> to_list |> List.map ~f:R.leaf_text in
+           assert (List.length columns = 8);
+
+           (* TODO: take data from columns here *)
+           List.iter columns ~f:(fun col -> printf "%s " col);
+           printf "\n";
+
+           let result =
+             CourseResult.Fields.create ~position:1 ~number:123
+               ~group:
+                 (AgeGroup.Fields.create ~url:group_results_url
+                    ~group:group_name)
+               ~name:"Angel" ~club:"Bet koks" ~time:"10:13" ~points:100
+               ~pace:"06:50"
            in
-           let tds = tr $$ "td" |> to_list |> List.map ~f:R.leaf_text in
-           match tds with
-           | [] -> acc
-           | _ ->
-               let event = LeagueEvent.of_td_list ~results tds in
-               event :: acc)
+           result :: acc)
   in
-  League.of_events (List.rev events)
+  List.rev results
 
 let parse_event page_html_chan =
   let open Soup in
@@ -123,11 +156,35 @@ let parse_event page_html_chan =
 
            let courses =
              List.map ids ~f:(fun id ->
-                 Course.make ~url:course_results_url ~id ~distance ~controls)
+                 Course.Fields.create ~url:course_results_url ~id ~distance
+                   ~controls ~results:[])
            in
            acc @ courses)
   in
   courses
+
+let parse_league_page page_html_chan =
+  let open Soup in
+  let soup = read_channel page_html_chan |> parse in
+  let rows = soup $ ".w3-table" $$ "tr" |> to_list in
+  let events =
+    rows
+    |> List.fold ~init:[] ~f:(fun acc tr ->
+           let results =
+             tr $? ".w3-text-green"
+             |> Option.bind ~f:(fun a ->
+                    let url = R.attribute "href" a in
+                    (* TODO: add courses here *)
+                    Some (EventResults.Fields.create ~url ~courses:[]))
+           in
+           let tds = tr $$ "td" |> to_list |> List.map ~f:R.leaf_text in
+           match tds with
+           | [] -> acc
+           | _ ->
+               let event = LeagueEvent.of_td_list ~results tds in
+               event :: acc)
+  in
+  League.of_events (List.rev events)
 
 let%expect_test "parse_league_page finished league" =
   let filename = "/home/angel/Documents/ocaml/vkd/league.html" in
@@ -221,14 +278,25 @@ let%expect_test "parse_event grouped courses" =
   [%expect
     {|
     { url = "/lt/mvarz/244/reztra/1/1%2C2"; id = "1"; distance = 4.42;
-      controls = 21 }
+      controls = 21; results = [] }
     { url = "/lt/mvarz/244/reztra/1/1%2C2"; id = "2"; distance = 4.42;
-      controls = 21 }
-    { url = "/lt/mvarz/244/reztra/1/3"; id = "3"; distance = 3.44; controls = 16
-      }
-    { url = "/lt/mvarz/244/reztra/1/4"; id = "4"; distance = 2.43; controls = 12
-      }
-    { url = "/lt/mvarz/244/reztra/1/D"; id = "D"; distance = 6.82; controls = 14
-      }
-    { url = "/lt/mvarz/244/reztra/1/P"; id = "P"; distance = 1.63; controls = 8 }
+      controls = 21; results = [] }
+    { url = "/lt/mvarz/244/reztra/1/3"; id = "3"; distance = 3.44; controls = 16;
+      results = [] }
+    { url = "/lt/mvarz/244/reztra/1/4"; id = "4"; distance = 2.43; controls = 12;
+      results = [] }
+    { url = "/lt/mvarz/244/reztra/1/D"; id = "D"; distance = 6.82; controls = 14;
+      results = [] }
+    { url = "/lt/mvarz/244/reztra/1/P"; id = "P"; distance = 1.63; controls = 8;
+      results = [] }
     |}]
+
+let%expect_test "parse_course results" =
+  let filename =
+    "/home/angel/Documents/ocaml/vkd/2025_antakalnis_course_1_2.html"
+  in
+  let page_html = In_channel.create filename in
+  let results = parse_course page_html in
+  List.iter results ~f:(fun result -> printf "%s\n" (CourseResult.show result));
+  [%expect {|
+           |}]
