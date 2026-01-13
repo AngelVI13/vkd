@@ -89,6 +89,9 @@ module League = struct
   let with_url l url = { l with url }
 end
 
+(** Strip string (remove whitespaces, tabs & newlines before and after the
+    string). This also removes NO-BREAK SPACE codepoint (the equivalent of the
+    &nbsp; entity in HTML). *)
 let strip s =
   s |> String.strip |> String.substr_replace_all ~pattern:"\194\160" ~with_:""
 
