@@ -2,5 +2,5 @@
  (name dbsportas)
  (inline_tests)
  (preprocess
-   (pps ppx_deriving.show ppx_inline_test ppx_expect ppx_jane))
+   (pps ppx_deriving.show ppx_inline_test ppx_expect ppx_jane ppx_yojson_conv))
  (libraries core ezcurl yojson lambdasoup))
