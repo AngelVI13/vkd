@@ -20,7 +20,7 @@ end
 
 module CourseResult = struct
   type t = {
-    position : int;
+    position : int option;
     number : int;
         (* no clue what this number means, maybe its participant id or sth *)
     group : AgeGroup.t;
@@ -28,7 +28,7 @@ module CourseResult = struct
     club : string;
     time : string;
     points : int;
-    pace : string; (* in min/km i.e.: 6:40 *)
+    pace : string option; (* in min/km i.e.: 6:40 *)
   }
   [@@deriving show { with_path = false }, fields]
 end
@@ -89,11 +89,18 @@ module League = struct
   let with_url l url = { l with url }
 end
 
+let strip s =
+  s |> String.strip |> String.substr_replace_all ~pattern:"\194\160" ~with_:""
+
+(** parse dbsportas generic table and returns all rows (except header) *)
+let parse_table_rows soup =
+  let open Soup in
+  soup $ ".w3-table" $$ "tr" |> to_list |> List.tl_exn
+
 let parse_course page_html_chan =
   let open Soup in
   let soup = read_channel page_html_chan |> parse in
-  (* skip header row *)
-  let rows = soup $ ".w3-table" $$ "tr" |> to_list |> List.tl_exn in
+  let rows = parse_table_rows soup in
   let results =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
@@ -104,17 +111,39 @@ let parse_course page_html_chan =
            let columns = tr $$ "td" |> to_list |> List.map ~f:R.leaf_text in
            assert (List.length columns = 8);
 
-           (* TODO: take data from columns here *)
-           List.iter columns ~f:(fun col -> printf "%s " col);
-           printf "\n";
+           let position, number, name, club, time, points, pace =
+             match columns with
+             | [ position; number; _; name; club; time; points; pace ] ->
+                 let position = strip position in
+                 let position =
+                   if String.(position = "") then None
+                   else Some (Int.of_string position)
+                 in
+
+                 let pace = strip pace in
+                 let pace = if String.(pace = "") then None else Some pace in
+
+                 ( position,
+                   Int.of_string number,
+                   name,
+                   club,
+                   time,
+                   Int.of_string points,
+                   pace )
+             | _ ->
+                 failwith
+                   (sprintf
+                      "unexpected number of columns in results table: %d \
+                       (expected 8)"
+                      (List.length columns))
+           in
 
            let result =
-             CourseResult.Fields.create ~position:1 ~number:123
+             CourseResult.Fields.create ~position ~number
                ~group:
                  (AgeGroup.Fields.create ~url:group_results_url
                     ~group:group_name)
-               ~name:"Angel" ~club:"Bet koks" ~time:"10:13" ~points:100
-               ~pace:"06:50"
+               ~name ~club ~time ~points ~pace
            in
            result :: acc)
   in
@@ -123,8 +152,7 @@ let parse_course page_html_chan =
 let parse_event page_html_chan =
   let open Soup in
   let soup = read_channel page_html_chan |> parse in
-  (* skip header row *)
-  let rows = soup $ ".w3-table" $$ "tr" |> to_list |> List.tl_exn in
+  let rows = parse_table_rows soup in
   let courses =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
@@ -166,7 +194,7 @@ let parse_event page_html_chan =
 let parse_league_page page_html_chan =
   let open Soup in
   let soup = read_channel page_html_chan |> parse in
-  let rows = soup $ ".w3-table" $$ "tr" |> to_list in
+  let rows = parse_table_rows soup in
   let events =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
@@ -297,6 +325,7 @@ let%expect_test "parse_course results" =
   in
   let page_html = In_channel.create filename in
   let results = parse_course page_html in
+  (* TODO: add custom show function for CourseResults because otherwise strings are printed wrongly (same as for League) *)
   List.iter results ~f:(fun result -> printf "%s\n" (CourseResult.show result));
   [%expect {|
            |}]
