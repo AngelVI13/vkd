@@ -30,16 +30,35 @@ end
 
 module Split = struct
   type t = {
-    control : string;
-    time : int;
-    position : int;
-    current_time : int;
-    current_position : int;
+    time : int option;
+    position : int option;
+    overall_time : int option;
+    overall_position : int option;
+    absolute_time : int option;
   }
   [@@deriving yojson, fields]
+
+  (* let from_time time overall_time absolute_time = *)
+  (*   (* TODO: should these be options or keep it as -1 ?? *) *)
+  (*   { time; overall_time; position = -1; overall_position = -1 } *)
 end
 
-type resultStatus = Good | Dsq [@@deriving yojson]
+module Splits = struct
+  type t = Split.t list [@@deriving yojson]
+
+  (* TODO: finish this *)
+  let of_string s : t =
+    let splits =
+      String.split s ~on:'-'
+      |> List.map ~f:(fun time ->
+             let time = String.strip time in
+             if String.(time = "") then 0 else Int.of_string time)
+    in
+    let _ = splits in
+    []
+end
+
+type resultStatus = Finished | Dsq [@@deriving yojson]
 
 module RunnerResult = struct
   type t = {
@@ -52,76 +71,101 @@ module RunnerResult = struct
     splits : Split.t list;
   }
   [@@deriving fields, yojson]
+
+  let of_resp (runner : RunnerResp.t) =
+    let splits = Splits.of_string runner.splits in
+    let finish = List.last_exn splits in
+    (* TODO: is `value_exn` here safe ? *)
+    let time = Option.value_exn finish.absolute_time - runner.start in
+
+    Fields.create ~number:runner.number ~name:runner.name ~club:runner.club
+      ~start:runner.start ~time
+      ~status:(if runner.flag = 0 then Finished else Dsq)
+      ~splits
 end
 
 module CourseResult = struct
   type t = {
     course_name : string;
-    course_id : string;
+    course_id : int;
     controls : string list;
-    results : RunnerResult.t list;
+    finished : RunnerResult.t list;
+    dsq : RunnerResult.t list;
   }
   [@@deriving fields, yojson]
+
+  let of_resp (runners : RunnerResp.t list) (course : CourseResp.t) =
+    let course_id = Int.of_string course.id in
+    let runners = List.filter runners ~f:(fun r -> r.course_id = course_id) in
+    let course_name =
+      match List.hd runners with Some r -> r.course_name | None -> ""
+    in
+    let controls = String.split ~on:'-' course.controls in
+
+    let runners = List.map runners ~f:RunnerResult.of_resp in
+    let _ = runners in
+
+    Fields.create ~course_name ~course_id ~controls ~finished:[] ~dsq:[]
 end
 
 module ResultsTable = struct
   type t = { course_results : CourseResult.t list } [@@deriving yojson]
 
   let of_resp (resp : ResultsTableResp.t) =
-    let runners_per_course =
-      List.sort_and_group resp.runners ~compare:(fun r1 r2 ->
-          String.compare r1.course_name r2.course_name)
-      |> List.map ~f:(fun runner_group ->
-             let first_runner = List.hd_exn runner_group in
-             let course = first_runner.course_name in
-             let runners =
-               List.map runner_group ~f:(fun r ->
-                   let split_times =
-                     String.split ~on:'-' r.splits
-                     |> List.map ~f:(fun time ->
-                            let time = String.strip time in
-                            if String.(time = "") then 0 else Int.of_string time)
-                   in
-                   let time = List.last_exn split_times - r.start in
-                   RunnerResult.Fields.create ~number:r.number ~name:r.name
-                     ~club:r.club ~start:r.start ~time
-                     ~status:(if r.flag = 0 then Good else Dsq)
-                     ~splits:[])
-             in
-
-             let runners =
-               List.sort runners ~compare:(fun r1 r2 ->
-                   Int.compare r1.time r2.time)
-             in
-             (* TODO: this currenlty sorts runners by finish time but dsq
-             runners should always be at the end of the list -> sort
-             based on status at the very end *)
-             (course, runners))
-    in
-
-    let course_names =
-      List.map resp.runners ~f:(fun r ->
-          (r.course_name, Int.to_string r.course_id))
-      |> List.dedup_and_sort ~compare:(fun (_, c1_name) (_, c2_name) ->
-             String.compare c1_name c2_name)
-    in
     let course_results =
-      List.map resp.courses ~f:(fun course ->
-          let course_name, _ =
-            (* TODO: what happens if we don't have any runners per course? This will crash then ? *)
-            List.find_exn course_names ~f:(fun (_, id) ->
-                String.(id = course.id))
-          in
-          let results =
-            List.filter runners_per_course ~f:(fun (group_course_name, _) ->
-                String.(group_course_name = course_name))
-            |> List.map ~f:(fun (_, results) -> results)
-            |> List.hd_exn
-          in
-
-          CourseResult.Fields.create ~course_name ~course_id:course.id ~results
-            ~controls:(String.split ~on:'-' course.controls))
+      List.map resp.courses ~f:(CourseResult.of_resp resp.runners)
     in
+    (* let runners_per_course = *)
+    (*   List.sort_and_group resp.runners ~compare:(fun r1 r2 -> *)
+    (*       String.compare r1.course_name r2.course_name) *)
+    (*   |> List.map ~f:(fun runner_group -> *)
+    (*          let first_runner = List.hd_exn runner_group in *)
+    (*          let course = first_runner.course_name in *)
+    (*          let runners = *)
+    (*            List.map runner_group ~f:(fun r -> *)
+    (*                let split_times = *)
+    (*                  String.split ~on:'-' r.splits *)
+    (*                  |> List.map ~f:(fun time -> *)
+    (*                         let time = String.strip time in *)
+    (*                         if String.(time = "") then 0 else Int.of_string time) *)
+    (*                in *)
+    (*                let time = List.last_exn split_times - r.start in *)
+    (*                RunnerResult.Fields.create ~number:r.number ~name:r.name *)
+    (*                  ~club:r.club ~start:r.start ~time *)
+    (*                  ~status:(if r.flag = 0 then Good else Dsq) *)
+    (*                  ~splits:[]) *)
+    (*          in *)
+    (*          let runners = *)
+    (*            List.sort runners ~compare:(fun r1 r2 -> *)
+    (*                Int.compare r1.time r2.time) *)
+    (*          in *)
+    (*          (* TODO: this currenlty sorts runners by finish time but dsq *)
+    (*          runners should always be at the end of the list -> sort *)
+    (*          based on status at the very end *) *)
+    (*          (course, runners)) *)
+    (* in *)
+    (* let course_names = *)
+    (*   List.map resp.runners ~f:(fun r -> *)
+    (*       (r.course_name, Int.to_string r.course_id)) *)
+    (*   |> List.dedup_and_sort ~compare:(fun (_, c1_name) (_, c2_name) -> *)
+    (*          String.compare c1_name c2_name) *)
+    (* in *)
+    (* let course_results = *)
+    (*   List.map resp.courses ~f:(fun course -> *)
+    (*       let course_name, _ = *)
+    (*         (* TODO: what happens if we don't have any runners per course? This will crash then ? *) *)
+    (*         List.find_exn course_names ~f:(fun (_, id) -> *)
+    (*             String.(id = course.id)) *)
+    (*       in *)
+    (*       let results = *)
+    (*         List.filter runners_per_course ~f:(fun (group_course_name, _) -> *)
+    (*             String.(group_course_name = course_name)) *)
+    (*         |> List.map ~f:(fun (_, results) -> results) *)
+    (*         |> List.hd_exn *)
+    (*       in *)
+    (*       CourseResult.Fields.create ~course_name ~course_id:course.id ~results *)
+    (*         ~controls:(String.split ~on:'-' course.controls)) *)
+    (* in *)
     { course_results }
 end
 
