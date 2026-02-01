@@ -130,10 +130,36 @@ module CourseResult = struct
       match List.hd runners with Some r -> r.course_name | None -> ""
     in
     let controls = String.split ~on:'-' course.controls in
+    let controls_num = List.length controls in
 
     let runners = List.map runners ~f:RunnerResult.of_resp in
 
-    (* TODO: update splits here (positions) *)
+    let all_splits =
+      List.map runners ~f:(fun r ->
+          List.map r.splits ~f:(fun s -> (r.number, s.time)))
+    in
+    let sorted_splits =
+      (* create a List where each element is a list of all runners times for
+         that control idx *)
+      List.init controls_num ~f:(fun i ->
+          let splits_for_control =
+            List.map all_splits ~f:(fun runner_splits ->
+                List.nth_exn runner_splits i)
+          in
+          splits_for_control)
+      (* Remove any runner split values which don't have a time (when a user
+         miss punched) & then sort all times for each control *)
+      |> List.map ~f:(fun splits_for_control ->
+             List.filter splits_for_control ~f:(fun (_, value) ->
+                 Option.is_some value)
+             |> List.map ~f:(fun (runner_num, value) ->
+                    (runner_num, Option.value_exn value))
+             |> List.sort ~compare:(fun (_, value1) (_, value2) ->
+                    Int.compare value1 value2))
+    in
+    (* TODO: update splits here (positions). Probably will have to create a
+       hashtable so i can update the runner split based on the runner number
+     and split idx *)
     let _ = runners in
 
     let runners =
