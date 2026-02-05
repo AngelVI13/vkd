@@ -121,6 +121,25 @@ module RunnerResult = struct
     { r with splits }
 end
 
+module RunnersMap = struct
+  type t = RunnerResult.t Int.Map.t
+
+  let empty = Int.Map.empty
+
+  let of_runners (runners : RunnerResult.t list) : t =
+    List.fold runners ~init:empty ~f:(fun map runner ->
+        Map.set map ~key:runner.number ~data:runner)
+
+  let to_runners t = Map.data t
+
+  let update_runner_position_for_split control_idx position t (runner_num, _) =
+    Map.update t runner_num ~f:(fun runner ->
+        match runner with
+        | None -> assert false
+        | Some runner ->
+            RunnerResult.update_position_for_split runner control_idx position)
+end
+
 module CourseResult = struct
   type t = {
     course_name : string;
@@ -131,6 +150,14 @@ module CourseResult = struct
   }
   [@@deriving fields, yojson]
 
+  (* TODO: should this be here ? *)
+  let filter_and_sort_splits splits_for_control =
+    List.filter splits_for_control ~f:(fun (_, value) -> Option.is_some value)
+    |> List.map ~f:(fun (runner_num, value) ->
+           (runner_num, Option.value_exn value))
+    |> List.sort_and_group ~compare:(fun (_, value1) (_, value2) ->
+           Int.compare value1 value2)
+
   let of_resp (runners : RunnerResp.t list) (course : CourseResp.t) =
     let course_id = Int.of_string course.id in
     let runners = List.filter runners ~f:(fun r -> r.course_id = course_id) in
@@ -138,15 +165,11 @@ module CourseResult = struct
       match List.hd runners with Some r -> r.course_name | None -> ""
     in
     let controls = String.split ~on:'-' course.controls in
-    let controls_num = List.length controls in
 
     let runners = List.map runners ~f:RunnerResult.of_resp in
-    let runners_map =
-      List.fold runners ~init:Int.Map.empty ~f:(fun map runner ->
-          Map.set map ~key:runner.number ~data:runner)
-    in
-    let _ = runners_map in
+    let runners_map = RunnersMap.of_runners runners in
 
+    (* get list of splits for each runner *)
     let all_splits =
       List.map runners ~f:(fun r ->
           List.map r.splits ~f:(fun s -> (r.number, s.time)))
@@ -156,21 +179,10 @@ module CourseResult = struct
     let sorted_splits =
       (* create a List where each element is a list of all runners times for
          that control idx *)
-      List.init controls_num ~f:(fun i ->
-          let splits_for_control =
-            List.map all_splits ~f:(fun runner_splits ->
-                List.nth_exn runner_splits i)
-          in
-          splits_for_control)
+      List.transpose_exn all_splits
       (* Remove any runner split values which don't have a time (when a user
          miss punched) & then sort all times for each control *)
-      |> List.map ~f:(fun splits_for_control ->
-             List.filter splits_for_control ~f:(fun (_, value) ->
-                 Option.is_some value)
-             |> List.map ~f:(fun (runner_num, value) ->
-                    (runner_num, Option.value_exn value))
-             |> List.sort_and_group ~compare:(fun (_, value1) (_, value2) ->
-                    Int.compare value1 value2))
+      |> List.map ~f:filter_and_sort_splits
     in
 
     (* TODO: this is very ugly ... fix it *)
@@ -182,16 +194,9 @@ module CourseResult = struct
               ~f:(fun (position, map) splits_with_same_time ->
                 let map =
                   List.fold splits_with_same_time ~init:map
-                    ~f:(fun map (runner_num, _) ->
-                      let runner = Map.find_exn map runner_num in
-                      (* TODO: check this, im pretty sure the control_idx or position_idx are not right, *)
-                      let runner =
-                        RunnerResult.update_position_for_split runner
-                          control_idx position
-                      in
-                      Map.set map ~key:runner_num ~data:runner
-                      (* TODO: make sure we update the position_idx somewhere *)
-                      (* UPDATE the runner split value which corresponds to the position_idx and then update the new version of the runner record in the map *))
+                    ~f:
+                      (RunnersMap.update_runner_position_for_split control_idx
+                         position)
                 in
                 let position_idx =
                   position + List.length splits_with_same_time
@@ -201,10 +206,7 @@ module CourseResult = struct
           map)
     in
 
-    let runners =
-      List.map (Map.keys runners_map) ~f:(fun runner_num ->
-          Map.find_exn runners_map runner_num)
-    in
+    let runners = RunnersMap.to_runners runners_map in
     (* TODO: runner results should have Splits.t instead of Split.t list *)
 
     (* TODO: update splits here (positions). Probably will have to create a
