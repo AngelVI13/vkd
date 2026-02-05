@@ -37,7 +37,7 @@ module Split = struct
     overall_position : int option;
     timestamp : int option;
   }
-  [@@deriving yojson, fields]
+  [@@deriving yojson, fields ~fields ~iterators:create]
 
   let empty () =
     {
@@ -97,9 +97,9 @@ module RunnerResult = struct
     start : int;
     status : resultStatus;
     time : int;
-    splits : Split.t list;
+    splits : Splits.t;
   }
-  [@@deriving fields, yojson]
+  [@@deriving fields ~fields ~iterators:create, yojson]
 
   let of_resp (runner : RunnerResp.t) =
     let splits = Splits.of_string ~start:runner.start runner.splits in
@@ -111,6 +111,14 @@ module RunnerResult = struct
       ~start:runner.start ~time
       ~status:(if runner.flag = 0 then Finished else Dsq)
       ~splits
+
+  let update_position_for_split r split_idx position =
+    let splits =
+      List.mapi r.splits ~f:(fun i split ->
+          if i = split_idx then { split with position = Some position }
+          else split)
+    in
+    { r with splits }
 end
 
 module CourseResult = struct
@@ -133,11 +141,18 @@ module CourseResult = struct
     let controls_num = List.length controls in
 
     let runners = List.map runners ~f:RunnerResult.of_resp in
+    let runners_map =
+      List.fold runners ~init:Int.Map.empty ~f:(fun map runner ->
+          Map.set map ~key:runner.number ~data:runner)
+    in
+    let _ = runners_map in
 
     let all_splits =
       List.map runners ~f:(fun r ->
           List.map r.splits ~f:(fun s -> (r.number, s.time)))
     in
+
+    (* TODO: have to do the exact same but for the absolute time to get overall position for that control *)
     let sorted_splits =
       (* create a List where each element is a list of all runners times for
          that control idx *)
@@ -154,13 +169,47 @@ module CourseResult = struct
                  Option.is_some value)
              |> List.map ~f:(fun (runner_num, value) ->
                     (runner_num, Option.value_exn value))
-             |> List.sort ~compare:(fun (_, value1) (_, value2) ->
+             |> List.sort_and_group ~compare:(fun (_, value1) (_, value2) ->
                     Int.compare value1 value2))
     in
+
+    (* TODO: this is very ugly ... fix it *)
+    let runners_map =
+      List.foldi sorted_splits ~init:runners_map
+        ~f:(fun control_idx map splits_for_control ->
+          let _, map =
+            List.fold splits_for_control ~init:(1, map)
+              ~f:(fun (position, map) splits_with_same_time ->
+                let map =
+                  List.fold splits_with_same_time ~init:map
+                    ~f:(fun map (runner_num, _) ->
+                      let runner = Map.find_exn map runner_num in
+                      (* TODO: check this, im pretty sure the control_idx or position_idx are not right, *)
+                      let runner =
+                        RunnerResult.update_position_for_split runner
+                          control_idx position
+                      in
+                      Map.set map ~key:runner_num ~data:runner
+                      (* TODO: make sure we update the position_idx somewhere *)
+                      (* UPDATE the runner split value which corresponds to the position_idx and then update the new version of the runner record in the map *))
+                in
+                let position_idx =
+                  position + List.length splits_with_same_time
+                in
+                (position_idx, map))
+          in
+          map)
+    in
+
+    let runners =
+      List.map (Map.keys runners_map) ~f:(fun runner_num ->
+          Map.find_exn runners_map runner_num)
+    in
+    (* TODO: runner results should have Splits.t instead of Split.t list *)
+
     (* TODO: update splits here (positions). Probably will have to create a
        hashtable so i can update the runner split based on the runner number
      and split idx *)
-    let _ = runners in
 
     let runners =
       List.sort runners ~compare:(fun r1 r2 -> Int.compare r1.time r2.time)
