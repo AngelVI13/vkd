@@ -74,7 +74,9 @@ module Splits = struct
           in
           let control_time =
             Option.bind prev_time ~f:(fun prev ->
-                Option.bind time ~f:(fun t -> Some (t - prev)))
+                Option.bind time ~f:(fun t ->
+                    let time = t - prev in
+                    if time > 0 then Some time else None))
           in
           let overall_time, timestamp =
             match time with
@@ -85,6 +87,13 @@ module Splits = struct
           Split.make ~time:control_time ~overall_time ~timestamp)
     in
     splits
+
+  (* if any split is missing a control time for any reason then this runner should be DSQ *)
+  let has_dsq (t : t) =
+    let bad_splits =
+      List.filter t ~f:(fun split -> Option.is_none split.time)
+    in
+    List.length bad_splits > 0
 end
 
 type resultStatus = Finished | Dsq [@@deriving yojson, eq]
@@ -106,10 +115,12 @@ module RunnerResult = struct
     let finish = List.last_exn splits in
     (* `value_exn` here should be safe because everyone should have a finish time (i think?) *)
     let time = Option.value_exn finish.overall_time in
+    (* this is different than the `flag` value, it is determined by the actual data in the splits *)
+    let has_dsq = Splits.has_dsq splits in
 
     Fields.create ~number:runner.number ~name:runner.name ~club:runner.club
       ~start:runner.start ~time
-      ~status:(if runner.flag = 0 then Finished else Dsq)
+      ~status:(if runner.flag = 0 && not has_dsq then Finished else Dsq)
       ~splits
 
   let update_position_for_split ~field r split_idx position =
@@ -212,6 +223,7 @@ module RunnersMap = struct
       |> List.transpose_exn
     in
 
+    (* TODO: these should not be calculated again for every single runner cause they will be the same *)
     let fst_times = List.nth_exn fst_and_snd_splits 0 in
     let snd_times = List.nth_exn fst_and_snd_splits 1 in
 
@@ -221,7 +233,6 @@ module RunnersMap = struct
     List.iter snd_times ~f:(fun time -> printf "%d, " time);
     printf "\n";
 
-    (* TODO: investigate why for the 3rd course we have a best time of -75 *)
     t
 end
 
