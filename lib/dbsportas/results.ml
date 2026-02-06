@@ -112,10 +112,10 @@ module RunnerResult = struct
       ~status:(if runner.flag = 0 then Finished else Dsq)
       ~splits
 
-  let update_position_for_split r split_idx position =
+  let update_position_for_split ~field r split_idx position =
     let splits =
       List.mapi r.splits ~f:(fun i split ->
-          if i = split_idx then { split with position = Some position }
+          if i = split_idx then Field.fset field split (Some position)
           else split)
     in
     { r with splits }
@@ -132,12 +132,97 @@ module RunnersMap = struct
 
   let to_runners t = Map.data t
 
-  let update_runner_position_for_split control_idx position t (runner_num, _) =
+  let update_runner_position_for_split ~field control_idx position t
+      (runner_num, _) =
     Map.update t runner_num ~f:(fun runner ->
         match runner with
         | None -> assert false
         | Some runner ->
-            RunnerResult.update_position_for_split runner control_idx position)
+            RunnerResult.update_position_for_split ~field runner control_idx
+              position)
+
+  let filter_and_sort_splits splits_for_control =
+    List.filter splits_for_control ~f:(fun (_, value) -> Option.is_some value)
+    |> List.map ~f:(fun (runner_num, value) ->
+           (runner_num, Option.value_exn value))
+    |> List.sort_and_group ~compare:(fun (_, value1) (_, value2) ->
+           Int.compare value1 value2)
+
+  let update_runner_positions_for_same_time ~field ~control_idx (position, map)
+      splits_with_same_time =
+    let map =
+      List.fold splits_with_same_time ~init:map
+        ~f:(update_runner_position_for_split ~field control_idx position)
+    in
+    let position_idx = position + List.length splits_with_same_time in
+    (position_idx, map)
+
+  (* get list of sublists. Each sublist represent each runners time for that
+     control idx. Sublists are sorted from fastest to slowest. Each sublist
+     element is another list because sometimes multiple runners have the same
+     time
+     ~time_field: specifies which field to sorting splits on, individual control time, overall time etc.
+     *)
+  let all_sorted_splits ~time_field (t : t) =
+    let runners = Map.data t in
+    (* get list of splits for each runner *)
+    let all_splits =
+      List.map runners ~f:(fun r ->
+          List.map r.splits ~f:(fun s -> (r.number, Field.get time_field s)))
+    in
+
+    let sorted_splits =
+      (* create a List where each element is a list of all runners times for
+         that control idx *)
+      List.transpose_exn all_splits
+      (* Remove any runner split values which don't have a time (when a user
+         miss punched) & then sort all times for each control *)
+      |> List.map ~f:filter_and_sort_splits
+    in
+    sorted_splits
+
+  let update_runner_positions ~time_field ~position_field (t : t) =
+    let sorted_splits = all_sorted_splits ~time_field t in
+    (* update runners position in map *)
+    List.foldi sorted_splits ~init:t
+      ~f:(fun control_idx map splits_for_control ->
+        let update_fn =
+          update_runner_positions_for_same_time ~field:position_field
+            ~control_idx
+        in
+        (* position num starts from 1, here splits_for_control contains
+           sublists of all runners with the same time *)
+        let _, map = List.fold splits_for_control ~init:(1, map) ~f:update_fn in
+        map)
+
+  let update_runner_mistakes (t : t) =
+    let sorted_splits = all_sorted_splits ~time_field:Split.Fields.time t in
+    let fst_and_snd_splits =
+      List.map sorted_splits ~f:(fun splits_for_control ->
+          let fst = List.hd_exn splits_for_control in
+          let snd =
+            match List.nth splits_for_control 1 with
+            | None -> fst
+            | Some snd -> snd
+          in
+
+          let _, fst = List.hd_exn fst in
+          let _, snd = List.hd_exn snd in
+          [ fst; snd ])
+      |> List.transpose_exn
+    in
+
+    let fst_times = List.nth_exn fst_and_snd_splits 0 in
+    let snd_times = List.nth_exn fst_and_snd_splits 1 in
+
+    printf "Best times: ";
+    List.iter fst_times ~f:(fun time -> printf "%d, " time);
+    printf "\n2nd times: ";
+    List.iter snd_times ~f:(fun time -> printf "%d, " time);
+    printf "\n";
+
+    (* TODO: investigate why for the 3rd course we have a best time of -75 *)
+    t
 end
 
 module CourseResult = struct
@@ -150,14 +235,6 @@ module CourseResult = struct
   }
   [@@deriving fields, yojson]
 
-  (* TODO: should this be here ? *)
-  let filter_and_sort_splits splits_for_control =
-    List.filter splits_for_control ~f:(fun (_, value) -> Option.is_some value)
-    |> List.map ~f:(fun (runner_num, value) ->
-           (runner_num, Option.value_exn value))
-    |> List.sort_and_group ~compare:(fun (_, value1) (_, value2) ->
-           Int.compare value1 value2)
-
   let of_resp (runners : RunnerResp.t list) (course : CourseResp.t) =
     let course_id = Int.of_string course.id in
     let runners = List.filter runners ~f:(fun r -> r.course_id = course_id) in
@@ -166,55 +243,23 @@ module CourseResult = struct
     in
     let controls = String.split ~on:'-' course.controls in
 
-    let runners = List.map runners ~f:RunnerResult.of_resp in
-    let runners_map = RunnersMap.of_runners runners in
-
-    (* get list of splits for each runner *)
-    let all_splits =
-      List.map runners ~f:(fun r ->
-          List.map r.splits ~f:(fun s -> (r.number, s.time)))
-    in
-
-    (* TODO: have to do the exact same but for the absolute time to get overall position for that control *)
-    let sorted_splits =
-      (* create a List where each element is a list of all runners times for
-         that control idx *)
-      List.transpose_exn all_splits
-      (* Remove any runner split values which don't have a time (when a user
-         miss punched) & then sort all times for each control *)
-      |> List.map ~f:filter_and_sort_splits
-    in
-
-    (* TODO: this is very ugly ... fix it *)
-    let runners_map =
-      List.foldi sorted_splits ~init:runners_map
-        ~f:(fun control_idx map splits_for_control ->
-          let _, map =
-            List.fold splits_for_control ~init:(1, map)
-              ~f:(fun (position, map) splits_with_same_time ->
-                let map =
-                  List.fold splits_with_same_time ~init:map
-                    ~f:
-                      (RunnersMap.update_runner_position_for_split control_idx
-                         position)
-                in
-                let position_idx =
-                  position + List.length splits_with_same_time
-                in
-                (position_idx, map))
-          in
-          map)
-    in
-
-    let runners = RunnersMap.to_runners runners_map in
-    (* TODO: runner results should have Splits.t instead of Split.t list *)
-
-    (* TODO: update splits here (positions). Probably will have to create a
-       hashtable so i can update the runner split based on the runner number
-     and split idx *)
+    let control_time_field = Split.Fields.time in
+    let control_position_field = Split.Fields.position in
+    let overall_time_field = Split.Fields.overall_time in
+    let overall_position_field = Split.Fields.overall_position in
 
     let runners =
-      List.sort runners ~compare:(fun r1 r2 -> Int.compare r1.time r2.time)
+      (* create RunnerResult.t from json response *)
+      List.map runners ~f:RunnerResult.of_resp
+      (* create RunnersMap.t and calculate positions (control & overall) for each runner *)
+      |> RunnersMap.of_runners
+      |> RunnersMap.update_runner_positions ~time_field:control_time_field
+           ~position_field:control_position_field
+      |> RunnersMap.update_runner_positions ~time_field:overall_time_field
+           ~position_field:overall_position_field
+      |> RunnersMap.update_runner_mistakes |> RunnersMap.to_runners
+      (* sort runners based on their overall time *)
+      |> List.sort ~compare:(fun r1 r2 -> Int.compare r1.time r2.time)
     in
 
     let finished =
@@ -224,6 +269,7 @@ module CourseResult = struct
       List.filter runners ~f:(fun r -> equal_resultStatus r.status Dsq)
     in
 
+    (* TODO: calculate mistakes here and add them to the split record *)
     Fields.create ~course_name ~course_id ~controls ~finished ~dsq
 end
 
