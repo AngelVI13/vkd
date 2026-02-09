@@ -192,22 +192,9 @@ module RunnersMap = struct
     in
     sorted_splits
 
-  let update_runner_positions ~time_field ~position_field (t : t) =
+  (* get list of first best & list of second best splits for each control *)
+  let fst_and_snd_best_splits ~time_field (t : t) =
     let sorted_splits = all_sorted_splits ~time_field t in
-    (* update runners position in map *)
-    List.foldi sorted_splits ~init:t
-      ~f:(fun control_idx map splits_for_control ->
-        let update_fn =
-          update_runner_positions_for_same_time ~field:position_field
-            ~control_idx
-        in
-        (* position num starts from 1, here splits_for_control contains
-           sublists of all runners with the same time *)
-        let _, map = List.fold splits_for_control ~init:(1, map) ~f:update_fn in
-        map)
-
-  let update_runner_mistakes (t : t) =
-    let sorted_splits = all_sorted_splits ~time_field:Split.Fields.time t in
     let fst_and_snd_splits =
       List.map sorted_splits ~f:(fun splits_for_control ->
           let fst = List.hd_exn splits_for_control in
@@ -227,12 +214,96 @@ module RunnersMap = struct
     let fst_times = List.nth_exn fst_and_snd_splits 0 in
     let snd_times = List.nth_exn fst_and_snd_splits 1 in
 
-    printf "Best times: ";
-    List.iter fst_times ~f:(fun time -> printf "%d, " time);
-    printf "\n2nd times: ";
-    List.iter snd_times ~f:(fun time -> printf "%d, " time);
-    printf "\n";
+    (fst_times, snd_times)
 
+  let update_runner_positions ~time_field ~position_field (t : t) =
+    let sorted_splits = all_sorted_splits ~time_field t in
+    (* update runners position in map *)
+    List.foldi sorted_splits ~init:t
+      ~f:(fun control_idx map splits_for_control ->
+        let update_fn =
+          update_runner_positions_for_same_time ~field:position_field
+            ~control_idx
+        in
+        (* position num starts from 1, here splits_for_control contains
+           sublists of all runners with the same time *)
+        let _, map = List.fold splits_for_control ~init:(1, map) ~f:update_fn in
+        map)
+
+  let update_runner_mistakes (t : t) : t =
+    let fst_times, snd_times =
+      fst_and_snd_best_splits ~time_field:Split.Fields.time t
+    in
+
+    (* TODO: move this outside maybe ? *)
+    let module PersonalVsBest = struct
+      type t = {
+        sum_personal : int;
+        sum_best : int;
+        split_list : (int * int) list;
+      }
+
+      let empty () = { sum_personal = 0; sum_best = 0; split_list = [] }
+
+      let process_split (i : int) (t : t) (split : Split.t) =
+        match split.time with
+        | None -> t
+        | Some time ->
+            let fastest_time = List.nth_exn fst_times i in
+            let snd_fastest_time = List.nth_exn snd_times i in
+            let best =
+              if time = fastest_time then snd_fastest_time else fastest_time
+            in
+
+            {
+              sum_personal = t.sum_personal + time;
+              sum_best = t.sum_best + best;
+              split_list = t.split_list @ [ (time, best) ];
+            }
+
+      let rec filter_outliers (t : t) =
+        let personal_vs_best_ratio =
+          Float.of_int t.sum_personal /. Float.of_int t.sum_best
+        in
+        let new_t =
+          List.fold t.split_list ~init:(empty ())
+            ~f:(fun new_t (personal, best) ->
+              let estimated_best =
+                Float.of_int personal *. personal_vs_best_ratio
+              in
+              let is_outlier =
+                Float.(estimated_best >= Float.of_int best +. 60.)
+              in
+              if is_outlier then new_t
+              else
+                {
+                  sum_personal = new_t.sum_personal + personal;
+                  sum_best = new_t.sum_best + best;
+                  split_list = new_t.split_list @ [ (personal, best) ];
+                })
+        in
+        if t.sum_personal = new_t.sum_personal then t else filter_outliers new_t
+
+      (* calculate a runners speed vs the best speed achieved during the race.
+       If the ratio is 0.8 then it means you were running 20% slower than the best 
+       runner *)
+      (* NOTE: should be called after filter_outliers *)
+      let ratio (t : t) =
+        if t.sum_best > 0 then Float.(of_int t.sum_personal / of_int t.sum_best)
+        else 1.
+    end in
+    let _ =
+      Map.map t ~f:(fun runner ->
+          let personal_vs_best_ratio =
+            List.foldi runner.splits ~init:(PersonalVsBest.empty ())
+              ~f:PersonalVsBest.process_split
+            |> PersonalVsBest.filter_outliers |> PersonalVsBest.ratio
+          in
+
+          (* TODO: check these numbers *)
+          printf "%s %d: %f\n" runner.name runner.number personal_vs_best_ratio;
+          t)
+    in
     t
 end
 
