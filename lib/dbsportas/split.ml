@@ -8,6 +8,7 @@ type t = {
   overall_time : int option;
   overall_position : int option;
   timestamp : int option;
+  mistake_time : int option;
 }
 [@@deriving yojson, fields ~fields ~iterators:create]
 
@@ -18,11 +19,15 @@ let empty () =
     overall_time = None;
     overall_position = None;
     timestamp = None;
+    mistake_time = None;
   }
 
 let make ~time ~overall_time ~timestamp =
-  { timestamp; overall_time; time; position = None; overall_position = None }
-
-(* let from_time time overall_time absolute_time = *)
-(*   (* TODO: should these be options or keep it as -1 ?? *) *)
-(*   { time; overall_time; position = -1; overall_position = -1 } *)
+  {
+    timestamp;
+    overall_time;
+    time;
+    position = None;
+    overall_position = None;
+    mistake_time = None;
+  }

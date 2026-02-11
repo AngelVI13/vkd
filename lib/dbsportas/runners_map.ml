@@ -35,6 +35,13 @@ let update_runner_positions_for_same_time ~field ~control_idx (position, map)
   let position_idx = position + List.length splits_with_same_time in
   (position_idx, map)
 
+let update_runner_mistake_for_control ~control_idx ~runner_num mistake_time t =
+  Map.update t runner_num ~f:(fun runner ->
+      match runner with
+      | None -> assert false
+      | Some runner ->
+          Runner_result.update_mistake_for_split runner control_idx mistake_time)
+
 (* get list of sublists. Each sublist represent each runners time for that
      control idx. Sublists are sorted from fastest to slowest. Each sublist
      element is another list because sometimes multiple runners have the same
@@ -95,13 +102,18 @@ let update_runner_positions ~time_field ~position_field (t : t) =
       let _, map = List.fold splits_for_control ~init:(1, map) ~f:update_fn in
       map)
 
+let calculate_mistake ~(time : int) ~(reference : int) ~(perf_ratio : float) =
+  Float.(to_int (round_nearest (of_int time - (of_int reference * perf_ratio))))
+
 let update_runner_mistakes (t : t) : t =
   let fst_times, snd_times =
     fst_and_snd_best_splits ~time_field:Split.Fields.time t
   in
 
-  let _ =
-    Map.map t ~f:(fun runner ->
+  (* TODO: if we have just 1 runner, we don't calculate mistakes. TEST THIS !!!! *)
+  if List.nth_exn fst_times 0 = List.nth_exn snd_times 0 then t
+  else
+    List.fold (Map.data t) ~init:t ~f:(fun new_t runner ->
         let personal_vs_best_ratio =
           List.foldi runner.splits
             ~init:(Personal_vs_best.empty ())
@@ -109,8 +121,32 @@ let update_runner_mistakes (t : t) : t =
           |> Personal_vs_best.filter_outliers |> Personal_vs_best.ratio
         in
 
-        (* TODO: calculate and update runner mistakes *)
-        printf "%s %d: %f\n" runner.name runner.number personal_vs_best_ratio;
-        t)
-  in
-  t
+        printf "%s %d: %f [" runner.name runner.number personal_vs_best_ratio;
+        let new_t =
+          List.foldi runner.splits ~init:new_t
+            ~f:(fun control_idx new_tt split ->
+              match split.time with
+              | None ->
+                  printf "-, ";
+                  new_tt
+              | Some time ->
+                  let best_time = List.nth_exn fst_times control_idx in
+                  let snd_time = List.nth_exn snd_times control_idx in
+                  let reference =
+                    if time > best_time then best_time else snd_time
+                  in
+                  let mistake =
+                    calculate_mistake ~time ~reference
+                      ~perf_ratio:personal_vs_best_ratio
+                  in
+
+                  if mistake >= 10 then (
+                    printf "%d, " mistake;
+                    update_runner_mistake_for_control ~control_idx
+                      ~runner_num:runner.number mistake new_tt)
+                  else (
+                    printf "-, ";
+                    new_tt))
+        in
+        printf "]\n";
+        new_t)
