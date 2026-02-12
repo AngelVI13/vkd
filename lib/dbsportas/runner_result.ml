@@ -11,6 +11,7 @@ type t = {
   status : resultStatus;
   time : int;
   splits : Splits.t;
+  stats : Runner_stats.t;
 }
 [@@deriving fields ~fields ~iterators:create, yojson]
 
@@ -32,17 +33,22 @@ let of_resp (runner : Response.RunnerResp.t) =
 (* calculate overall mistake time for the whole run *)
 (* TODO: OR SHOULD THIS BE DONE ON THE DB queries level ? *)
 let update_position_for_split ~field r split_idx position =
+  let stats = Runner_stats.add_split_position_to_stats r.stats position in
+
   let splits =
     List.mapi r.splits ~f:(fun i split ->
         if i = split_idx then Field.fset field split (Some position) else split)
   in
-  { r with splits }
+  { r with splits; stats }
 
 let update_mistake_for_split r split_idx mistake_time =
-  let mistake_filed = Split.Fields.mistake_time in
+  let stats =
+    { r.stats with mistake_time = r.stats.mistake_time + mistake_time }
+  in
+  let mistake_field = Split.Fields.mistake_time in
   let splits =
     List.mapi r.splits ~f:(fun i split ->
-        if i = split_idx then Field.fset mistake_filed split (Some mistake_time)
+        if i = split_idx then Field.fset mistake_field split (Some mistake_time)
         else split)
   in
-  { r with splits }
+  { r with splits; stats }
