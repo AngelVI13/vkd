@@ -26,7 +26,7 @@ let of_resp (runner : Response.RunnerResp.t) =
   Fields.create ~number:runner.number ~name:runner.name ~club:runner.club
     ~start:runner.start ~time
     ~status:(if runner.flag = 0 && not has_dsq then Finished else Dsq)
-    ~splits
+    ~splits ~stats:(Runner_stats.empty ())
 
 (* TODO: in both update methods, keep track of interesting data, i.e. number of big mistakes (>=60secs), number of small mistakes,  *)
 (* number of best times for control etc. *)
@@ -42,9 +42,8 @@ let update_position_for_split ~field r split_idx position =
   { r with splits; stats }
 
 let update_mistake_for_split r split_idx mistake_time =
-  let stats =
-    { r.stats with mistake_time = r.stats.mistake_time + mistake_time }
-  in
+  (* TODO: test the mistake stats *)
+  let stats = Runner_stats.add_mistake_to_stats r.stats mistake_time in
   let mistake_field = Split.Fields.mistake_time in
   let splits =
     List.mapi r.splits ~f:(fun i split ->

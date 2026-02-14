@@ -3,18 +3,13 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 type t = {
   mistake_time : int;
+  mistake_num : int;
   (* mistake < 60 seconds *)
-  small_mistakes_time : int;
-  small_mistakes_num : int;
-  small_mistakes_time_ratio : int;
+  small_mistakes : Mistake_stats.t;
   (* mistake < 120 seconds *)
-  big_mistakes_time : int;
-  big_mistakes_num : int;
-  big_mistakes_time_ratio : int;
+  big_mistakes : Mistake_stats.t;
   (* mistake >= 120 seconds *)
-  blunders_time : int;
-  blunders_num : int;
-  blunders_time_ratio : int;
+  blunder_mistakes : Mistake_stats.t;
   (* tilt rate refers to amount of mistakes after which you make another
      mistake / divided by the total number of mistakes
 
@@ -41,22 +36,34 @@ type t = {
   position_gender : int option;
   (* M-21A; V-12; M-D40; V-D21 *)
   position_group : int option;
+      (* calculate potential time, this is time - all mistakes 
+and calculate potential position i.e. if you didn't have any mistakes then what position would you be .
+maybe also calculate if nobody did any mistakes then what position would you take
+   *)
+
+      (* calculate how evenly you ran the race. Take average of all your
+         positions for splits where you didn't make a mistake, then split the
+         controls to first half and second half (or into 3) and try to identify
+         if you overpushed in the beginning or you ran the race evenly etc.
+
+
+         or maybe a better way to calculate it is to split the race into 3
+         parts and then sum your time for each part. then compare with the
+         people finished next to you and determine if you lost time compared to
+         them or if you gained compare to them etc.
+         *)
 }
 [@@deriving fields ~fields ~iterators:create, yojson]
 
 let empty () =
   {
     mistake_time = 0;
-    small_mistakes_time = 0;
-    small_mistakes_num = 0;
-    small_mistakes_time_ratio = 0;
-    big_mistakes_time = 0;
-    big_mistakes_num = 0;
-    big_mistakes_time_ratio = 0;
-    blunders_time = 0;
-    blunders_num = 0;
-    blunders_time_ratio = 0;
+    mistake_num = 0;
+    small_mistakes = Mistake_stats.empty ();
+    big_mistakes = Mistake_stats.empty ();
+    blunder_mistakes = Mistake_stats.empty ();
     tilt_rate = 0;
+    flow_rate = 0;
     best_splits = 0;
     top5_splits = 0;
     top10_splits = 0;
@@ -75,3 +82,21 @@ let add_split_position_to_stats t position =
   match position_stat_field with
   | None -> t
   | Some field -> Field.fset field t (Field.get field t + 1)
+
+let add_mistake_to_stats t mistake =
+  let mistake_field =
+    if mistake < 60 then Fields.small_mistakes
+    else if mistake < 120 then Fields.big_mistakes
+    else Fields.blunder_mistakes
+  in
+  let mistake_t = Field.get mistake_field t in
+  let mistake_t =
+    Mistake_stats.Fields.create ~num:(mistake_t.num + 1)
+      ~time:(mistake_t.time + mistake) ~time_ratio:mistake_t.time_ratio
+  in
+  let new_t = Field.fset mistake_field t mistake_t in
+  {
+    new_t with
+    mistake_time = t.mistake_time + mistake;
+    mistake_num = t.mistake_num + 1;
+  }
