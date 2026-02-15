@@ -97,9 +97,7 @@ let add_mistake_to_stats t mistake =
     else Fields.blunder_mistakes
   in
   let mistake_t = Field.get mistake_field t in
-  let mistake_t =
-    Mistake_stats.update mistake_t ~time:mistake
-      ~overall_mistake_time:new_mistake_time
-  in
+  let mistake_t = Mistake_stats.update mistake_t mistake in
   let new_t = Field.fset mistake_field t mistake_t in
+  (* TODO: mistake ratios have to be updated after all the mistake data is filled in otherwise it leads to wrong ratios *)
   { new_t with mistake_time = new_mistake_time; mistake_num = new_mistake_num }
