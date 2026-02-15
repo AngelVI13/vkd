@@ -74,6 +74,10 @@ let empty () =
 
 let add_split_position_to_stats t position =
   let position_stat_field =
+    (* TODO: what makes sense to present this data? *)
+    (* - 1st: 1 || top5: 8 || top10: 7 *)
+    (* - 1st: 1 || top5: 9 || top10: 16 *)
+    (* SHOULD the totals include the smaller subsection in itself or not? *)
     if position = 1 then Some Fields.best_splits
     else if position <= 5 then Some Fields.top5_splits
     else if position <= 10 then Some Fields.top10_splits
@@ -84,6 +88,9 @@ let add_split_position_to_stats t position =
   | Some field -> Field.fset field t (Field.get field t + 1)
 
 let add_mistake_to_stats t mistake =
+  let new_mistake_time = t.mistake_time + mistake in
+  let new_mistake_num = t.mistake_num + 1 in
+
   let mistake_field =
     if mistake < 60 then Fields.small_mistakes
     else if mistake < 120 then Fields.big_mistakes
@@ -91,12 +98,8 @@ let add_mistake_to_stats t mistake =
   in
   let mistake_t = Field.get mistake_field t in
   let mistake_t =
-    Mistake_stats.Fields.create ~num:(mistake_t.num + 1)
-      ~time:(mistake_t.time + mistake) ~time_ratio:mistake_t.time_ratio
+    Mistake_stats.update mistake_t ~time:mistake
+      ~overall_mistake_time:new_mistake_time
   in
   let new_t = Field.fset mistake_field t mistake_t in
-  {
-    new_t with
-    mistake_time = t.mistake_time + mistake;
-    mistake_num = t.mistake_num + 1;
-  }
+  { new_t with mistake_time = new_mistake_time; mistake_num = new_mistake_num }

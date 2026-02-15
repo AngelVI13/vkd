@@ -28,12 +28,14 @@ let of_resp (runner : Response.RunnerResp.t) =
     ~status:(if runner.flag = 0 && not has_dsq then Finished else Dsq)
     ~splits ~stats:(Runner_stats.empty ())
 
-(* TODO: in both update methods, keep track of interesting data, i.e. number of big mistakes (>=60secs), number of small mistakes,  *)
-(* number of best times for control etc. *)
-(* calculate overall mistake time for the whole run *)
-(* TODO: OR SHOULD THIS BE DONE ON THE DB queries level ? *)
 let update_position_for_split ~field r split_idx position =
-  let stats = Runner_stats.add_split_position_to_stats r.stats position in
+  let stats =
+    (* TODO: this is very hacky but this function is used for different fields
+  and stats are collected currently only for individual splits *)
+    if String.(Field.name field = "position") then
+      Runner_stats.add_split_position_to_stats r.stats position
+    else r.stats
+  in
 
   let splits =
     List.mapi r.splits ~f:(fun i split ->
@@ -44,6 +46,7 @@ let update_position_for_split ~field r split_idx position =
 let update_mistake_for_split r split_idx mistake_time =
   (* TODO: test the mistake stats *)
   let stats = Runner_stats.add_mistake_to_stats r.stats mistake_time in
+  printf "    %s\n" (Runner_stats.yojson_of_t stats |> Yojson.Safe.to_string);
   let mistake_field = Split.Fields.mistake_time in
   let splits =
     List.mapi r.splits ~f:(fun i split ->

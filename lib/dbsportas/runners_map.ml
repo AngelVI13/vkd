@@ -84,7 +84,6 @@ let fst_and_snd_best_splits ~time_field (t : t) =
     |> List.transpose_exn
   in
 
-  (* TODO: these should not be calculated again for every single runner cause they will be the same *)
   let fst_times = List.nth_exn fst_and_snd_splits 0 in
   let snd_times = List.nth_exn fst_and_snd_splits 1 in
 
