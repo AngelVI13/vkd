@@ -72,32 +72,35 @@ let empty () =
     position_group = None;
   }
 
+let update_field t ~field ~f = Field.fset field t (f (Field.get field t))
+let incr_field t ~field = update_field t ~field ~f:(fun v -> v + 1)
+
 let add_split_position_to_stats t position =
-  let position_stat_field =
-    (* TODO: what makes sense to present this data? *)
-    (* - 1st: 1 || top5: 8 || top10: 7 *)
-    (* - 1st: 1 || top5: 9 || top10: 16 *)
-    (* SHOULD the totals include the smaller subsection in itself or not? *)
-    if position = 1 then Some Fields.best_splits
-    else if position <= 5 then Some Fields.top5_splits
-    else if position <= 10 then Some Fields.top10_splits
-    else None
-  in
-  match position_stat_field with
-  | None -> t
-  | Some field -> Field.fset field t (Field.get field t + 1)
+  let field1 = if position = 1 then Some Fields.best_splits else None in
+  let field2 = if position <= 5 then Some Fields.top5_splits else None in
+  let field3 = if position <= 10 then Some Fields.top10_splits else None in
+  let fields_to_update = [ field1; field2; field3 ] |> List.filter_opt in
+
+  List.fold fields_to_update ~init:t ~f:(fun t field -> incr_field t ~field)
 
 let add_mistake_to_stats t mistake =
   let new_mistake_time = t.mistake_time + mistake in
   let new_mistake_num = t.mistake_num + 1 in
 
   let mistake_field =
-    if mistake < 60 then Fields.small_mistakes
-    else if mistake < 120 then Fields.big_mistakes
+    if mistake <= 30 then Fields.small_mistakes
+    else if mistake <= 120 then Fields.big_mistakes
     else Fields.blunder_mistakes
   in
   let mistake_t = Field.get mistake_field t in
-  let mistake_t = Mistake_stats.update mistake_t mistake in
+  let mistake_t = Mistake_stats.update_time mistake_t mistake in
   let new_t = Field.fset mistake_field t mistake_t in
-  (* TODO: mistake ratios have to be updated after all the mistake data is filled in otherwise it leads to wrong ratios *)
   { new_t with mistake_time = new_mistake_time; mistake_num = new_mistake_num }
+
+let update_mistake_ratios t =
+  [ Fields.small_mistakes; Fields.big_mistakes; Fields.blunder_mistakes ]
+  |> List.fold ~init:t ~f:(fun t field ->
+         update_field t ~field
+           ~f:
+             (Mistake_stats.update_ratio ~overall_time:t.mistake_time
+                ~overall_num:t.mistake_num))

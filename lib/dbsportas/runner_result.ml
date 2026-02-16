@@ -30,9 +30,7 @@ let of_resp (runner : Response.RunnerResp.t) =
 
 let update_position_for_split ~field r split_idx position =
   let stats =
-    (* TODO: this is very hacky but this function is used for different fields
-  and stats are collected currently only for individual splits *)
-    if String.(Field.name field = "position") then
+    if String.(Field.name field = Field.name Split.Fields.position) then
       Runner_stats.add_split_position_to_stats r.stats position
     else r.stats
   in
@@ -44,7 +42,6 @@ let update_position_for_split ~field r split_idx position =
   { r with splits; stats }
 
 let update_mistake_for_split r split_idx mistake_time =
-  (* TODO: test the mistake stats *)
   let stats = Runner_stats.add_mistake_to_stats r.stats mistake_time in
   printf "    %s\n" (Runner_stats.yojson_of_t stats |> Yojson.Safe.to_string);
   let mistake_field = Split.Fields.mistake_time in
@@ -54,3 +51,8 @@ let update_mistake_for_split r split_idx mistake_time =
         else split)
   in
   { r with splits; stats }
+
+let update_mistake_ratios r =
+  let stats = Runner_stats.update_mistake_ratios r.stats in
+  printf "    %s\n" (Runner_stats.yojson_of_t stats |> Yojson.Safe.to_string);
+  { r with stats }
