@@ -57,3 +57,9 @@ let update_mistake_ratios r =
 
 let update_pvb_ratio r ~ratio =
   { r with stats = Runner_stats.update_pvb_ratio r.stats ratio }
+
+let update_overall_position r ~field position =
+  {
+    r with
+    stats = Runner_stats.add_overall_position_to_stats r.stats ~field position;
+  }

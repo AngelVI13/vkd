@@ -42,7 +42,13 @@ module CourseResult = struct
     let finished =
       List.filter runners ~f:(fun r ->
           Runner_result.equal_resultStatus r.status Runner_result.Finished)
+      |> List.mapi ~f:(fun i r ->
+             Runner_result.update_overall_position r
+               ~field:Runner_stats.Fields.overall_position (i + 1))
     in
+    (* TODO: sort & group by gender and then sort & group by age class
+       THIS HAS TO BE DONE ON THE UPPER LEVEL because splits do not contain the
+       class information *)
     let dsq =
       List.filter runners ~f:(fun r ->
           Runner_result.equal_resultStatus r.status Runner_result.Dsq)

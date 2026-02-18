@@ -88,6 +88,9 @@ let add_split_position_to_stats t position =
 
   List.fold fields_to_update ~init:t ~f:(fun t field -> incr_field t ~field)
 
+let add_overall_position_to_stats t ~field position =
+  Field.fset field t (Some position)
+
 let add_mistake_to_stats t mistake =
   let new_mistake_time = t.mistake_time + mistake in
   let new_mistake_num = t.mistake_num + 1 in
