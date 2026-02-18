@@ -31,6 +31,10 @@ type t = {
   best_splits : int;
   top5_splits : int;
   top10_splits : int;
+  (* removing any big mistakes, this takes your times vs the best times for each split.
+   I.e. if your ratio is 50% this means that you ran 2x slower than the best times for 
+   each control *)
+  performance : int;
   overall_position : int option;
   (* M(oteris) / V(yras) *)
   position_gender : int option;
@@ -67,6 +71,7 @@ let empty () =
     best_splits = 0;
     top5_splits = 0;
     top10_splits = 0;
+    performance = 0;
     overall_position = None;
     position_gender = None;
     position_group = None;
@@ -104,3 +109,11 @@ let update_mistake_ratios t =
            ~f:
              (Mistake_stats.update_ratio ~overall_time:t.mistake_time
                 ~overall_num:t.mistake_num))
+
+let update_pvb_ratio t ratio =
+  (* NOTE: the ratio here is in the form 1.1567 - which means you took 15% more
+     time on average to each control compared to the best times for that
+     control *)
+  let performance = 1. /. ratio *. 100.0 in
+  let performance = Float.(to_int (round_nearest performance)) in
+  { t with performance }

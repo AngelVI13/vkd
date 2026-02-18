@@ -28,7 +28,7 @@ let of_resp (runner : Response.RunnerResp.t) =
     ~status:(if runner.flag = 0 && not has_dsq then Finished else Dsq)
     ~splits ~stats:(Runner_stats.empty ())
 
-let update_position_for_split ~field r split_idx position =
+let update_position_for_split r ~field ~split_idx ~position =
   let stats =
     if String.(Field.name field = Field.name Split.Fields.position) then
       Runner_stats.add_split_position_to_stats r.stats position
@@ -41,9 +41,8 @@ let update_position_for_split ~field r split_idx position =
   in
   { r with splits; stats }
 
-let update_mistake_for_split r split_idx mistake_time =
+let update_mistake_for_split r ~split_idx ~mistake_time =
   let stats = Runner_stats.add_mistake_to_stats r.stats mistake_time in
-  printf "    %s\n" (Runner_stats.yojson_of_t stats |> Yojson.Safe.to_string);
   let mistake_field = Split.Fields.mistake_time in
   let splits =
     List.mapi r.splits ~f:(fun i split ->
@@ -56,3 +55,6 @@ let update_mistake_ratios r =
   let stats = Runner_stats.update_mistake_ratios r.stats in
   printf "    %s\n" (Runner_stats.yojson_of_t stats |> Yojson.Safe.to_string);
   { r with stats }
+
+let update_pvb_ratio r ~ratio =
+  { r with stats = Runner_stats.update_pvb_ratio r.stats ratio }

@@ -10,14 +10,9 @@ let of_runners (runners : Runner_result.t list) : t =
 
 let to_runners t = Map.data t
 
-let update_runner_position_for_split ~field control_idx position t
-    (runner_num, _) =
+let update_runner t ~runner_num ~f =
   Map.update t runner_num ~f:(fun runner ->
-      match runner with
-      | None -> assert false
-      | Some runner ->
-          Runner_result.update_position_for_split ~field runner control_idx
-            position)
+      match runner with None -> assert false | Some runner -> f runner)
 
 let filter_and_sort_splits splits_for_control =
   List.filter splits_for_control ~f:(fun (_, value) -> Option.is_some value)
@@ -29,25 +24,14 @@ let filter_and_sort_splits splits_for_control =
 let update_runner_positions_for_same_time ~field ~control_idx (position, map)
     splits_with_same_time =
   let map =
-    List.fold splits_with_same_time ~init:map
-      ~f:(update_runner_position_for_split ~field control_idx position)
+    List.fold splits_with_same_time ~init:map ~f:(fun map (runner_num, _) ->
+        update_runner map ~runner_num
+          ~f:
+            (Runner_result.update_position_for_split ~field
+               ~split_idx:control_idx ~position))
   in
   let position_idx = position + List.length splits_with_same_time in
   (position_idx, map)
-
-let update_runner_mistake_for_control ~control_idx ~runner_num mistake_time t =
-  Map.update t runner_num ~f:(fun runner ->
-      match runner with
-      | None -> assert false
-      | Some runner ->
-          Runner_result.update_mistake_for_split runner control_idx mistake_time)
-
-(* TODO: this pattern is the same, factor it out and just pass a function to it *)
-let update_mistake_ratios t ~runner_num =
-  Map.update t runner_num ~f:(fun runner ->
-      match runner with
-      | None -> assert false
-      | Some runner -> Runner_result.update_mistake_ratios runner)
 
 (* get list of sublists. Each sublist represent each runners time for that
      control idx. Sublists are sorted from fastest to slowest. Each sublist
@@ -119,11 +103,12 @@ let calculate_pvb_ratio ~fst_times ~snd_times splits =
 
 let update_runner_mistake_splits (t : t) ~fst_times ~snd_times
     (runner : Runner_result.t) : t =
+  let runner_num = runner.number in
   let personal_vs_best_ratio =
     calculate_pvb_ratio ~fst_times ~snd_times runner.splits
   in
 
-  printf "%s %d: %f [" runner.name runner.number personal_vs_best_ratio;
+  printf "%s %d: %f [" runner.name runner_num personal_vs_best_ratio;
   let new_t =
     List.foldi runner.splits ~init:t ~f:(fun control_idx t split ->
         match split.time with
@@ -141,13 +126,19 @@ let update_runner_mistake_splits (t : t) ~fst_times ~snd_times
 
             if mistake >= 10 then (
               printf "%d, " mistake;
-              update_runner_mistake_for_control ~control_idx
-                ~runner_num:runner.number mistake t)
+              update_runner t ~runner_num
+                ~f:
+                  (Runner_result.update_mistake_for_split ~split_idx:control_idx
+                     ~mistake_time:mistake))
             else (
               printf "-, ";
               t))
   in
-  let new_t = update_mistake_ratios new_t ~runner_num:runner.number in
+  let new_t =
+    update_runner new_t ~runner_num ~f:Runner_result.update_mistake_ratios
+    |> update_runner ~runner_num
+         ~f:(Runner_result.update_pvb_ratio ~ratio:personal_vs_best_ratio)
+  in
   printf "]\n";
   new_t
 

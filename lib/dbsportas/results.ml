@@ -48,7 +48,6 @@ module CourseResult = struct
           Runner_result.equal_resultStatus r.status Runner_result.Dsq)
     in
 
-    (* TODO: calculate mistakes here and add them to the split record *)
     Fields.create ~course_name ~course_id ~controls ~finished ~dsq
 end
 
