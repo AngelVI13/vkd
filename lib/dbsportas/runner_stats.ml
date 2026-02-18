@@ -113,7 +113,8 @@ let update_mistake_ratios t =
 let update_pvb_ratio t ratio =
   (* NOTE: the ratio here is in the form 1.1567 - which means you took 15% more
      time on average to each control compared to the best times for that
-     control *)
+     control. Because of that we convert it to the more human readable form of
+     percentage from the best times, i.e. your performance is at 85% of the best *)
   let performance = 1. /. ratio *. 100.0 in
   let performance = Float.(to_int (round_nearest performance)) in
   { t with performance }

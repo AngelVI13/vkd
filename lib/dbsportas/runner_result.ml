@@ -53,7 +53,6 @@ let update_mistake_for_split r ~split_idx ~mistake_time =
 
 let update_mistake_ratios r =
   let stats = Runner_stats.update_mistake_ratios r.stats in
-  printf "    %s\n" (Runner_stats.yojson_of_t stats |> Yojson.Safe.to_string);
   { r with stats }
 
 let update_pvb_ratio r ~ratio =
