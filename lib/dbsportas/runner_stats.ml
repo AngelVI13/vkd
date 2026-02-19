@@ -1,6 +1,16 @@
 open Core
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
+type raceExecution = EvenSplit | NegativeSplit | PositiveSplit
+[@@deriving yojson]
+
+type mistakeCluster =
+  | BeginningCluster
+  | MiddleCluster
+  | EndCluster
+  | Scattered
+[@@deriving yojson]
+
 type t = {
   mistake_time : int;
   mistake_num : int;
@@ -29,6 +39,18 @@ type t = {
      TODO: add more examples here
      *)
   flow_rate : int;
+  (* calculate if a significant percentage of errors are clustered in one of the
+    zones (beginning,middle,end) or are scattered
+    *)
+  mistake_cluster : mistakeCluster option;
+  (* Race execution is calculated by splitting the race in half and then
+    checking your overall position at the half point and at the finish
+     Race execution types:
+     - Even - a difference between 1-2 positions from mid point and finish
+     - Negative - went up a few places towards the end of the race
+     - Positive - went down a few places towards the end of the race
+    *)
+  race_execution : raceExecution option;
   (* 1st place time for the split *)
   best_splits : int;
   top5_splits : int;
@@ -71,7 +93,9 @@ let empty () =
     blunder_mistakes = Mistake_stats.empty ();
     consecutive_mistakes = 0;
     tilt_rate = 0;
+    mistake_cluster = None;
     flow_rate = 0;
+    race_execution = None;
     best_splits = 0;
     top5_splits = 0;
     top10_splits = 0;

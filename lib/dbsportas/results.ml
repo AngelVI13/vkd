@@ -44,7 +44,15 @@ module CourseResult = struct
           Runner_result.equal_resultStatus r.status Runner_result.Finished)
       |> List.mapi ~f:(fun i r ->
              Runner_result.update_overall_position r
-               ~field:Runner_stats.Fields.overall_position (i + 1))
+               ~field:Runner_stats.Fields.overall_position (i + 1)
+             |> Runner_result.update_race_execution
+             |> Runner_result.update_mistake_cluster
+             |> fun (r : Runner_result.t) ->
+             let stats_str =
+               Runner_stats.yojson_of_t r.stats |> Yojson.Safe.to_string
+             in
+             printf "%d. %s: %s\n\n" (i + 1) r.name stats_str;
+             r)
     in
     (* TODO: sort & group by gender and then sort & group by age class
        THIS HAS TO BE DONE ON THE UPPER LEVEL because splits do not contain the
