@@ -112,9 +112,7 @@ let update_runner_mistake_splits (t : t) ~fst_times ~snd_times
   let new_t =
     List.foldi runner.splits ~init:t ~f:(fun control_idx t split ->
         match split.time with
-        | None ->
-            printf "-, ";
-            t
+        | None -> t
         | Some time ->
             let best_time = List.nth_exn fst_times control_idx in
             let snd_time = List.nth_exn snd_times control_idx in
@@ -124,15 +122,12 @@ let update_runner_mistake_splits (t : t) ~fst_times ~snd_times
                 ~perf_ratio:personal_vs_best_ratio
             in
 
-            if mistake >= 10 then (
-              printf "%d, " mistake;
+            if mistake >= 10 then
               update_runner t ~runner_num
                 ~f:
                   (Runner_result.update_mistake_for_split ~split_idx:control_idx
-                     ~mistake_time:mistake))
-            else (
-              printf "-, ";
-              t))
+                     ~mistake_time:mistake)
+            else t)
   in
   let new_t =
     update_runner new_t ~runner_num ~f:Runner_result.update_mistake_ratios

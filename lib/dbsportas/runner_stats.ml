@@ -4,6 +4,7 @@ open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 type t = {
   mistake_time : int;
   mistake_num : int;
+  mistake_indexes : int list;
   (* mistake < 60 seconds *)
   small_mistakes : Mistake_stats.t;
   (* mistake < 120 seconds *)
@@ -21,6 +22,7 @@ type t = {
     if you made 4 mistakes - 1st, 2nd and 5th and 6th - 50% tilt rate 
     if you made 4 mistakes - 1st, 2nd, 3rd, 4th - 75% tilt rate
      *)
+  consecutive_mistakes : int;
   tilt_rate : int;
   (* flow rate refers to the amount of good control times in a row 
      For example if you had the following split times: 4th; 5th; 3rd; 5th; 4th etc. -> you have 100% flow rate
@@ -63,9 +65,11 @@ let empty () =
   {
     mistake_time = 0;
     mistake_num = 0;
+    mistake_indexes = [];
     small_mistakes = Mistake_stats.empty ();
     big_mistakes = Mistake_stats.empty ();
     blunder_mistakes = Mistake_stats.empty ();
+    consecutive_mistakes = 0;
     tilt_rate = 0;
     flow_rate = 0;
     best_splits = 0;
@@ -91,9 +95,20 @@ let add_split_position_to_stats t position =
 let add_overall_position_to_stats t ~field position =
   Field.fset field t (Some position)
 
-let add_mistake_to_stats t mistake =
+let add_mistake_to_stats t ~mistake ~split_idx =
   let new_mistake_time = t.mistake_time + mistake in
   let new_mistake_num = t.mistake_num + 1 in
+  let new_mistake_indexes = split_idx :: t.mistake_indexes in
+
+  let new_consecutive_mistakes =
+    (* If we have a mistake right before this one, increment consecutive_mistakes *)
+    if List.count t.mistake_indexes ~f:(Int.equal (split_idx - 1)) > 0 then
+      t.consecutive_mistakes + 1
+    else t.consecutive_mistakes
+  in
+  let new_tilt_rate =
+    Utils.calculate_percent new_consecutive_mistakes new_mistake_num
+  in
 
   let mistake_field =
     if mistake <= 30 then Fields.small_mistakes
@@ -103,7 +118,14 @@ let add_mistake_to_stats t mistake =
   let mistake_t = Field.get mistake_field t in
   let mistake_t = Mistake_stats.update_time mistake_t mistake in
   let new_t = Field.fset mistake_field t mistake_t in
-  { new_t with mistake_time = new_mistake_time; mistake_num = new_mistake_num }
+  {
+    new_t with
+    mistake_time = new_mistake_time;
+    mistake_num = new_mistake_num;
+    mistake_indexes = new_mistake_indexes;
+    consecutive_mistakes = new_consecutive_mistakes;
+    tilt_rate = new_tilt_rate;
+  }
 
 let update_mistake_ratios t =
   [ Fields.small_mistakes; Fields.big_mistakes; Fields.blunder_mistakes ]

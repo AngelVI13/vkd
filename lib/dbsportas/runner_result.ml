@@ -42,7 +42,9 @@ let update_position_for_split r ~field ~split_idx ~position =
   { r with splits; stats }
 
 let update_mistake_for_split r ~split_idx ~mistake_time =
-  let stats = Runner_stats.add_mistake_to_stats r.stats mistake_time in
+  let stats =
+    Runner_stats.add_mistake_to_stats r.stats ~mistake:mistake_time ~split_idx
+  in
   let mistake_field = Split.Fields.mistake_time in
   let splits =
     List.mapi r.splits ~f:(fun i split ->

@@ -7,8 +7,7 @@ type t = { time : int; num : int; time_ratio : int; num_ratio : int }
 let empty () = { time = 0; num = 0; time_ratio = 0; num_ratio = 0 }
 
 let calc_percent part overall =
-  if overall = 0 then 0
-  else Float.(to_int (round_nearest 100.0 * (of_int part / of_int overall)))
+  if overall = 0 then 0 else Utils.calculate_percent part overall
 
 let update_time t time =
   let new_time = t.time + time in
