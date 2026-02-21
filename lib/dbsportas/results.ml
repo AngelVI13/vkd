@@ -74,11 +74,11 @@ module CourseResult = struct
     in
 
     (* TODO: REMOVE temporary print of results *)
-    let finished =
-      List.mapi finished ~f:(fun i r ->
-          Runner_result.print r i;
-          r)
-    in
+    (* let finished = *)
+    (*   List.mapi finished ~f:(fun i r -> *)
+    (*       Runner_result.print r i; *)
+    (*       r) *)
+    (* in *)
     (* TODO: sort & group by gender and then sort & group by age class
        THIS HAS TO BE DONE ON THE UPPER LEVEL because splits do not contain the
        class information *)
