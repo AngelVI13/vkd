@@ -131,6 +131,7 @@ let update_runner_mistake_splits (t : t) ~fst_times ~snd_times
   in
   let new_t =
     update_runner new_t ~runner_num ~f:Runner_result.update_mistake_ratios
+    |> update_runner ~runner_num ~f:Runner_result.update_potential_time
     |> update_runner ~runner_num
          ~f:(Runner_result.update_pvb_ratio ~ratio:personal_vs_best_ratio)
   in

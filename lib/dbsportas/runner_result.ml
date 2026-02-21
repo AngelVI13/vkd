@@ -28,6 +28,10 @@ let of_resp (runner : Response.RunnerResp.t) =
     ~status:(if runner.flag = 0 && not has_dsq then Finished else Dsq)
     ~splits ~stats:(Runner_stats.empty ())
 
+let print (r : t) (i : int) : unit =
+  let stats_str = Runner_stats.yojson_of_t r.stats |> Yojson.Safe.to_string in
+  printf "%d. %s: %s\n\n" (i + 1) r.name stats_str
+
 let update_position_for_split r ~field ~split_idx ~position =
   let stats =
     if String.(Field.name field = Field.name Split.Fields.position) then
@@ -57,6 +61,13 @@ let update_mistake_ratios r =
   let stats = Runner_stats.update_mistake_ratios r.stats in
   { r with stats }
 
+let update_potential_time r =
+  let stats =
+    Field.fset Runner_stats.Fields.potential_time r.stats
+      (Some (r.time - r.stats.mistake_time))
+  in
+  { r with stats }
+
 let update_pvb_ratio r ~ratio =
   { r with stats = Runner_stats.update_pvb_ratio r.stats ratio }
 
@@ -65,6 +76,13 @@ let update_overall_position r ~field position =
     r with
     stats = Runner_stats.add_overall_position_to_stats r.stats ~field position;
   }
+
+let update_potential_position r position =
+  let stats =
+    Field.fset Runner_stats.Fields.potential_position r.stats (Some position)
+    |> Runner_stats.update_mistakes_impact
+  in
+  { r with stats }
 
 (* NOTE: this should only be called on Finished runner *)
 let update_race_execution r =

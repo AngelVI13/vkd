@@ -46,13 +46,38 @@ module CourseResult = struct
              Runner_result.update_overall_position r
                ~field:Runner_stats.Fields.overall_position (i + 1)
              |> Runner_result.update_race_execution
-             |> Runner_result.update_mistake_cluster
-             |> fun (r : Runner_result.t) ->
-             let stats_str =
-               Runner_stats.yojson_of_t r.stats |> Yojson.Safe.to_string
-             in
-             printf "%d. %s: %s\n\n" (i + 1) r.name stats_str;
-             r)
+             |> Runner_result.update_mistake_cluster)
+    in
+
+    (* calculate potential position by taking your potential time and finding
+       your potential position by looping thourgh the results from top to bottom
+       and finding the position at which a runners time is bigger than yours, that is
+       your potential position *)
+    let finished =
+      List.map finished ~f:(fun r ->
+          let potential_position =
+            if Option.value_exn r.stats.overall_position = 1 then 1
+            else
+              let potential_time = Option.value_exn r.stats.potential_time in
+              let position =
+                List.fold finished ~init:None ~f:(fun pos r ->
+                    match pos with
+                    | Some _ -> pos
+                    | None ->
+                        if r.time > potential_time then r.stats.overall_position
+                        else None)
+                |> Option.value_exn
+              in
+              position
+          in
+          Runner_result.update_potential_position r potential_position)
+    in
+
+    (* TODO: REMOVE temporary print of results *)
+    let finished =
+      List.mapi finished ~f:(fun i r ->
+          Runner_result.print r i;
+          r)
     in
     (* TODO: sort & group by gender and then sort & group by age class
        THIS HAS TO BE DONE ON THE UPPER LEVEL because splits do not contain the

@@ -11,6 +11,9 @@ type mistakeCluster =
   | Scattered
 [@@deriving yojson]
 
+type mistakesImpact = NoImpact | MinorImpact | SignificatImpact | HugeImpact
+[@@deriving yojson]
+
 type t = {
   mistake_time : int;
   mistake_num : int;
@@ -34,15 +37,18 @@ type t = {
      *)
   consecutive_mistakes : int;
   tilt_rate : int;
-  (* flow rate refers to the amount of good control times in a row 
-     For example if you had the following split times: 4th; 5th; 3rd; 5th; 4th etc. -> you have 100% flow rate
-     TODO: add more examples here
-     *)
-  flow_rate : int;
   (* calculate if a significant percentage of errors are clustered in one of the
     zones (beginning,middle,end) or are scattered
     *)
   mistake_cluster : mistakeCluster option;
+  (* This takes the difference between your actual position and your potential position
+     to determine how impactfull were your mistakes:
+       - NoImpact - no difference
+       - MinorImpact - 1-2 places difference
+       - SignificatImpact - 3-4 places difference
+       - HugeImpact - 5 or more places difference
+   *)
+  mistakes_impact : mistakesImpact option;
   (* Race execution is calculated by splitting the race in half and then
     checking your overall position at the half point and at the finish
      Race execution types:
@@ -64,22 +70,10 @@ type t = {
   position_gender : int option;
   (* M-21A; V-12; M-D40; V-D21 *)
   position_group : int option;
-      (* calculate potential time, this is time - all mistakes 
-and calculate potential position i.e. if you didn't have any mistakes then what position would you be .
-maybe also calculate if nobody did any mistakes then what position would you take
-   *)
-
-      (* calculate how evenly you ran the race. Take average of all your
-         positions for splits where you didn't make a mistake, then split the
-         controls to first half and second half (or into 3) and try to identify
-         if you overpushed in the beginning or you ran the race evenly etc.
-
-
-         or maybe a better way to calculate it is to split the race into 3
-         parts and then sum your time for each part. then compare with the
-         people finished next to you and determine if you lost time compared to
-         them or if you gained compare to them etc.
-         *)
+  (* potential time, this is time - all mistakes
+     potential position, if you didn't have any mistakes then what position would you be . *)
+  potential_time : int option;
+  potential_position : int option;
 }
 [@@deriving fields ~fields ~iterators:create, yojson]
 
@@ -94,7 +88,7 @@ let empty () =
     consecutive_mistakes = 0;
     tilt_rate = 0;
     mistake_cluster = None;
-    flow_rate = 0;
+    mistakes_impact = None;
     race_execution = None;
     best_splits = 0;
     top5_splits = 0;
@@ -103,6 +97,8 @@ let empty () =
     overall_position = None;
     position_gender = None;
     position_group = None;
+    potential_time = None;
+    potential_position = None;
   }
 
 let update_field t ~field ~f = Field.fset field t (f (Field.get field t))
@@ -167,3 +163,19 @@ let update_pvb_ratio t ratio =
   let performance = 1. /. ratio *. 100.0 in
   let performance = Float.(to_int (round_nearest performance)) in
   { t with performance }
+
+let update_mistakes_impact t =
+  match (t.overall_position, t.potential_position) with
+  | None, None -> t
+  | Some overall_position, Some potential_position ->
+      let diff = overall_position - potential_position in
+      let mistakes_impact =
+        (if diff = 0 then NoImpact
+         else if diff <= 2 then MinorImpact
+         else if diff <= 4 then SignificatImpact
+         else if diff > 4 then HugeImpact
+         else assert false)
+        |> Option.some
+      in
+      { t with mistakes_impact }
+  | _ -> assert false
