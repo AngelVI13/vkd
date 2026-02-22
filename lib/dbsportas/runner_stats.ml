@@ -2,17 +2,17 @@ open Core
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 type raceExecution = EvenSplit | NegativeSplit | PositiveSplit
-[@@deriving yojson]
+[@@deriving yojson, show]
 
 type mistakeCluster =
   | BeginningCluster
   | MiddleCluster
   | EndCluster
   | Scattered
-[@@deriving yojson]
+[@@deriving yojson, show]
 
 type mistakesImpact = NoImpact | MinorImpact | SignificatImpact | HugeImpact
-[@@deriving yojson]
+[@@deriving yojson, show]
 
 type t = {
   mistake_time : int;
@@ -75,7 +75,7 @@ type t = {
   potential_time : int option;
   potential_position : int option;
 }
-[@@deriving fields ~fields ~iterators:create, yojson]
+[@@deriving fields ~fields ~iterators:create, yojson, show]
 
 let empty () =
   {

@@ -9,7 +9,7 @@ module CourseResult = struct
     finished : Runner_result.t list;
     dsq : Runner_result.t list;
   }
-  [@@deriving fields, yojson]
+  [@@deriving fields, yojson, show]
 
   let of_resp (runners : Response.RunnerResp.t list)
       (course : Response.CourseResp.t) =
@@ -100,13 +100,13 @@ module ResultsTable = struct
     { course_results }
 end
 
-let parse_course_results_table json_chan =
-  let json = Yojson.Safe.from_channel json_chan in
+let parse_course_results_table data =
+  let json = Yojson.Safe.from_string data in
   Response.ResultsTableResp.t_of_yojson json
 
 let%expect_test "parse_course_results_table" =
   let filename = "/home/angel/Documents/ocaml/vkd/splits_resp.json" in
-  let splits_resp = In_channel.create filename in
+  let splits_resp = In_channel.read_all filename in
   let results_table_resp = parse_course_results_table splits_resp in
   let results_table = ResultsTable.of_resp results_table_resp in
   (* let out = Yojson.Safe.to_string (ResultsTable.yojson_of_t results_table) in *)
@@ -121,6 +121,7 @@ let%expect_test "parse_course_results_table" =
   (*   "/home/angel/Documents/ocaml/vkd/splits_resp_processed.json" *)
   (*   (ResultsTable.yojson_of_t results_table); *)
   printf "%s" "hello";
+  (* printf "%s" out; *)
   [%expect
     {|
       Barkauskas Aidas 1: 1.157742 []

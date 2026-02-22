@@ -1,7 +1,7 @@
 open Core
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-type resultStatus = Finished | Dsq [@@deriving yojson, eq]
+type resultStatus = Finished | Dsq [@@deriving yojson, eq, show]
 
 type t = {
   number : int;
@@ -13,7 +13,7 @@ type t = {
   splits : Splits.t;
   stats : Runner_stats.t;
 }
-[@@deriving fields ~fields ~iterators:create, yojson]
+[@@deriving fields ~fields ~iterators:create, yojson, show]
 
 let of_resp (runner : Response.RunnerResp.t) =
   let splits = Splits.of_string ~start:runner.start runner.splits in

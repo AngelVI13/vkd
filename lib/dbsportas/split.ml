@@ -10,7 +10,7 @@ type t = {
   timestamp : int option;
   mistake_time : int option;
 }
-[@@deriving yojson, fields ~fields ~iterators:create]
+[@@deriving yojson, fields ~fields ~iterators:create, show]
 
 let empty () =
   {

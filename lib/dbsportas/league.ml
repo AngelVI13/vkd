@@ -2,9 +2,12 @@ open Core
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 let base_url = "https://dbsportas.lt"
+let league_url = "https://dbsportas.lt/lt/mvarz"
 let league_num_placeholder = "LEAGUE_NUM"
 let event_num_placeholder = "EVENT_NUM"
-let data_url = "/msplitdata.php?varz=LEAGUE_NUM&turas=EVENT_NUM"
+
+let data_url =
+  sprintf "%s%s" base_url "/msplitdata.php?varz=LEAGUE_NUM&turas=EVENT_NUM"
 
 (* https://dbsportas.lt/lt/mvarz/244 *)
 let fetch_page__ ~(name : string) url =
@@ -62,6 +65,7 @@ module Course = struct
     distance : float;
     controls : int;
     results : CourseResult.t list;
+    detailed_results : Results.CourseResult.t;
   }
   [@@deriving show { with_path = false }, fields, yojson]
 end
@@ -172,10 +176,22 @@ let parse_course page_html =
   in
   List.rev results
 
-let parse_event page_html =
+let parse_event ~league_id ~event_nr page_html =
   let open Soup in
   let soup = parse page_html in
   let rows = parse_table_rows soup in
+
+  (* NOTE: download event splits data directly from the backed *)
+  let event_data_url =
+    String.substr_replace_all data_url ~pattern:league_num_placeholder
+      ~with_:league_id
+    |> String.substr_replace_all ~pattern:event_num_placeholder ~with_:event_nr
+  in
+  let event_data = fetch_page event_data_url in
+  let results_table_resp = Results.parse_course_results_table event_data in
+  let results_table = Results.ResultsTable.of_resp results_table_resp in
+
+  (* TODO: somewhere here calculate the gender position and class position *)
   let courses =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
@@ -185,6 +201,10 @@ let parse_event page_html =
              sprintf "%s%s" base_url course_results_url
            in
            let course_id = course_col |> R.leaf_text |> strip in
+           let detailed_results =
+             List.find_exn results_table.course_results ~f:(fun course_result ->
+                 String.(course_id = course_result.course_name))
+           in
 
            let ids = String.split course_id ~on:',' |> List.map ~f:strip in
 
@@ -206,34 +226,37 @@ let parse_event page_html =
              | _ -> assert false
            in
 
-           (* TODO: to get the splits we need to fetch the data from the backend 
-            cause that one gets loaded dynamically so we can't get it from the html page 
-            the URL for the data is made up of the league number and the event number.
-            we can build these automatically so we don't have to parse the button 
-            Tarpiniai Laikai and then try to wrangle the data_url from JS.
-            *)
-
            (* TODO: uncomment this later *)
-           (* let results_page = fetch_page course_results_url in *)
-           (* let results = parse_course results_page in *)
-           let results = [] in
+           let results_page = fetch_page course_results_url in
+           let results = parse_course results_page in
+           (* let results = [] in *)
 
            let courses =
              List.map ids ~f:(fun id ->
                  Course.Fields.create ~url:course_results_url ~id ~distance
-                   ~controls ~results)
+                   ~controls ~results ~detailed_results)
            in
            acc @ courses)
   in
+
   courses
 
-let parse_league_page page_html =
+let parse_league_page ~league_id page_html =
   let open Soup in
   let soup = parse page_html in
   let rows = parse_table_rows soup in
   let events =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
+           let tds =
+             tr $$ "td" |> to_list |> List.map ~f:R.leaf_text
+             |> List.map ~f:strip
+           in
+           let event_nr =
+             Option.bind (List.nth tds 0) ~f:(fun nr ->
+                 match Int.of_string with exception _ -> None | _ -> Some nr)
+           in
+
            let results =
              tr $? ".w3-text-green"
              |> Option.bind ~f:(fun a ->
@@ -241,12 +264,11 @@ let parse_league_page page_html =
                     let url = sprintf "%s%s" base_url url in
                     let results_html = fetch_page url in
                     printf "event page: %s" url;
-                    let courses = parse_event results_html in
+                    let event_nr = Option.value_exn event_nr in
+                    let courses =
+                      parse_event ~league_id ~event_nr results_html
+                    in
                     Some (EventResults.Fields.create ~url ~courses))
-           in
-           let tds =
-             tr $$ "td" |> to_list |> List.map ~f:R.leaf_text
-             |> List.map ~f:strip
            in
            match tds with
            | [] -> acc
@@ -256,16 +278,19 @@ let parse_league_page page_html =
   in
   List.rev events
 
-let download_league_info url =
+let download_league_info ~league_id =
+  let url = sprintf "%s/%s" league_url league_id in
   let page_html = fetch_page url in
-  let events = parse_league_page page_html in
+  let events = parse_league_page ~league_id page_html in
+
+  (* TODO: a bunch of url's in the json file are partial or missing -> fix this *)
   let _ = events in
   ()
 
 let%expect_test "download_league_info" =
-  let url = "https://dbsportas.lt/lt/mvarz/244" in
+  let league_id = "244" in
   (* let league = download_league_info url in *)
-  let _ = url in
+  let _ = league_id in
   printf "hello";
   [%expect {||}]
 
@@ -361,10 +386,14 @@ let%expect_test "download_league_info" =
 
 let%expect_test "parse_event grouped courses" =
   let filename = "/home/angel/Documents/ocaml/vkd/2025_antakalnis.html" in
-  let page_html = In_channel.read_all filename in
-  let courses = parse_event page_html in
-  let event_results = EventResults.Fields.create ~url:"" ~courses in
-  printf "%s\n" (EventResults.show event_results);
+  let _ = filename in
+  (* let page_html = In_channel.read_all filename in *)
+  (* let courses = parse_event ~league_id:"244" ~event_nr:"1" page_html in *)
+  (* let event_results = EventResults.Fields.create ~url:"" ~courses in *)
+  (* let out = EventResults.yojson_of_t event_results |> Yojson.Safe.to_string in *)
+  (* Out_channel.write_all "/home/angel/Documents/ocaml/vkd/league244_event1.json" *)
+  (*   ~data:out; *)
+  printf "%s\n" "hello";
   [%expect
     {|
     { url = "";
@@ -383,11 +412,12 @@ let%expect_test "parse_event grouped courses" =
           controls = 8; results = [] }
         ]
       }
-           |}];
+           |}]
+(* |}]; *)
 
-  printf "%s" (Yojson.Safe.to_string @@ EventResults.yojson_of_t event_results);
-  [%expect
-    {| {"url":"","courses":[{"url":"/lt/mvarz/244/reztra/1/1%2C2","id":"1","distance":4.42,"controls":21,"results":[]},{"url":"/lt/mvarz/244/reztra/1/1%2C2","id":"2","distance":4.42,"controls":21,"results":[]},{"url":"/lt/mvarz/244/reztra/1/3","id":"3","distance":3.44,"controls":16,"results":[]},{"url":"/lt/mvarz/244/reztra/1/4","id":"4","distance":2.43,"controls":12,"results":[]},{"url":"/lt/mvarz/244/reztra/1/D","id":"D","distance":6.82,"controls":14,"results":[]},{"url":"/lt/mvarz/244/reztra/1/P","id":"P","distance":1.63,"controls":8,"results":[]}]} |}]
+(* printf "%s" (Yojson.Safe.to_string @@ EventResults.yojson_of_t event_results); *)
+(* [%expect *)
+(*   {| {"url":"","courses":[{"url":"/lt/mvarz/244/reztra/1/1%2C2","id":"1","distance":4.42,"controls":21,"results":[]},{"url":"/lt/mvarz/244/reztra/1/1%2C2","id":"2","distance":4.42,"controls":21,"results":[]},{"url":"/lt/mvarz/244/reztra/1/3","id":"3","distance":3.44,"controls":16,"results":[]},{"url":"/lt/mvarz/244/reztra/1/4","id":"4","distance":2.43,"controls":12,"results":[]},{"url":"/lt/mvarz/244/reztra/1/D","id":"D","distance":6.82,"controls":14,"results":[]},{"url":"/lt/mvarz/244/reztra/1/P","id":"P","distance":1.63,"controls":8,"results":[]}]} |}] *)
 
 (* let%expect_test "parse_course results" = *)
 (*   let filename = *)

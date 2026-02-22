@@ -1,7 +1,7 @@
 open Core
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-type t = Split.t list [@@deriving yojson]
+type t = Split.t list [@@deriving yojson, show]
 
 (* TODO: finish this *)
 let of_string ~(start : int) s : t =
