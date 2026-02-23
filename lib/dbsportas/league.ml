@@ -22,57 +22,65 @@ let fetch_page url =
   let out = match res with Ok c -> c.body | Error (_, s) -> failwith s in
   out
 
-module AgeGroup = struct
+(* NOTE: this is the final result details for each runner, it merges data from the main results 
+   and data from the split results *)
+module OverallResult = struct
   type t = {
-    url : string; (* url to overall league standings for the age group *)
-    group : string;
-  }
-  [@@deriving show { with_path = false }, fields, yojson]
-end
-
-module CourseResult = struct
-  type t = {
-    position : int option;
-    number : int;
-        (* no clue what this number means, maybe its participant id or sth *)
-    group : AgeGroup.t;
     name : string; (* stored in the format: LASTNAME FIRSTNAME *)
     club : string;
-    time : string;
+    runner_nr : int;
+    group : Simple_result.AgeGroup.t;
+    time : int;
+    start : int;
     points : int;
     pace : string option; (* in min/km i.e.: 6:40 OR `dsq`*)
+    status : Runner_result.resultStatus;
+    splits : Splits.t;
+    stats : Runner_stats.t;
   }
-  [@@deriving fields, yojson]
+  [@@deriving yojson, fields]
+end
 
-  let pp ppf r =
-    let position =
-      match r.position with None -> "" | Some pos -> sprintf "%d" pos
+(* NOTE: this is the final result list for the whole course *)
+module OverallResults = struct
+  type t = { finished : OverallResult.t list; dsq : OverallResult.t list }
+  [@@deriving yojson]
+
+  let of_simple_and_detailed_results
+      ~(simple : Simple_result.CourseResult.t list)
+      ~(detailed : Results.CourseResult.t) =
+    let of_results (results : Runner_result.t list) =
+      List.map results ~f:(fun r ->
+          let simple_r =
+            List.find_exn simple ~f:(fun simple_r -> r.number = simple_r.number)
+          in
+          OverallResult.Fields.create ~name:r.name ~club:r.club
+            ~runner_nr:r.number ~group:simple_r.group ~time:r.time
+            ~start:r.start ~points:simple_r.points ~pace:simple_r.pace
+            ~status:r.status ~splits:r.splits ~stats:r.stats)
     in
-    let pace = match r.pace with None -> "" | Some pace -> pace in
-    Format.fprintf ppf
-      "{ position: %s; number: %d; group: %s; name: %s; club: %s; time: %s; \
-       points: %d; pace: %s }"
-      position r.number (AgeGroup.show r.group) r.name r.club r.time r.points
-      pace
 
-  let show r = Format.asprintf "%a" pp r
+    let finished = of_results detailed.finished in
+    let dsq = of_results detailed.dsq in
+
+    { finished; dsq }
 end
 
 module Course = struct
   type t = {
     url : string;
     id : string;
+    hash : int;
     distance : float;
-    controls : int;
-    results : CourseResult.t list;
-    detailed_results : Results.CourseResult.t;
+    controls_num : int;
+    controls : string list;
+    results : OverallResults.t;
   }
-  [@@deriving show { with_path = false }, fields, yojson]
+  [@@deriving fields, yojson]
 end
 
 module EventResults = struct
-  type t = { url : string; courses : Course.t list }
-  [@@deriving show { with_path = false }, fields, yojson]
+  type t = { url : string; courses : Course.t list } [@@deriving fields, yojson]
 end
 
 module LeagueEvent = struct
@@ -133,6 +141,7 @@ let parse_course page_html =
     |> List.fold ~init:[] ~f:(fun acc tr ->
            let group_col = tr $ ".w3-text-green" in
            let group_results_url = group_col |> R.attribute "href" in
+           let group_results_url = sprintf "%s%s" base_url group_results_url in
            let group_name = group_col |> R.leaf_text |> String.strip in
 
            let columns = tr $$ "td" |> to_list |> List.map ~f:R.leaf_text in
@@ -152,9 +161,9 @@ let parse_course page_html =
 
                  ( position,
                    Int.of_string number,
-                   name,
-                   club,
-                   time,
+                   String.strip name,
+                   String.strip club,
+                   String.strip time,
                    Int.of_string points,
                    pace )
              | _ ->
@@ -165,11 +174,13 @@ let parse_course page_html =
                       (List.length columns))
            in
 
+           let group =
+             Simple_result.AgeGroup.Fields.create ~url:group_results_url
+               ~group:group_name
+           in
+
            let result =
-             CourseResult.Fields.create ~position ~number
-               ~group:
-                 (AgeGroup.Fields.create ~url:group_results_url
-                    ~group:group_name)
+             Simple_result.CourseResult.Fields.create ~position ~number ~group
                ~name ~club ~time ~points ~pace
            in
            result :: acc)
@@ -220,21 +231,32 @@ let parse_event ~league_id ~event_nr page_html =
              |> strip
            in
            let course_parameters = String.split course_parameters ~on:' ' in
-           let distance, controls =
+           let distance, controls_num =
              match course_parameters with
              | [ dist; pts ] -> (Float.of_string dist, Int.of_string pts)
              | _ -> assert false
            in
 
-           (* TODO: uncomment this later *)
            let results_page = fetch_page course_results_url in
            let results = parse_course results_page in
-           (* let results = [] in *)
+
+           (* we can only calculate gender and group positions with the simple results data 
+              because group info is not present in the splits data *)
+           let detailed_results =
+             Results.CourseResult.update_gender_and_group_positions
+               detailed_results results
+           in
+
+           let overall_results =
+             OverallResults.of_simple_and_detailed_results ~simple:results
+               ~detailed:detailed_results
+           in
 
            let courses =
              List.map ids ~f:(fun id ->
                  Course.Fields.create ~url:course_results_url ~id ~distance
-                   ~controls ~results ~detailed_results)
+                   ~hash:detailed_results.course_id ~controls_num
+                   ~controls:detailed_results.controls ~results:overall_results)
            in
            acc @ courses)
   in
@@ -282,10 +304,7 @@ let download_league_info ~league_id =
   let url = sprintf "%s/%s" league_url league_id in
   let page_html = fetch_page url in
   let events = parse_league_page ~league_id page_html in
-
-  (* TODO: a bunch of url's in the json file are partial or missing -> fix this *)
-  let _ = events in
-  ()
+  League.Fields.create ~url ~events
 
 let%expect_test "download_league_info" =
   let league_id = "244" in

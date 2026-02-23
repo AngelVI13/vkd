@@ -73,21 +73,44 @@ module CourseResult = struct
           Runner_result.update_potential_position r potential_position)
     in
 
-    (* TODO: REMOVE temporary print of results *)
-    (* let finished = *)
-    (*   List.mapi finished ~f:(fun i r -> *)
-    (*       Runner_result.print r i; *)
-    (*       r) *)
-    (* in *)
-    (* TODO: sort & group by gender and then sort & group by age class
-       THIS HAS TO BE DONE ON THE UPPER LEVEL because splits do not contain the
-       class information *)
     let dsq =
       List.filter runners ~f:(fun r ->
           Runner_result.equal_resultStatus r.status Runner_result.Dsq)
     in
 
     Fields.create ~course_name ~course_id ~controls ~finished ~dsq
+
+  let update_gender (t : t) (simple_results : Simple_result.CourseResult.t list)
+      ~(gender_prefix : string) =
+    let gender_results =
+      List.filter t.finished ~f:(fun r ->
+          let simple_r =
+            List.find_exn simple_results ~f:(fun simple_r ->
+                simple_r.number = r.number)
+          in
+          String.is_prefix ~prefix:gender_prefix simple_r.group.group)
+    in
+    let finished =
+      List.map t.finished ~f:(fun r ->
+          match
+            List.findi gender_results ~f:(fun _ gender_r ->
+                r.number = gender_r.number)
+          with
+          | None -> r
+          | Some (i, _) ->
+              Runner_result.update_gender_or_group_position r
+                ~field:Runner_stats.Fields.position_gender (i + 1))
+    in
+    { t with finished }
+
+  let update_gender_and_group_positions t
+      (simple_results : Simple_result.CourseResult.t list) =
+    (* update gender position for men *)
+    let t = update_gender t simple_results ~gender_prefix:"V-" in
+    (* update gender position for women *)
+    let t = update_gender t simple_results ~gender_prefix:"M-" in
+    (* TODO: add fn to update_group position *)
+    t
 end
 
 module ResultsTable = struct

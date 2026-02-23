@@ -141,3 +141,7 @@ let update_mistake_cluster r =
       (Some mistake_cluster)
   in
   { r with stats }
+
+let update_gender_or_group_position r ~field position =
+  let stats = Field.fset field r.stats (Some position) in
+  { r with stats }
