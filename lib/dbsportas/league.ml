@@ -267,6 +267,11 @@ let parse_league_page ~league_id page_html =
   let open Soup in
   let soup = parse page_html in
   let rows = parse_table_rows soup in
+
+  (* TODO: remove this after testing *)
+  let rows = List.hd_exn rows in
+  let rows = [ rows ] in
+
   let events =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
@@ -308,7 +313,11 @@ let download_league_info ~league_id =
 
 let%expect_test "download_league_info" =
   let league_id = "244" in
-  (* let league = download_league_info url in *)
+  (* let league = download_league_info ~league_id in *)
+  (* let out = *)
+  (*   League.yojson_of_t league *)
+  (*   |> Yojson.Safe.to_file "/home/angel/Documents/ocaml/vkd/league244.json" *)
+  (* in *)
   let _ = league_id in
   printf "hello";
   [%expect {||}]

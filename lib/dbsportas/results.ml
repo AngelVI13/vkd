@@ -80,36 +80,64 @@ module CourseResult = struct
 
     Fields.create ~course_name ~course_id ~controls ~finished ~dsq
 
-  let update_gender (t : t) (simple_results : Simple_result.CourseResult.t list)
+  let update_gender (t : t) (runner_map : String.t Int.Map.t)
       ~(gender_prefix : string) =
-    let gender_results =
-      List.filter t.finished ~f:(fun r ->
-          let simple_r =
-            List.find_exn simple_results ~f:(fun simple_r ->
-                simple_r.number = r.number)
+    let _, finished =
+      List.fold t.finished ~init:(1, []) ~f:(fun (position, finished) r ->
+          let r_group = Map.find_exn runner_map r.number in
+
+          if String.is_prefix ~prefix:gender_prefix r_group then
+            let r =
+              Runner_result.update_gender_or_group_position r
+                ~field:Runner_stats.Fields.position_gender position
+            in
+            (position + 1, r :: finished)
+          else (position, r :: finished))
+    in
+    (* here we reverse the finished because while `folding` we created the new
+       list in reverse order *)
+    { t with finished = List.rev finished }
+
+  let update_group (t : t) (runner_map : String.t Int.Map.t) =
+    let groups =
+      List.sort_and_group t.finished ~compare:(fun r1 r2 ->
+          let group1 = Map.find_exn runner_map r1.number in
+          let group2 = Map.find_exn runner_map r2.number in
+          String.compare group1 group2)
+    in
+    let group_pos_map : Int.t Int.Map.t = Int.Map.empty in
+    let group_pos_map =
+      List.fold groups ~init:group_pos_map ~f:(fun group_pos_map group ->
+          let map =
+            List.foldi group ~init:group_pos_map ~f:(fun i map r ->
+                Map.set map ~key:r.number ~data:(i + 1))
           in
-          String.is_prefix ~prefix:gender_prefix simple_r.group.group)
+          map)
     in
     let finished =
       List.map t.finished ~f:(fun r ->
-          match
-            List.findi gender_results ~f:(fun _ gender_r ->
-                r.number = gender_r.number)
-          with
-          | None -> r
-          | Some (i, _) ->
-              Runner_result.update_gender_or_group_position r
-                ~field:Runner_stats.Fields.position_gender (i + 1))
+          let position = Map.find_exn group_pos_map r.number in
+          Runner_result.update_gender_or_group_position r
+            ~field:Runner_stats.Fields.position_group position)
     in
+
     { t with finished }
 
   let update_gender_and_group_positions t
       (simple_results : Simple_result.CourseResult.t list) =
+    let runner_map : String.t Int.Map.t = Int.Map.empty in
+    let runner_map =
+      List.fold simple_results ~init:runner_map ~f:(fun map runner ->
+          Map.set map ~key:runner.number ~data:runner.group.group)
+    in
+
     (* update gender position for men *)
-    let t = update_gender t simple_results ~gender_prefix:"V-" in
+    let t = update_gender t runner_map ~gender_prefix:"V-" in
     (* update gender position for women *)
-    let t = update_gender t simple_results ~gender_prefix:"M-" in
-    (* TODO: add fn to update_group position *)
+    let t = update_gender t runner_map ~gender_prefix:"M-" in
+
+    (* update group position for each athlete. Groups are V-21A, M-40 etc. *)
+    let t = update_group t runner_map in
     t
 end
 
