@@ -1,0 +1,6 @@
+(library
+ (name glicko2)
+ (inline_tests)
+ (preprocess
+   (pps ppx_deriving.show ppx_deriving.eq ppx_inline_test ppx_expect ppx_jane ppx_yojson_conv))
+ (libraries core yojson))
