@@ -5,6 +5,8 @@ val pp: Format.formatter -> t -> unit
 
 val create: rating:float -> rd:float -> vol:float -> tau:float -> default_rating:float -> id:int -> t
 
+val id: t -> int
+
 val rating: t -> float
 val set_rating: t -> rating:float -> t
 

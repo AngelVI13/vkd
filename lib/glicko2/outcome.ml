@@ -9,3 +9,4 @@ let t_of_int t =
   else assert false
 
 let int_of_t = function Victory -> 1. | Defeat -> 0. | Draw -> 0.5
+let opposite = function Victory -> Defeat | Defeat -> Victory | Draw -> Draw

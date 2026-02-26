@@ -37,6 +37,8 @@ let create ~rating ~rd ~vol ~tau ~default_rating ~id =
   }
   |> set_rating ~rating |> set_rd ~rd |> set_vol ~vol
 
+let id t = t.id
+
 let add_result t ~opponent ~outcome =
   {
     t with
@@ -163,6 +165,9 @@ let update_rank t =
     let t = pre_rating_rd t in
 
     (* Step 7 *)
+    let rd = 1. /. sqrt ((1. /. (t.rd ** 2.)) +. (1. /. v)) in
+    let t = { t with rd } in
+
     let temp_sum =
       List.foldi t.adv_ranks ~init:0. ~f:(fun i sum rank ->
           let open Float in
