@@ -18,4 +18,4 @@ val add_result: t -> opponent:t -> outcome:Outcome.t -> t
 
 val update_rank: t -> t
 
-val predict: t -> opponent:t -> Outcome.t
+val predict: t -> opponent:t -> float
