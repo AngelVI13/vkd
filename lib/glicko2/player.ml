@@ -148,8 +148,7 @@ let volatility_algorithm t v delta =
 *)
 let update_rank t =
   if not (has_played t) then
-    (* Applies only the Step 6 of the algorithm *)
-    pre_rating_rd t
+    failwith (sprintf "Error: Player (%d) has not played any matches" t.id)
   else
     (* Step 1 : done by Player.create *)
     (* Step 2 : done by set_rating and set_rd *)
@@ -179,6 +178,9 @@ let update_rank t =
 
     let rating = t.rating +. ((t.rd ** 2.) *. temp_sum) in
     let t = { t with rating } in
+
+    (* EXTRA: Reset player matches so they are not calculated twice *)
+    let t = { t with adv_ranks = []; adv_rds = []; outcomes = [] } in
 
     (* Step 8: done by calling Player.rating and Player.rd *)
     t
