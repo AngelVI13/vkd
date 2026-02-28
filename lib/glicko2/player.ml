@@ -43,9 +43,9 @@ let add_result t ~opponent ~outcome =
   {
     t with
     (* NOTE: here we are using the raw rating & rd values from the record *)
-    adv_ranks = [ opponent.rating ] @ t.adv_ranks;
-    adv_rds = [ opponent.rd ] @ t.adv_rds;
-    outcomes = [ Outcome.int_of_t outcome ] @ t.outcomes;
+    adv_ranks = t.adv_ranks @ [ opponent.rating ];
+    adv_rds = t.adv_rds @ [ opponent.rd ];
+    outcomes = t.outcomes @ [ Outcome.int_of_t outcome ];
   }
 
 let has_played t = not (List.is_empty t.outcomes)

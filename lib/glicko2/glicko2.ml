@@ -175,8 +175,6 @@ let%expect_test "of_race" =
   let settings =
     Settings.create ~tau:0.5 ~rd:200. ~vol:0.06 ~initial_rating:1500. ()
   in
-  (* TODO: double check each players opponents and outcomes in the Player.t object 
-    to make sure the whole algorihtm added matches correctly *)
   let race =
     [
       [ Race.Participant.Fields.create ~id:1 ~stats:None ];
