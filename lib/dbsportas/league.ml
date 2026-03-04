@@ -8,6 +8,7 @@ let event_num_placeholder = "EVENT_NUM"
 
 let data_url =
   sprintf "%s%s" base_url "/msplitdata.php?varz=LEAGUE_NUM&turas=EVENT_NUM"
+(* "https://dbsportas.lt/msplitdata.php?varz=244&turas=6" *)
 
 (* https://dbsportas.lt/lt/mvarz/244 *)
 let fetch_page__ ~(name : string) url =
@@ -31,12 +32,12 @@ module OverallResult = struct
     runner_nr : int;
     group : Simple_result.AgeGroup.t;
     time : int;
-    start : int;
+    start : int option;
     points : int;
     pace : string option; (* in min/km i.e.: 6:40 OR `dsq`*)
     status : Runner_result.resultStatus;
-    splits : Splits.t;
-    stats : Runner_stats.t;
+    splits : Splits.t option;
+    stats : Runner_stats.t option;
   }
   [@@deriving yojson, fields]
 end
@@ -48,20 +49,51 @@ module OverallResults = struct
 
   let of_simple_and_detailed_results
       ~(simple : Simple_result.CourseResult.t list)
-      ~(detailed : Results.CourseResult.t) =
-    let of_results (results : Runner_result.t list) =
+      ~(detailed : Results.CourseResult.t option) =
+    let of_results ~(status : Runner_result.resultStatus)
+        (results : Simple_result.CourseResult.t list) =
       List.map results ~f:(fun r ->
-          let simple_r =
-            List.find_exn simple ~f:(fun simple_r -> r.number = simple_r.number)
+          let splits, stats, start, time =
+            match detailed with
+            | None -> (None, None, None, Utils.time_of_string r.time)
+            | Some detailed ->
+                let detailed_stats =
+                  match status with
+                  | Finished -> detailed.finished
+                  | Dsq -> detailed.dsq
+                in
+
+                let detailed_r =
+                  List.find detailed_stats ~f:(fun detailed_r ->
+                      r.number = detailed_r.number)
+                in
+                let splits =
+                  Option.bind detailed_r ~f:(fun r -> Some r.splits)
+                in
+                let stats = Option.bind detailed_r ~f:(fun r -> Some r.stats) in
+                let start = Option.bind detailed_r ~f:(fun r -> Some r.start) in
+                let time =
+                  match detailed_r with
+                  | Some runnner -> runnner.time
+                  | None -> Utils.time_of_string r.time
+                in
+
+                (splits, stats, start, time)
           in
+
           OverallResult.Fields.create ~name:r.name ~club:r.club
-            ~runner_nr:r.number ~group:simple_r.group ~time:r.time
-            ~start:r.start ~points:simple_r.points ~pace:simple_r.pace
-            ~status:r.status ~splits:r.splits ~stats:r.stats)
+            ~runner_nr:r.number ~group:r.group ~time ~start ~points:r.points
+            ~pace:r.pace ~status ~splits ~stats)
     in
 
-    let finished = of_results detailed.finished in
-    let dsq = of_results detailed.dsq in
+    let finished =
+      of_results ~status:Finished
+        (List.filter simple ~f:(fun r -> Option.is_some r.pace))
+    in
+    let dsq =
+      of_results ~status:Dsq
+        (List.filter simple ~f:(fun r -> Option.is_none r.pace))
+    in
 
     { finished; dsq }
 end
@@ -73,7 +105,7 @@ module Course = struct
     hash : int;
     distance : float;
     controls_num : int;
-    controls : string list;
+    controls : string list option;
     results : OverallResults.t;
   }
   [@@deriving fields, yojson]
@@ -198,11 +230,12 @@ let parse_event ~league_id ~event_nr page_html =
       ~with_:league_id
     |> String.substr_replace_all ~pattern:event_num_placeholder ~with_:event_nr
   in
+  printf "Downloading backend data for event: %s\n" event_data_url;
   let event_data = fetch_page event_data_url in
+
   let results_table_resp = Results.parse_course_results_table event_data in
   let results_table = Results.ResultsTable.of_resp results_table_resp in
 
-  (* TODO: somewhere here calculate the gender position and class position *)
   let courses =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
@@ -213,7 +246,7 @@ let parse_event ~league_id ~event_nr page_html =
            in
            let course_id = course_col |> R.leaf_text |> strip in
            let detailed_results =
-             List.find_exn results_table.course_results ~f:(fun course_result ->
+             List.find results_table.course_results ~f:(fun course_result ->
                  String.(course_id = course_result.course_name))
            in
 
@@ -243,8 +276,10 @@ let parse_event ~league_id ~event_nr page_html =
            (* we can only calculate gender and group positions with the simple results data 
               because group info is not present in the splits data *)
            let detailed_results =
-             Results.CourseResult.update_gender_and_group_positions
-               detailed_results results
+             Option.bind detailed_results ~f:(fun detailed_results ->
+                 Some
+                   (Results.CourseResult.update_gender_and_group_positions
+                      detailed_results results))
            in
 
            let overall_results =
@@ -252,11 +287,19 @@ let parse_event ~league_id ~event_nr page_html =
                ~detailed:detailed_results
            in
 
+           let controls =
+             Option.bind detailed_results ~f:(fun r -> Some r.controls)
+           in
+           let hash =
+             match detailed_results with
+             | None -> hash_string (sprintf "%s_%s" league_id course_id)
+             | Some r -> r.course_id
+           in
+
            let courses =
              List.map ids ~f:(fun id ->
                  Course.Fields.create ~url:course_results_url ~id ~distance
-                   ~hash:detailed_results.course_id ~controls_num
-                   ~controls:detailed_results.controls ~results:overall_results)
+                   ~hash ~controls_num ~controls ~results:overall_results)
            in
            acc @ courses)
   in
@@ -269,9 +312,8 @@ let parse_league_page ~league_id page_html =
   let rows = parse_table_rows soup in
 
   (* TODO: remove this after testing *)
-  let rows = List.hd_exn rows in
-  let rows = [ rows ] in
-
+  (* let rows = List.hd_exn rows in *)
+  (* let rows = [ rows ] in *)
   let events =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
@@ -289,8 +331,9 @@ let parse_league_page ~league_id page_html =
              |> Option.bind ~f:(fun a ->
                     let url = R.attribute "href" a in
                     let url = sprintf "%s%s" base_url url in
+                    printf "Downloading event page: %s\n" url;
                     let results_html = fetch_page url in
-                    printf "event page: %s" url;
+                    Time_ns_unix.pause (Time_ns.Span.create ~ms:1000 ());
                     let event_nr = Option.value_exn event_nr in
                     let courses =
                       parse_event ~league_id ~event_nr results_html
@@ -301,6 +344,11 @@ let parse_league_page ~league_id page_html =
            | [] -> acc
            | _ ->
                let event = LeagueEvent.of_td_list ~results tds in
+               LeagueEvent.yojson_of_t event
+               |> Yojson.Safe.to_file
+                    (sprintf
+                       "/home/angel/Documents/ocaml/vkd/leagues/%s/%d_%s_%s.json"
+                       league_id event.nr event.date event.location);
                event :: acc)
   in
   List.rev events
@@ -311,16 +359,55 @@ let download_league_info ~league_id =
   let events = parse_league_page ~league_id page_html in
   League.Fields.create ~url ~events
 
+(*
+-  [%expect {| hello1 |}]
++  [%expect.unreachable]
++[@@expect.uncaught_exn {|
++  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
++     This is strongly discouraged as backtraces are fragile.
++     Please change this test to not include a backtrace. *)
++
++  (Failure "Int.of_string: \"dsq\"")
++  Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
++  Called from Dbsportas__Utils.time_of_string.(fun) in file "lib/dbsportas/utils.ml", line 11, characters 17-35
++  Called from Base__List.foldi.(fun) in file "src/list.ml", line 636, characters 59-68
++  Called from Base__List0.fold in file "src/list0.ml", line 37, characters 27-37
++  Called from Base__List.foldi in file "src/list.ml", line 636, characters 6-70
++  Called from Dbsportas__League.OverallResults.of_simple_and_detailed_results.of_results.(fun) in file "lib/dbsportas/league.ml", line 78, characters 28-55
++  Called from Base__List.count_map in file "src/list.ml", line 491, characters 13-17
++  Called from Dbsportas__League.OverallResults.of_simple_and_detailed_results in file "lib/dbsportas/league.ml", lines 94-95, characters 6-64
++  Called from Dbsportas__League.parse_event.(fun) in file "lib/dbsportas/league.ml", lines 286-287, characters 13-41
++  Called from Base__List0.fold in file "src/list0.ml", line 37, characters 27-37
++  Called from Dbsportas__League.parse_league_page.(fun) in file "lib/dbsportas/league.ml", line 339, characters 22-67
++  Called from Dbsportas__League.parse_league_page.(fun) in file "lib/dbsportas/league.ml", lines 330-341, characters 13-68
++  Called from Base__List0.fold in file "src/list0.ml", line 37, characters 27-37
++  Called from Dbsportas__League.parse_league_page in file "lib/dbsportas/league.ml", lines 318-352, characters 4-28
++  Called from Dbsportas__League.download_league_info in file "lib/dbsportas/league.ml", line 359, characters 15-53
++  Called from Dbsportas__League.(fun) in file "lib/dbsportas/league.ml", line 364, characters 15-46
++  Called from Expect_test_collector.Make.Instance_io.exec in file "collector/expect_test_collector.ml", line 234, characters 12-19
++
++  Trailing output
++  ---------------
++  Downloading event page: https://dbsportas.lt/lt/mvarz/244/reztur/1
++  Downloading backend data for event: https://dbsportas.lt/msplitdata.php?varz=244&turas=1
++  Downloading event page: https://dbsportas.lt/lt/mvarz/244/reztur/2
++  Downloading backend data for event: https://dbsportas.lt/msplitdata.php?varz=244&turas=2
++  Downloading event page: https://dbsportas.lt/lt/mvarz/244/reztur/3
++  Downloading backend data for event: https://dbsportas.lt/msplitdata.php?varz=244&turas=3 |}]
+*)
+
+(* TODO: handle case where we dont have details and we don't have a time because it is == "dsq" *)
+
 let%expect_test "download_league_info" =
   let league_id = "244" in
   (* let league = download_league_info ~league_id in *)
-  (* let out = *)
+  (* let _ = *)
   (*   League.yojson_of_t league *)
-  (*   |> Yojson.Safe.to_file "/home/angel/Documents/ocaml/vkd/league244.json" *)
+  (*   |> Yojson.Safe.to_file "/home/angel/Documents/ocaml/vkd/league244_full.json" *)
   (* in *)
   let _ = league_id in
-  printf "hello";
-  [%expect {||}]
+  printf "hello1";
+  [%expect {| hello1 |}]
 
 (* let%expect_test "parse_league_page finished league" = *)
 (*   let filename = "/home/angel/Documents/ocaml/vkd/league.html" in *)
@@ -422,24 +509,8 @@ let%expect_test "parse_event grouped courses" =
   (* Out_channel.write_all "/home/angel/Documents/ocaml/vkd/league244_event1.json" *)
   (*   ~data:out; *)
   printf "%s\n" "hello";
-  [%expect
-    {|
-    { url = "";
-      courses =
-      [{ url = "/lt/mvarz/244/reztra/1/1%2C2"; id = "1"; distance = 4.42;
-         controls = 21; results = [] };
-        { url = "/lt/mvarz/244/reztra/1/1%2C2"; id = "2"; distance = 4.42;
-          controls = 21; results = [] };
-        { url = "/lt/mvarz/244/reztra/1/3"; id = "3"; distance = 3.44;
-          controls = 16; results = [] };
-        { url = "/lt/mvarz/244/reztra/1/4"; id = "4"; distance = 2.43;
-          controls = 12; results = [] };
-        { url = "/lt/mvarz/244/reztra/1/D"; id = "D"; distance = 6.82;
-          controls = 14; results = [] };
-        { url = "/lt/mvarz/244/reztra/1/P"; id = "P"; distance = 1.63;
-          controls = 8; results = [] }
-        ]
-      }
+  [%expect {|
+    hello
            |}]
 (* |}]; *)
 

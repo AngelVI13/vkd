@@ -107,40 +107,42 @@ let update_race_execution r =
   { r with stats }
 
 let update_mistake_cluster r =
-  let num_controls = List.length r.splits in
-  let bucket_size = num_controls / 3 in
-  let begin_idx = bucket_size in
-  let mid_idx = 2 * bucket_size in
-  let end_idx = num_controls in
+  if r.stats.mistake_num = 0 then r
+  else
+    let num_controls = List.length r.splits in
+    let bucket_size = num_controls / 3 in
+    let begin_idx = bucket_size in
+    let mid_idx = 2 * bucket_size in
+    let end_idx = num_controls in
 
-  let begin_mistakes, mid_mistakes, end_mistakes =
-    List.fold r.stats.mistake_indexes ~init:(0, 0, 0)
-      ~f:(fun (begin_m, mid_m, end_m) mistake_idx ->
-        if 0 <= mistake_idx && mistake_idx < begin_idx then
-          (begin_m + 1, mid_m, end_m)
-        else if begin_idx <= mistake_idx && mistake_idx < mid_idx then
-          (begin_m, mid_m + 1, end_m)
-        else if mid_idx <= mistake_idx && mistake_idx < end_idx then
-          (begin_m, mid_m, end_m + 1)
-        else assert false)
-  in
+    let begin_mistakes, mid_mistakes, end_mistakes =
+      List.fold r.stats.mistake_indexes ~init:(0, 0, 0)
+        ~f:(fun (begin_m, mid_m, end_m) mistake_idx ->
+          if 0 <= mistake_idx && mistake_idx < begin_idx then
+            (begin_m + 1, mid_m, end_m)
+          else if begin_idx <= mistake_idx && mistake_idx < mid_idx then
+            (begin_m, mid_m + 1, end_m)
+          else if mid_idx <= mistake_idx && mistake_idx < end_idx then
+            (begin_m, mid_m, end_m + 1)
+          else assert false)
+    in
 
-  let num_mistakes = r.stats.mistake_num in
-  let mistake_cluster =
-    if Utils.calculate_percent begin_mistakes num_mistakes > 50 then
-      Runner_stats.BeginningCluster
-    else if Utils.calculate_percent mid_mistakes num_mistakes > 50 then
-      Runner_stats.MiddleCluster
-    else if Utils.calculate_percent end_mistakes num_mistakes > 50 then
-      Runner_stats.EndCluster
-    else Runner_stats.Scattered
-  in
+    let num_mistakes = r.stats.mistake_num in
+    let mistake_cluster =
+      if Utils.calculate_percent begin_mistakes num_mistakes > 50 then
+        Runner_stats.BeginningCluster
+      else if Utils.calculate_percent mid_mistakes num_mistakes > 50 then
+        Runner_stats.MiddleCluster
+      else if Utils.calculate_percent end_mistakes num_mistakes > 50 then
+        Runner_stats.EndCluster
+      else Runner_stats.Scattered
+    in
 
-  let stats =
-    Field.fset Runner_stats.Fields.mistake_cluster r.stats
-      (Some mistake_cluster)
-  in
-  { r with stats }
+    let stats =
+      Field.fset Runner_stats.Fields.mistake_cluster r.stats
+        (Some mistake_cluster)
+    in
+    { r with stats }
 
 let update_gender_or_group_position r ~field position =
   let stats = Field.fset field r.stats (Some position) in

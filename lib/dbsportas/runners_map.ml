@@ -108,7 +108,7 @@ let update_runner_mistake_splits (t : t) ~fst_times ~snd_times
     calculate_pvb_ratio ~fst_times ~snd_times runner.splits
   in
 
-  printf "%s %d: %f [" runner.name runner_num personal_vs_best_ratio;
+  (* printf "%s %d: %f [" runner.name runner_num personal_vs_best_ratio; *)
   let new_t =
     List.foldi runner.splits ~init:t ~f:(fun control_idx t split ->
         match split.time with
@@ -135,19 +135,22 @@ let update_runner_mistake_splits (t : t) ~fst_times ~snd_times
     |> update_runner ~runner_num
          ~f:(Runner_result.update_pvb_ratio ~ratio:personal_vs_best_ratio)
   in
-  printf "]\n";
+  (* printf "]\n"; *)
   new_t
 
 let update_runner_mistakes (t : t) : t =
-  let fst_times, snd_times =
-    fst_and_snd_best_splits ~time_field:Split.Fields.time t
+  let times =
+    try Some (fst_and_snd_best_splits ~time_field:Split.Fields.time t)
+    with _ -> None
   in
 
-  let new_t =
-    (* TODO: if we have just 1 runner, we don't calculate mistakes. TEST THIS !!!! *)
-    if List.hd_exn fst_times = List.hd_exn snd_times then t
-    else
-      List.fold (Map.data t) ~init:t
-        ~f:(update_runner_mistake_splits ~fst_times ~snd_times)
-  in
-  new_t
+  match times with
+  | None -> t
+  | Some (fst_times, snd_times) ->
+      if
+        (* TODO: if we have just 1 runner, we don't calculate mistakes. TEST THIS !!!! *)
+        List.hd_exn fst_times = List.hd_exn snd_times
+      then t
+      else
+        List.fold (Map.data t) ~init:t
+          ~f:(update_runner_mistake_splits ~fst_times ~snd_times)
