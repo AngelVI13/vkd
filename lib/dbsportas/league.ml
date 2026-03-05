@@ -19,6 +19,9 @@ let fetch_page__ ~(name : string) url =
     ~data:out
 
 let fetch_page url =
+  (* if String.(url = "https://dbsportas.lt/msplitdata.php?varz=244&turas=6") then *)
+  (*   In_channel.read_all "/home/angel/Documents/ocaml/vkd/2025_kaminai_data.json" *)
+  (* else *)
   let res = Ezcurl.get ~url () in
   let out = match res with Ok c -> c.body | Error (_, s) -> failwith s in
   out
@@ -31,7 +34,7 @@ module OverallResult = struct
     club : string;
     runner_nr : int;
     group : Simple_result.AgeGroup.t;
-    time : int;
+    time : int option;
     start : int option;
     points : int;
     pace : string option; (* in min/km i.e.: 6:40 OR `dsq`*)
@@ -74,7 +77,7 @@ module OverallResults = struct
                 let start = Option.bind detailed_r ~f:(fun r -> Some r.start) in
                 let time =
                   match detailed_r with
-                  | Some runnner -> runnner.time
+                  | Some runnner -> Some runnner.time
                   | None -> Utils.time_of_string r.time
                 in
 
@@ -235,6 +238,8 @@ let parse_event ~league_id ~event_nr page_html =
 
   let results_table_resp = Results.parse_course_results_table event_data in
   let results_table = Results.ResultsTable.of_resp results_table_resp in
+  (* List.iter results_table.course_results ~f:(fun c -> *)
+  (*     printf "%s\n" (Results.CourseResult.yojson_of_t c |> Yojson.Safe.to_string)); *)
 
   let courses =
     rows
@@ -500,10 +505,16 @@ let%expect_test "download_league_info" =
 (*            |}] *)
 
 let%expect_test "parse_event grouped courses" =
-  let filename = "/home/angel/Documents/ocaml/vkd/2025_antakalnis.html" in
+  (* let url = "https://dbsportas.lt/lt/mvarz/244/reztur/6" in *)
+  (* let out = fetch_page url in *)
+  (* Out_channel.write_all "/home/angel/Documents/ocaml/vkd/2025_kaminai.html" *)
+  (*   ~data:out; *)
+  let filename = "/home/angel/Documents/ocaml/vkd/2025_kaminai.html" in
   let _ = filename in
   (* let page_html = In_channel.read_all filename in *)
-  (* let courses = parse_event ~league_id:"244" ~event_nr:"1" page_html in *)
+  (* let courses = parse_event ~league_id:"244" ~event_nr:"6" page_html in *)
+  (* let course = List.hd_exn courses in *)
+  (* printf "%s\n" (Course.yojson_of_t course |> Yojson.Safe.to_string); *)
   (* let event_results = EventResults.Fields.create ~url:"" ~courses in *)
   (* let out = EventResults.yojson_of_t event_results |> Yojson.Safe.to_string in *)
   (* Out_channel.write_all "/home/angel/Documents/ocaml/vkd/league244_event1.json" *)
