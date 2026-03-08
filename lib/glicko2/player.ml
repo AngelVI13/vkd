@@ -147,8 +147,7 @@ let volatility_algorithm t v delta =
     steps of the algorithm described at http://www.glicko.net/glicko/glicko2.pdf
 *)
 let update_rank t =
-  if not (has_played t) then
-    failwith (sprintf "Error: Player (%d) has not played any matches" t.id)
+  if not (has_played t) then t
   else
     (* Step 1 : done by Player.create *)
     (* Step 2 : done by set_rating and set_rd *)

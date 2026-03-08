@@ -49,11 +49,16 @@ module History = struct
       vol = t.vol @ [ vol ];
       vol_diff = t.vol_diff @ [ vol_diff ];
     }
+
+  let show_diff t =
+    List.fold t.rating_diff ~init:"" ~f:(fun acc diff ->
+        acc ^ sprintf "%.2f, " diff)
 end
 
 module Info = struct
   type t = {
     id : int;
+    name : string;
     course : string;
     rating : float;
     rd : float;
@@ -67,39 +72,146 @@ module Info = struct
     { t with history; rating; rd; vol }
 end
 
-type t = { map : Info.t String.Map.t; settings : Glicko2.Settings.t }
+module Store = struct
+  type t = { map : Info.t String.Map.t; settings : Glicko2.Settings.t }
 
-let create ~(settings : Glicko2.Settings.t) =
-  { map = String.Map.empty; settings }
+  let create ~(settings : Glicko2.Settings.t) =
+    { map = String.Map.empty; settings }
 
-let add_if_not_exist t ~id ~course =
-  let hash = runner_hash ~id ~course in
-  let map =
+  let show t ?(course = "1") () =
+    let runners =
+      Map.data t.map
+      (* |> List.map ~f:(fun info -> *)
+      (*        printf "Info: %s\n" (Info.show info); *)
+      (*        info) *)
+      |> List.filter ~f:(fun info -> String.(info.course = course))
+      |> List.sort ~compare:(fun info1 info2 ->
+             Float.compare info1.rating info2.rating)
+    in
+
+    let out = sprintf "Ratings for '%s' course\n" course in
+    let out =
+      out ^ sprintf "Settings: %s\n" (Glicko2.Settings.show t.settings)
+    in
+    List.foldi runners ~init:out ~f:(fun i acc info ->
+        acc
+        ^ sprintf "%d %.2f %s (%d) (rd=%.2f, vol=%.2f) - %s\n" i info.rating
+            info.name info.id info.rd info.vol
+            (History.show_diff info.history))
+
+  let add_if_not_exist t ~id ~name ~course =
+    let hash = runner_hash ~id ~course in
+    let map =
+      match Map.find t.map hash with
+      | None ->
+          let runner_info =
+            Info.Fields.create ~id ~name ~course
+              ~rating:t.settings.initial_rating ~rd:t.settings.rd
+              ~vol:t.settings.vol ~history:(History.empty ())
+          in
+          Map.add_exn t.map ~key:hash ~data:runner_info
+      | Some _ -> t.map
+    in
+
+    { t with map }
+
+  let info t ~id ~course =
+    let hash = runner_hash ~id ~course in
+    Map.find t.map hash
+
+  let participant t ~id ~course =
+    let hash = runner_hash ~id ~course in
     match Map.find t.map hash with
-    | None ->
-        let runner_info =
-          Info.Fields.create ~id ~course ~rating:t.settings.initial_rating
-            ~rd:t.settings.rd ~vol:t.settings.vol ~history:(History.empty ())
-        in
-        Map.add_exn t.map ~key:hash ~data:runner_info
-    | Some _ -> t.map
+    | None -> None
+    | Some info ->
+        Some
+          (Glicko2.Race.Participant.Fields.create ~id
+             ~stats:
+               (Some
+                  (Glicko2.Race.Stats.Fields.create ~rating:info.rating
+                     ~rd:info.rd ~vol:info.vol)))
+
+  let update_info t ~id ~course ~position ~rating ~rd ~vol =
+    let hash = runner_hash ~id ~course in
+    let map =
+      Map.update t.map hash ~f:(fun info ->
+          match info with
+          | None -> assert false
+          | Some info -> Info.update info ~position ~rating ~rd ~vol)
+    in
+    { t with map }
+end
+
+let calculate_ratings ~(settings : Glicko2.Settings.t)
+    ~(league : League.League.t) : Store.t =
+  let store = Store.create ~settings in
+
+  let store =
+    List.fold league.events ~init:store ~f:(fun store event ->
+        match event.results with
+        | None -> store
+        | Some results ->
+            List.fold results.courses ~init:store ~f:(fun store course ->
+                let all_runners = course.results.finished in
+                let store =
+                  List.fold all_runners ~init:store ~f:(fun store runner ->
+                      (* make sure runner exists in the store *)
+                      Store.add_if_not_exist store ~id:runner.runner_nr
+                        ~name:runner.name ~course:course.id)
+                in
+
+                let race =
+                  List.map all_runners ~f:(fun runner ->
+                      let participant =
+                        Store.participant store ~id:runner.runner_nr
+                          ~course:course.id
+                        |> Option.value_exn
+                      in
+                      [ participant ])
+                in
+                (* printf "Participants in event: %d %s %d %s\n" (List.length race) *)
+                (*   course.id event.nr event.location; *)
+                let glicko2 =
+                  Glicko2.Ranking.of_race ~settings ~race
+                  |> Glicko2.Ranking.update_ratings
+                in
+                let updated_ratings = Glicko2.Ranking.players glicko2 in
+
+                List.fold updated_ratings ~init:store ~f:(fun store ratings ->
+                    let position, _ =
+                      List.findi_exn all_runners ~f:(fun _ runner ->
+                          runner.runner_nr = ratings.id)
+                    in
+                    (* convert from index to position *)
+                    let position = position + 1 in
+                    Store.update_info store ~id:ratings.id ~position
+                      ~course:course.id ~rating:ratings.rating ~rd:ratings.rd
+                      ~vol:ratings.vol)))
+  in
+  store
+
+let%expect_test "calculate_ratings" =
+  let league =
+    Yojson.Safe.from_file
+      "/home/angel/Documents/ocaml/vkd/league244_full_object.json"
+    |> League.League.t_of_yojson
   in
 
-  { t with map }
-
-let info t ~id ~course =
-  let hash = runner_hash ~id ~course in
-  Map.find t.map hash
-
-let update_info t ~id ~course ~position ~rating ~rd ~vol =
-  let hash = runner_hash ~id ~course in
-  let map =
-    Map.update t.map hash ~f:(fun info ->
-        match info with
-        | None -> assert false
-        | Some info -> Info.update info ~position ~rating ~rd ~vol)
+  let settings =
+    (* NOTE: these are the default settings *)
+    Glicko2.Settings.create ~initial_rating:1500. ~rd:350. ~vol:0.06 ~tau:0.5 ()
   in
-  { t with map }
+
+  let store = calculate_ratings ~settings ~league in
+  (* TODO: 1. remove vol from printout
+           2. Add position & location (or event_nr) to each diff number
+           3. Double check if results make sense
+           4. Handle disqualified runners
+           *)
+
+  printf "%s" (Store.show store ~course:"1" ());
+
+  [%expect {||}]
 
 (* TODO:Steps to do 
   1. Create Rating_store.t with Glicko2 settings 
