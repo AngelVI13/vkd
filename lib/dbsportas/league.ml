@@ -149,6 +149,14 @@ module LeagueEvent = struct
       location = List.nth_exn td_list 2;
       results;
     }
+
+  let save_to_file (t : t) ~league_id =
+    let project_dir = "/home/angel/Documents/ocaml/vkd/leagues" in
+    let filename =
+      sprintf "%s/%s/%d_%s_%s.json" project_dir league_id t.nr t.date t.location
+    in
+    let json = yojson_of_t t in
+    Yojson.Safe.to_file filename json
 end
 
 module League = struct
@@ -318,7 +326,10 @@ let parse_league_page ~league_id page_html =
 
   (* TODO: remove this after testing *)
   (* let rows = List.hd_exn rows in *)
+  (* let rows = List.drop rows 4 in *)
+  (* let rows = List.hd_exn rows in *)
   (* let rows = [ rows ] in *)
+  (* let rows = List.take rows 5 in *)
   let events =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
@@ -349,11 +360,7 @@ let parse_league_page ~league_id page_html =
            | [] -> acc
            | _ ->
                let event = LeagueEvent.of_td_list ~results tds in
-               LeagueEvent.yojson_of_t event
-               |> Yojson.Safe.to_file
-                    (sprintf
-                       "/home/angel/Documents/ocaml/vkd/leagues/%s/%d_%s_%s.json"
-                       league_id event.nr event.date event.location);
+               LeagueEvent.save_to_file ~league_id event;
                event :: acc)
   in
   List.rev events
@@ -364,51 +371,16 @@ let download_league_info ~league_id =
   let events = parse_league_page ~league_id page_html in
   League.Fields.create ~url ~events
 
-(*
--  [%expect {| hello1 |}]
-+  [%expect.unreachable]
-+[@@expect.uncaught_exn {|
-+  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
-+     This is strongly discouraged as backtraces are fragile.
-+     Please change this test to not include a backtrace. *)
-+
-+  (Failure "Int.of_string: \"dsq\"")
-+  Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
-+  Called from Dbsportas__Utils.time_of_string.(fun) in file "lib/dbsportas/utils.ml", line 11, characters 17-35
-+  Called from Base__List.foldi.(fun) in file "src/list.ml", line 636, characters 59-68
-+  Called from Base__List0.fold in file "src/list0.ml", line 37, characters 27-37
-+  Called from Base__List.foldi in file "src/list.ml", line 636, characters 6-70
-+  Called from Dbsportas__League.OverallResults.of_simple_and_detailed_results.of_results.(fun) in file "lib/dbsportas/league.ml", line 78, characters 28-55
-+  Called from Base__List.count_map in file "src/list.ml", line 491, characters 13-17
-+  Called from Dbsportas__League.OverallResults.of_simple_and_detailed_results in file "lib/dbsportas/league.ml", lines 94-95, characters 6-64
-+  Called from Dbsportas__League.parse_event.(fun) in file "lib/dbsportas/league.ml", lines 286-287, characters 13-41
-+  Called from Base__List0.fold in file "src/list0.ml", line 37, characters 27-37
-+  Called from Dbsportas__League.parse_league_page.(fun) in file "lib/dbsportas/league.ml", line 339, characters 22-67
-+  Called from Dbsportas__League.parse_league_page.(fun) in file "lib/dbsportas/league.ml", lines 330-341, characters 13-68
-+  Called from Base__List0.fold in file "src/list0.ml", line 37, characters 27-37
-+  Called from Dbsportas__League.parse_league_page in file "lib/dbsportas/league.ml", lines 318-352, characters 4-28
-+  Called from Dbsportas__League.download_league_info in file "lib/dbsportas/league.ml", line 359, characters 15-53
-+  Called from Dbsportas__League.(fun) in file "lib/dbsportas/league.ml", line 364, characters 15-46
-+  Called from Expect_test_collector.Make.Instance_io.exec in file "collector/expect_test_collector.ml", line 234, characters 12-19
-+
-+  Trailing output
-+  ---------------
-+  Downloading event page: https://dbsportas.lt/lt/mvarz/244/reztur/1
-+  Downloading backend data for event: https://dbsportas.lt/msplitdata.php?varz=244&turas=1
-+  Downloading event page: https://dbsportas.lt/lt/mvarz/244/reztur/2
-+  Downloading backend data for event: https://dbsportas.lt/msplitdata.php?varz=244&turas=2
-+  Downloading event page: https://dbsportas.lt/lt/mvarz/244/reztur/3
-+  Downloading backend data for event: https://dbsportas.lt/msplitdata.php?varz=244&turas=3 |}]
-*)
-
-(* TODO: handle case where we dont have details and we don't have a time because it is == "dsq" *)
-
 let%expect_test "download_league_info" =
-  let league_id = "244" in
+  (* let league_id = "244" in  (* 2025 *) *)
+  let league_id = "217" in
+  (* 2024 *)
+
   (* let league = download_league_info ~league_id in *)
   (* let _ = *)
   (*   League.yojson_of_t league *)
-  (*   |> Yojson.Safe.to_file "/home/angel/Documents/ocaml/vkd/league244_full.json" *)
+  (*   |> Yojson.Safe.to_file *)
+  (*        (sprintf "/home/angel/Documents/ocaml/vkd/league%s_full.json" league_id) *)
   (* in *)
   let _ = league_id in
   printf "hello1";

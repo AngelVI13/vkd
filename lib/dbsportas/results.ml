@@ -153,7 +153,8 @@ end
 
 let parse_course_results_table data =
   let json = Yojson.Safe.from_string data in
-  Response.ResultsTableResp.t_of_yojson json
+  let results_table_resp = Response.ResultsTableResp.t_of_yojson json in
+  Response.ResultsTableResp.filter_runners results_table_resp
 
 let%expect_test "parse_course_results_table" =
   let filename = "/home/angel/Documents/ocaml/vkd/splits_resp.json" in
