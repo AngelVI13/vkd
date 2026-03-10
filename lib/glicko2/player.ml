@@ -147,7 +147,10 @@ let volatility_algorithm t v delta =
     steps of the algorithm described at http://www.glicko.net/glicko/glicko2.pdf
 *)
 let update_rank t =
-  if not (has_played t) then t
+  if not (has_played t) then
+    (* if a player has not participated then update his rd (every time a person
+       does not participate in an event his rd increases *)
+    pre_rating_rd t
   else
     (* Step 1 : done by Player.create *)
     (* Step 2 : done by set_rating and set_rd *)

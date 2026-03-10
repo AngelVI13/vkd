@@ -160,7 +160,7 @@ module LeagueEvent = struct
 end
 
 module League = struct
-  type t = { url : string; events : LeagueEvent.t list }
+  type t = { id : string; url : string; events : LeagueEvent.t list }
   [@@deriving show { with_path = false }, yojson, fields]
 end
 
@@ -369,7 +369,7 @@ let download_league_info ~league_id =
   let url = sprintf "%s/%s" league_url league_id in
   let page_html = fetch_page url in
   let events = parse_league_page ~league_id page_html in
-  League.Fields.create ~url ~events
+  League.Fields.create ~url ~events ~id:league_id
 
 let%expect_test "download_league_info" =
   (* let league_id = "244" in  (* 2025 *) *)

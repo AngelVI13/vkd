@@ -56,10 +56,19 @@ let update_ratings t =
 
 let players t = List.map (Map.data t.players_map) ~f:Player_rating.of_player
 
-let of_race ~(settings : Settings.t) ~(race : Race.Race.t) =
+(* NOTE: all_known_participants - here is a list of everyone that has ever competed in that course. 
+   This is so that even if they didn't participate in this race, we need to update their RD value 
+   due to their inactivity *)
+let of_race ~(settings : Settings.t) ~(race : Race.Race.t)
+    ~(all_known_participants : Race.Participant.t list) =
   let t = create ~settings in
 
-  let all_participants = List.concat race in
+  (* NOTE: make sure to add all participants (even the ones that didn't
+     participate in this particular race *)
+  (* NOTE: `all_participants` must never be used for anything other than adding players!!!! *)
+  let all_participants =
+    List.concat race |> List.append all_known_participants
+  in
   let t =
     List.fold all_participants ~init:t ~f:(fun t participant ->
         match participant.stats with
@@ -193,7 +202,19 @@ let%expect_test "of_race" =
       ];
     ]
   in
-  let glicko = of_race ~settings ~race |> update_ratings in
+
+  (* TODO: use this to test the RD increase due to inactivity *)
+  let all_known_participants =
+    List.concat race
+    @ [
+        Race.Participant.Fields.create ~id:5
+          ~stats:
+            (Some (Race.Stats.Fields.create ~rating:1700. ~rd:300. ~vol:0.06));
+      ]
+  in
+  let glicko =
+    of_race ~settings ~race ~all_known_participants |> update_ratings
+  in
   let players = players glicko in
   List.iter players ~f:(fun p -> printf "%s\n" (Player_rating.show p));
   [%expect
@@ -201,4 +222,5 @@ let%expect_test "of_race" =
     { id = 1; rating = 1685.72145039; rd = 151.516557043; vol = 0.0600043923961 }
     { id = 2; rating = 1402.44380033; rd = 31.5219636222; vol = 0.0599963879198 }
     { id = 3; rating = 1539.88476704; rd = 93.0270600887; vol = 0.0599946096036 }
-    { id = 4; rating = 1238.2341119; rd = 194.563191646; vol = 0.060008079619 } |}]
+    { id = 4; rating = 1238.2341119; rd = 194.563191646; vol = 0.060008079619 }
+    { id = 5; rating = 1700.; rd = 300.181012635; vol = 0.06 } |}]

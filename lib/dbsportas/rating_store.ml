@@ -4,7 +4,10 @@ let runner_hash ~id ~course = sprintf "%d__%s" id course
 
 module History = struct
   type t = {
-    position : int list;
+    position : int option list;
+    league_id : string list;
+    event_nr : int list;
+    event_loc : string list;
     rating : float list;
     rating_diff : float list;
     rd : float list;
@@ -17,6 +20,9 @@ module History = struct
   let empty () =
     {
       position = [];
+      league_id = [];
+      event_nr = [];
+      event_loc = [];
       rating = [];
       rating_diff = [];
       rd = [];
@@ -25,7 +31,7 @@ module History = struct
       vol_diff = [];
     }
 
-  let add t ~position ~rating ~rd ~vol =
+  let add t ~position ~league_id ~event_nr ~event_loc ~rating ~rd ~vol =
     let rating_diff =
       match List.last t.rating with
       | None -> 0.
@@ -42,6 +48,9 @@ module History = struct
 
     {
       position = t.position @ [ position ];
+      league_id = t.league_id @ [ league_id ];
+      event_nr = t.event_nr @ [ event_nr ];
+      event_loc = t.event_loc @ [ event_loc ];
       rating = t.rating @ [ rating ];
       rating_diff = t.rating_diff @ [ rating_diff ];
       rd = t.rd @ [ rd ];
@@ -51,8 +60,19 @@ module History = struct
     }
 
   let show_diff t =
-    List.fold t.rating_diff ~init:"" ~f:(fun acc diff ->
-        acc ^ sprintf "%.2f, " diff)
+    List.foldi t.rating_diff ~init:"" ~f:(fun i acc diff ->
+        let event_loc = List.nth_exn t.event_loc i in
+        let event_nr = List.nth_exn t.event_nr i in
+        let position =
+          match List.nth_exn t.position i with
+          | None -> "-"
+          | Some pos -> Int.to_string pos
+        in
+        let rating = List.nth_exn t.rating i in
+        let rd = List.nth_exn t.rd i in
+        acc
+        ^ sprintf "%d.%s(%s) %.2f(%.2f-%.1f), " event_nr event_loc position diff
+            rating rd)
 end
 
 module Info = struct
@@ -67,9 +87,19 @@ module Info = struct
   }
   [@@deriving show, fields]
 
-  let update t ~position ~rating ~rd ~vol =
-    let history = History.add t.history ~position ~rating ~rd ~vol in
+  let update t ~position ~league_id ~event_nr ~event_loc ~rating ~rd ~vol =
+    let history =
+      History.add t.history ~position ~league_id ~event_nr ~event_loc ~rating
+        ~rd ~vol
+    in
     { t with history; rating; rd; vol }
+
+  let to_participant t =
+    Glicko2.Race.Participant.Fields.create ~id:t.id
+      ~stats:
+        (Some
+           (Glicko2.Race.Stats.Fields.create ~rating:t.rating ~rd:t.rd
+              ~vol:t.vol))
 end
 
 module Store = struct
@@ -95,8 +125,8 @@ module Store = struct
     in
     List.foldi runners ~init:out ~f:(fun i acc info ->
         acc
-        ^ sprintf "%d %.2f %s (%d) (rd=%.2f, vol=%.2f) - %s\n" i info.rating
-            info.name info.id info.rd info.vol
+        ^ sprintf "%d %.2f %s (%d) (rd=%.2f, vol=%.2f):\n    %s\n\n" i
+            info.rating info.name info.id info.rd info.vol
             (History.show_diff info.history))
 
   let add_if_not_exist t ~id ~name ~course =
@@ -123,21 +153,22 @@ module Store = struct
     let hash = runner_hash ~id ~course in
     match Map.find t.map hash with
     | None -> None
-    | Some info ->
-        Some
-          (Glicko2.Race.Participant.Fields.create ~id
-             ~stats:
-               (Some
-                  (Glicko2.Race.Stats.Fields.create ~rating:info.rating
-                     ~rd:info.rd ~vol:info.vol)))
+    | Some info -> Some (Info.to_participant info)
 
-  let update_info t ~id ~course ~position ~rating ~rd ~vol =
+  let all_participants t ~course =
+    let m = Map.filter t.map ~f:(fun info -> String.(info.course = course)) in
+    List.map (Map.data m) ~f:Info.to_participant
+
+  let update_info t ~id ~course ~position ~league_id ~event_nr ~event_loc
+      ~rating ~rd ~vol =
     let hash = runner_hash ~id ~course in
     let map =
       Map.update t.map hash ~f:(fun info ->
           match info with
           | None -> assert false
-          | Some info -> Info.update info ~position ~rating ~rd ~vol)
+          | Some info ->
+              Info.update info ~position ~league_id ~event_nr ~event_loc ~rating
+                ~rd ~vol)
     in
     { t with map }
 end
@@ -160,6 +191,10 @@ let calculate_ratings ~(settings : Glicko2.Settings.t)
                         ~name:runner.name ~course:course.id)
                 in
 
+                let all_known_participants =
+                  Store.all_participants store ~course:course.id
+                in
+
                 let race =
                   List.map all_runners ~f:(fun runner ->
                       let participant =
@@ -169,24 +204,30 @@ let calculate_ratings ~(settings : Glicko2.Settings.t)
                       in
                       [ participant ])
                 in
+
                 (* printf "Participants in event: %d %s %d %s\n" (List.length race) *)
                 (*   course.id event.nr event.location; *)
                 let glicko2 =
                   Glicko2.Ranking.of_race ~settings ~race
+                    ~all_known_participants
                   |> Glicko2.Ranking.update_ratings
                 in
                 let updated_ratings = Glicko2.Ranking.players glicko2 in
 
                 List.fold updated_ratings ~init:store ~f:(fun store ratings ->
-                    let position, _ =
-                      List.findi_exn all_runners ~f:(fun _ runner ->
-                          runner.runner_nr = ratings.id)
+                    let position =
+                      match
+                        List.findi all_runners ~f:(fun _ runner ->
+                            runner.runner_nr = ratings.id)
+                      with
+                      | None -> None
+                      | Some (idx, _) -> Some (idx + 1)
                     in
                     (* convert from index to position *)
-                    let position = position + 1 in
                     Store.update_info store ~id:ratings.id ~position
-                      ~course:course.id ~rating:ratings.rating ~rd:ratings.rd
-                      ~vol:ratings.vol)))
+                      ~league_id:league.id ~event_nr:event.nr
+                      ~event_loc:event.location ~course:course.id
+                      ~rating:ratings.rating ~rd:ratings.rd ~vol:ratings.vol)))
   in
   store
 
@@ -203,8 +244,9 @@ let%expect_test "calculate_ratings" =
   in
 
   let store = calculate_ratings ~settings ~league in
-  (* TODO: 1. remove vol from printout
-           2. Add position & location (or event_nr) to each diff number
+  (* TODO: 
+           1. Play with different vol settings or tau settings. 
+           2. Make sure that RD grows good amounts for each skipped events
            3. Double check if results make sense
            4. Handle disqualified runners
            *)
