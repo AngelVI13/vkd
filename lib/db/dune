@@ -1,0 +1,6 @@
+(library
+ (name db)
+ (inline_tests)
+ (preprocess
+  (pps ppx_jane ppx_deriving.show ppx_inline_test ppx_expect ppx_yojson_conv))
+ (libraries core core_unix.time_ns_unix core_unix.sys_unix sqlgg.traits re yojson integers ezcurl))

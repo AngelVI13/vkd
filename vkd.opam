@@ -17,6 +17,9 @@ depends: [
   "ezcurl" {="0.2.4"}
   "yojson" {="2.2.2"}
   "lambdasoup" {="1.1.1"}
+  "sqlgg" {="20231201"}
+  "re" {="1.14.0"}
+  "integers" {="0.7.0"}
   "ppx_jane" {="v0.16.0"}
   "ppx_inline_test" {="v0.16.1"}
   "ppx_expect" {="v0.16.1"}
