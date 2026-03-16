@@ -9,7 +9,15 @@ type mistakeCluster =
   | MiddleCluster
   | EndCluster
   | Scattered
-[@@deriving yojson, show]
+[@@deriving yojson, show { with_path = false }]
+
+(* TODO: maybe do this with sexp *)
+let mistakeCluster_of_string = function
+  | "BeginningCluster" -> BeginningCluster
+  | "MiddleCluster" -> MiddleCluster
+  | "EndCluster" -> EndCluster
+  | "Scattered" -> Scattered
+  | x -> failwith (sprintf "can't convert '%s' to mistakeCluster" x)
 
 type mistakesImpact = NoImpact | MinorImpact | SignificatImpact | HugeImpact
 [@@deriving yojson, show]

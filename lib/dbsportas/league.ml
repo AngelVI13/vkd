@@ -101,6 +101,111 @@ module OverallResults = struct
     { finished; dsq }
 end
 
+module CourseStats = struct
+  type t = {
+    num_men : int;
+    num_women : int;
+    tilt_overall : int;
+    tilt_men : int;
+    tilt_women : int;
+    mistake_cluster_overall : Runner_stats.mistakeCluster option;
+    mistake_cluster_men : Runner_stats.mistakeCluster option;
+    mistake_cluster_women : Runner_stats.mistakeCluster option;
+  }
+  [@@deriving yojson]
+
+  let runners_by_gender ~(gender_prefix : string)
+      (runners : OverallResult.t list) =
+    List.filter runners ~f:(fun r ->
+        String.is_prefix ~prefix:gender_prefix r.group.group)
+
+  let tilt_rate (runners : OverallResult.t list) =
+    let total, found =
+      List.fold runners ~init:(0, 0) ~f:(fun (total, found) r ->
+          match r.stats with
+          | None -> (total, found)
+          | Some stats -> (total + stats.tilt_rate, found + 1))
+    in
+    Float.(to_int (round_nearest (of_int total /. of_int found)))
+
+  let mode ~map data =
+    assert (List.length data > 0);
+    let map =
+      List.fold data ~init:map ~f:(fun m el ->
+          Map.change m el ~f:(fun occurances ->
+              match occurances with None -> Some 1 | Some oc -> Some (oc + 1)))
+    in
+    let alist =
+      Map.to_alist map
+      |> List.sort ~compare:(fun (_, ocur1) (_, ocur2) ->
+             Int.compare ocur1 ocur2)
+    in
+    match List.last alist with
+    | None -> None
+    | Some (value, ocur) ->
+        (* printf "%s -> %d\n" most_val most_ocur; *)
+        let _ = ocur in
+        Some value
+
+  let mistake_cluster (runners : OverallResult.t list) =
+    let clusters =
+      List.fold runners ~init:[] ~f:(fun clusters r ->
+          match r.stats with
+          | None -> clusters
+          | Some stats -> (
+              match stats.mistake_cluster with
+              | None -> clusters
+              | Some cluster -> cluster :: clusters))
+      |> List.map ~f:Runner_stats.show_mistakeCluster
+    in
+    mode ~map:String.Map.empty clusters
+    |> Option.bind ~f:(fun v -> Some (Runner_stats.mistakeCluster_of_string v))
+
+  let of_results (results : OverallResults.t) : t =
+    (* -- most tricky control overall
+       -- most tricky control for men
+       -- most tricky control for women
+       -- avg cum mistake time overall (this is about total time of mistakes)
+       -- avg cum mistake time for men
+       -- avg cum mistake time for women
+       -- avg mistake time overall
+       -- avg mistake time for men
+       -- avg mistake time for women
+       -- blunder % overall
+       -- blunder % for men
+       -- blunder % for women
+       -- mistake cluster overall
+       -- mistake cluster for men
+       -- mistake cluster for women *)
+    (* TODO: should this consider the disqualified runners here as well? or
+       will they skew the results *)
+    (* let runners = results.finished @ results.dsq in *)
+    let runners = results.finished in
+    let men = runners_by_gender ~gender_prefix:"V-" runners in
+    let women = runners_by_gender ~gender_prefix:"M-" runners in
+
+    let tilt_overall = tilt_rate runners in
+    let tilt_men = tilt_rate men in
+    let tilt_women = tilt_rate women in
+
+    (* TODO: investigate for a few events but so far it looks like the most
+       common clustering is SCATTERED which does not give any inforomation -> REMOVE*)
+    let mistake_cluster_overall = mistake_cluster runners in
+    let mistake_cluster_men = mistake_cluster men in
+    let mistake_cluster_women = mistake_cluster women in
+
+    {
+      num_men = List.length men;
+      num_women = List.length women;
+      tilt_overall;
+      tilt_men;
+      tilt_women;
+      mistake_cluster_overall;
+      mistake_cluster_men;
+      mistake_cluster_women;
+    }
+end
+
 module Course = struct
   type t = {
     url : string;
@@ -110,6 +215,7 @@ module Course = struct
     controls_num : int;
     controls : string list option;
     results : OverallResults.t;
+    stats : CourseStats.t;
   }
   [@@deriving fields, yojson]
 end
@@ -311,8 +417,9 @@ let parse_event ~league_id ~event_nr page_html =
 
            let courses =
              List.map ids ~f:(fun id ->
+                 let stats = CourseStats.of_results overall_results in
                  Course.Fields.create ~url:course_results_url ~id ~distance
-                   ~hash ~controls_num ~controls ~results:overall_results)
+                   ~hash ~controls_num ~controls ~results:overall_results ~stats)
            in
            acc @ courses)
   in
@@ -592,3 +699,15 @@ let%expect_test "parse_event grouped courses" =
 (*     (Yojson.Safe.to_string @@ CourseResult.yojson_of_t @@ List.hd_exn results); *)
 (*   [%expect *)
 (*     {| {"position":1,"number":31,"group":{"url":"/lt/mvarz/244/rezgru/V-21A","group":"V-21A"},"name":"Časas Adomas","club":"Ąžuolas ok ","time":"30:32","points":100,"pace":"6:54"} |}] *)
+
+let%expect_test "course_stats" =
+  let results =
+    Yojson.Safe.from_file
+      "/home/angel/Documents/ocaml/vkd/244_event_1_results.json"
+    |> OverallResults.t_of_yojson
+  in
+
+  let stats = CourseStats.of_results results in
+  printf "%s" (CourseStats.yojson_of_t stats |> Yojson.Safe.to_string);
+  [%expect
+    {| {"num_men":56,"num_women":19,"tilt_overall":32,"tilt_men":31,"tilt_women":33,"mistake_cluster_overall":["Scattered"],"mistake_cluster_men":["Scattered"],"mistake_cluster_women":["Scattered"]} |}]
