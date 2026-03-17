@@ -111,6 +111,12 @@ module CourseStats = struct
     mistake_cluster_overall : Runner_stats.mistakeCluster option;
     mistake_cluster_men : Runner_stats.mistakeCluster option;
     mistake_cluster_women : Runner_stats.mistakeCluster option;
+    mistake_time_overall : int;
+    mistake_time_men : int;
+    mistake_time_women : int;
+    blunder_perc_overall : int;
+    blunder_perc_men : int;
+    blunder_perc_women : int;
   }
   [@@deriving yojson]
 
@@ -119,12 +125,14 @@ module CourseStats = struct
     List.filter runners ~f:(fun r ->
         String.is_prefix ~prefix:gender_prefix r.group.group)
 
-  let tilt_rate (runners : OverallResult.t list) =
+  let avg_stat ~field (runners : OverallResult.t list) =
     let total, found =
       List.fold runners ~init:(0, 0) ~f:(fun (total, found) r ->
           match r.stats with
           | None -> (total, found)
-          | Some stats -> (total + stats.tilt_rate, found + 1))
+          | Some stats ->
+              let value = Field.get field stats in
+              (total + value, found + 1))
     in
     Float.(to_int (round_nearest (of_int total /. of_int found)))
 
@@ -161,22 +169,23 @@ module CourseStats = struct
     mode ~map:String.Map.empty clusters
     |> Option.bind ~f:(fun v -> Some (Runner_stats.mistakeCluster_of_string v))
 
+  let avg_blunder_perc (runners : OverallResult.t list) =
+    let total, found =
+      List.fold runners ~init:(0, 0) ~f:(fun (total, found) r ->
+          match r.stats with
+          | None -> (total, found)
+          | Some stats -> (total + stats.blunder_mistakes.time_ratio, found + 1))
+    in
+    Float.(to_int (round_nearest (of_int total /. of_int found)))
+
   let of_results (results : OverallResults.t) : t =
     (* -- most tricky control overall
        -- most tricky control for men
        -- most tricky control for women
-       -- avg cum mistake time overall (this is about total time of mistakes)
-       -- avg cum mistake time for men
-       -- avg cum mistake time for women
        -- avg mistake time overall
        -- avg mistake time for men
        -- avg mistake time for women
-       -- blunder % overall
-       -- blunder % for men
-       -- blunder % for women
-       -- mistake cluster overall
-       -- mistake cluster for men
-       -- mistake cluster for women *)
+       *)
     (* TODO: should this consider the disqualified runners here as well? or
        will they skew the results *)
     (* let runners = results.finished @ results.dsq in *)
@@ -184,9 +193,23 @@ module CourseStats = struct
     let men = runners_by_gender ~gender_prefix:"V-" runners in
     let women = runners_by_gender ~gender_prefix:"M-" runners in
 
-    let tilt_overall = tilt_rate runners in
-    let tilt_men = tilt_rate men in
-    let tilt_women = tilt_rate women in
+    let tilt_overall = avg_stat ~field:Runner_stats.Fields.tilt_rate runners in
+    let tilt_men = avg_stat ~field:Runner_stats.Fields.tilt_rate men in
+    let tilt_women = avg_stat ~field:Runner_stats.Fields.tilt_rate women in
+
+    let mistake_time_overall =
+      avg_stat ~field:Runner_stats.Fields.mistake_time runners
+    in
+    let mistake_time_men =
+      avg_stat ~field:Runner_stats.Fields.mistake_time men
+    in
+    let mistake_time_women =
+      avg_stat ~field:Runner_stats.Fields.mistake_time women
+    in
+
+    let blunder_perc_overall = avg_blunder_perc runners in
+    let blunder_perc_men = avg_blunder_perc men in
+    let blunder_perc_women = avg_blunder_perc women in
 
     (* TODO: investigate for a few events but so far it looks like the most
        common clustering is SCATTERED which does not give any inforomation -> REMOVE*)
@@ -203,6 +226,12 @@ module CourseStats = struct
       mistake_cluster_overall;
       mistake_cluster_men;
       mistake_cluster_women;
+      mistake_time_overall;
+      mistake_time_men;
+      mistake_time_women;
+      blunder_perc_overall;
+      blunder_perc_men;
+      blunder_perc_women;
     }
 end
 
@@ -704,10 +733,11 @@ let%expect_test "course_stats" =
   let results =
     Yojson.Safe.from_file
       "/home/angel/Documents/ocaml/vkd/244_event_1_results.json"
+    (* "/home/angel/Documents/ocaml/vkd/league244_event2.json" *)
     |> OverallResults.t_of_yojson
   in
 
   let stats = CourseStats.of_results results in
   printf "%s" (CourseStats.yojson_of_t stats |> Yojson.Safe.to_string);
   [%expect
-    {| {"num_men":56,"num_women":19,"tilt_overall":32,"tilt_men":31,"tilt_women":33,"mistake_cluster_overall":["Scattered"],"mistake_cluster_men":["Scattered"],"mistake_cluster_women":["Scattered"]} |}]
+    {| {"num_men":56,"num_women":19,"tilt_overall":32,"tilt_men":31,"tilt_women":33,"mistake_cluster_overall":["Scattered"],"mistake_cluster_men":["Scattered"],"mistake_cluster_women":["Scattered"],"mistake_time_overall":238,"mistake_time_men":232,"mistake_time_women":257,"blunder_perc_overall":13,"blunder_perc_men":13,"blunder_perc_women":10} |}]
