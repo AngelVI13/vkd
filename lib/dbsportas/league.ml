@@ -117,6 +117,18 @@ module CourseStats = struct
     blunder_perc_overall : int;
     blunder_perc_men : int;
     blunder_perc_women : int;
+    big_mistake_perc_overall : int;
+    big_mistake_perc_men : int;
+    big_mistake_perc_women : int;
+    small_mistake_perc_overall : int;
+    small_mistake_perc_men : int;
+    small_mistake_perc_women : int;
+    most_tricky_overall : int option;
+    most_tricky_men : int option;
+    most_tricky_women : int option;
+    avg_time_for_mistake_overall : int;
+    avg_time_for_mistake_men : int;
+    avg_time_for_mistake_women : int;
   }
   [@@deriving yojson]
 
@@ -124,6 +136,16 @@ module CourseStats = struct
       (runners : OverallResult.t list) =
     List.filter runners ~f:(fun r ->
         String.is_prefix ~prefix:gender_prefix r.group.group)
+
+  let most_occurance_from_map ~compare map =
+    let alist =
+      Map.to_alist map
+      |> List.sort ~compare:(fun (_, ocur1) (_, ocur2) -> compare ocur1 ocur2)
+    in
+    match List.last alist with None -> None | Some (value, _) -> Some value
+
+  let calculate_percent total divide_by =
+    Float.(to_int (round_nearest (of_int total /. of_int divide_by)))
 
   let avg_stat ~field (runners : OverallResult.t list) =
     let total, found =
@@ -134,7 +156,7 @@ module CourseStats = struct
               let value = Field.get field stats in
               (total + value, found + 1))
     in
-    Float.(to_int (round_nearest (of_int total /. of_int found)))
+    calculate_percent total found
 
   let mode ~map data =
     assert (List.length data > 0);
@@ -143,17 +165,7 @@ module CourseStats = struct
           Map.change m el ~f:(fun occurances ->
               match occurances with None -> Some 1 | Some oc -> Some (oc + 1)))
     in
-    let alist =
-      Map.to_alist map
-      |> List.sort ~compare:(fun (_, ocur1) (_, ocur2) ->
-             Int.compare ocur1 ocur2)
-    in
-    match List.last alist with
-    | None -> None
-    | Some (value, ocur) ->
-        (* printf "%s -> %d\n" most_val most_ocur; *)
-        let _ = ocur in
-        Some value
+    most_occurance_from_map ~compare:Int.compare map
 
   let mistake_cluster (runners : OverallResult.t list) =
     let clusters =
@@ -174,17 +186,65 @@ module CourseStats = struct
       List.fold runners ~init:(0, 0) ~f:(fun (total, found) r ->
           match r.stats with
           | None -> (total, found)
-          | Some stats -> (total + stats.blunder_mistakes.time_ratio, found + 1))
+          | Some stats -> (total + stats.blunder_mistakes.num_ratio, found + 1))
     in
-    Float.(to_int (round_nearest (of_int total /. of_int found)))
+    calculate_percent total found
+
+  let avg_big_mistake_perc (runners : OverallResult.t list) =
+    let total, found =
+      List.fold runners ~init:(0, 0) ~f:(fun (total, found) r ->
+          match r.stats with
+          | None -> (total, found)
+          | Some stats -> (total + stats.big_mistakes.num_ratio, found + 1))
+    in
+    calculate_percent total found
+
+  let avg_small_mistake_perc (runners : OverallResult.t list) =
+    let total, found =
+      List.fold runners ~init:(0, 0) ~f:(fun (total, found) r ->
+          match r.stats with
+          | None -> (total, found)
+          | Some stats -> (total + stats.small_mistakes.num_ratio, found + 1))
+    in
+    calculate_percent total found
+
+  let most_tricky_control (runners : OverallResult.t list) =
+    let map = Int.Map.empty in
+    let map =
+      List.fold runners ~init:map ~f:(fun m r ->
+          match r.splits with
+          | None -> m
+          | Some splits ->
+              List.foldi splits ~init:m ~f:(fun i m split ->
+                  match split.mistake_time with
+                  | None -> m
+                  | Some _ ->
+                      Map.change m i ~f:(fun mistakes ->
+                          match mistakes with
+                          | None -> Some 1
+                          | Some mistakes -> Some (mistakes + 1))))
+    in
+    most_occurance_from_map ~compare:Int.compare map
+
+  let avg_mistake_time (runners : OverallResult.t list) =
+    let total, found =
+      List.fold runners ~init:(0, 0) ~f:(fun (total, found) r ->
+          match r.splits with
+          | None -> (total, found)
+          | Some splits ->
+              List.fold splits ~init:(total, found)
+                ~f:(fun (total, found) split ->
+                  match split.mistake_time with
+                  | None -> (total, found)
+                  | Some m -> (total + m, found + 1)))
+    in
+    calculate_percent total found
 
   let of_results (results : OverallResults.t) : t =
-    (* -- most tricky control overall
-       -- most tricky control for men
-       -- most tricky control for women
-       -- avg mistake time overall
-       -- avg mistake time for men
-       -- avg mistake time for women
+    (* 
+       -- avg amount of mistakes (per person) overall
+       -- avg amount of mistakes (per person) men
+       -- avg amount of mistakes (per person) women
        *)
     (* TODO: should this consider the disqualified runners here as well? or
        will they skew the results *)
@@ -211,6 +271,22 @@ module CourseStats = struct
     let blunder_perc_men = avg_blunder_perc men in
     let blunder_perc_women = avg_blunder_perc women in
 
+    let big_mistake_perc_overall = avg_big_mistake_perc runners in
+    let big_mistake_perc_men = avg_big_mistake_perc men in
+    let big_mistake_perc_women = avg_big_mistake_perc women in
+
+    let small_mistake_perc_overall = avg_small_mistake_perc runners in
+    let small_mistake_perc_men = avg_small_mistake_perc men in
+    let small_mistake_perc_women = avg_small_mistake_perc women in
+
+    let most_tricky_overall = most_tricky_control runners in
+    let most_tricky_men = most_tricky_control men in
+    let most_tricky_women = most_tricky_control women in
+
+    let avg_time_for_mistake_overall = avg_mistake_time runners in
+    let avg_time_for_mistake_men = avg_mistake_time men in
+    let avg_time_for_mistake_women = avg_mistake_time women in
+
     (* TODO: investigate for a few events but so far it looks like the most
        common clustering is SCATTERED which does not give any inforomation -> REMOVE*)
     let mistake_cluster_overall = mistake_cluster runners in
@@ -232,6 +308,18 @@ module CourseStats = struct
       blunder_perc_overall;
       blunder_perc_men;
       blunder_perc_women;
+      big_mistake_perc_overall;
+      big_mistake_perc_men;
+      big_mistake_perc_women;
+      small_mistake_perc_overall;
+      small_mistake_perc_men;
+      small_mistake_perc_women;
+      most_tricky_overall;
+      most_tricky_men;
+      most_tricky_women;
+      avg_time_for_mistake_overall;
+      avg_time_for_mistake_men;
+      avg_time_for_mistake_women;
     }
 end
 
