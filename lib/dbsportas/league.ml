@@ -108,9 +108,6 @@ module CourseStats = struct
     tilt_overall : int;
     tilt_men : int;
     tilt_women : int;
-    mistake_cluster_overall : Runner_stats.mistakeCluster option;
-    mistake_cluster_men : Runner_stats.mistakeCluster option;
-    mistake_cluster_women : Runner_stats.mistakeCluster option;
     mistake_time_overall : int;
     mistake_time_men : int;
     mistake_time_women : int;
@@ -129,6 +126,9 @@ module CourseStats = struct
     avg_time_for_mistake_overall : int;
     avg_time_for_mistake_men : int;
     avg_time_for_mistake_women : int;
+    avg_mistake_num_overall : int;
+    avg_mistake_num_men : int;
+    avg_mistake_num_women : int;
   }
   [@@deriving yojson]
 
@@ -145,7 +145,8 @@ module CourseStats = struct
     match List.last alist with None -> None | Some (value, _) -> Some value
 
   let calculate_percent total divide_by =
-    Float.(to_int (round_nearest (of_int total /. of_int divide_by)))
+    if divide_by = 0 then 0
+    else Float.(to_int (round_nearest (of_int total /. of_int divide_by)))
 
   let avg_stat ~field (runners : OverallResult.t list) =
     let total, found =
@@ -166,20 +167,6 @@ module CourseStats = struct
               match occurances with None -> Some 1 | Some oc -> Some (oc + 1)))
     in
     most_occurance_from_map ~compare:Int.compare map
-
-  let mistake_cluster (runners : OverallResult.t list) =
-    let clusters =
-      List.fold runners ~init:[] ~f:(fun clusters r ->
-          match r.stats with
-          | None -> clusters
-          | Some stats -> (
-              match stats.mistake_cluster with
-              | None -> clusters
-              | Some cluster -> cluster :: clusters))
-      |> List.map ~f:Runner_stats.show_mistakeCluster
-    in
-    mode ~map:String.Map.empty clusters
-    |> Option.bind ~f:(fun v -> Some (Runner_stats.mistakeCluster_of_string v))
 
   let avg_blunder_perc (runners : OverallResult.t list) =
     let total, found =
@@ -208,7 +195,7 @@ module CourseStats = struct
     in
     calculate_percent total found
 
-  let most_tricky_control (runners : OverallResult.t list) =
+  let _most_tricky_control (runners : OverallResult.t list) =
     let map = Int.Map.empty in
     let map =
       List.fold runners ~init:map ~f:(fun m r ->
@@ -226,29 +213,51 @@ module CourseStats = struct
     in
     most_occurance_from_map ~compare:Int.compare map
 
-  let avg_mistake_time (runners : OverallResult.t list) =
-    let total, found =
-      List.fold runners ~init:(0, 0) ~f:(fun (total, found) r ->
-          match r.splits with
-          | None -> (total, found)
-          | Some splits ->
-              List.fold splits ~init:(total, found)
-                ~f:(fun (total, found) split ->
-                  match split.mistake_time with
-                  | None -> (total, found)
-                  | Some m -> (total + m, found + 1)))
+  (* TODO: check which is the correct implementation. I think its this one
+       because the upper one does not convert from mistake index to control
+       number *)
+  let most_tricky_control (runners : OverallResult.t list) =
+    let mistakes =
+      List.fold runners ~init:[] ~f:(fun mistakes r ->
+          match r.stats with
+          | None -> mistakes
+          | Some stats ->
+              (* NOTE: convert from indexes to control numbers *)
+              mistakes @ List.map stats.mistake_indexes ~f:(fun m -> m + 1))
     in
-    calculate_percent total found
+    mode ~map:Int.Map.empty mistakes
+
+  let macro_avg_mistake_time (runners : OverallResult.t list) =
+    let averages =
+      List.fold runners ~init:[] ~f:(fun averages r ->
+          match r.splits with
+          | None -> averages
+          | Some splits ->
+              let total, found =
+                List.fold splits ~init:(0, 0) ~f:(fun (total, found) split ->
+                    match split.mistake_time with
+                    | None -> (total, found)
+                    | Some m -> (total + m, found + 1))
+              in
+              calculate_percent total found :: averages)
+    in
+    calculate_percent
+      (List.fold_left averages ~init:0 ~f:( + ))
+      (List.length averages)
+
+  let avg_mistake_num (runners : OverallResult.t list) =
+    let averages =
+      List.fold runners ~init:[] ~f:(fun averages r ->
+          match r.stats with
+          | None -> averages
+          | Some stats -> stats.mistake_num :: averages)
+    in
+    calculate_percent
+      (List.fold_left averages ~init:0 ~f:( + ))
+      (List.length averages)
 
   let of_results (results : OverallResults.t) : t =
-    (* 
-       -- avg amount of mistakes (per person) overall
-       -- avg amount of mistakes (per person) men
-       -- avg amount of mistakes (per person) women
-       *)
-    (* TODO: should this consider the disqualified runners here as well? or
-       will they skew the results *)
-    (* let runners = results.finished @ results.dsq in *)
+    (* NOTE: disqualified runners are not included in the stats *)
     let runners = results.finished in
     let men = runners_by_gender ~gender_prefix:"V-" runners in
     let women = runners_by_gender ~gender_prefix:"M-" runners in
@@ -283,15 +292,13 @@ module CourseStats = struct
     let most_tricky_men = most_tricky_control men in
     let most_tricky_women = most_tricky_control women in
 
-    let avg_time_for_mistake_overall = avg_mistake_time runners in
-    let avg_time_for_mistake_men = avg_mistake_time men in
-    let avg_time_for_mistake_women = avg_mistake_time women in
+    let avg_time_for_mistake_overall = macro_avg_mistake_time runners in
+    let avg_time_for_mistake_men = macro_avg_mistake_time men in
+    let avg_time_for_mistake_women = macro_avg_mistake_time women in
 
-    (* TODO: investigate for a few events but so far it looks like the most
-       common clustering is SCATTERED which does not give any inforomation -> REMOVE*)
-    let mistake_cluster_overall = mistake_cluster runners in
-    let mistake_cluster_men = mistake_cluster men in
-    let mistake_cluster_women = mistake_cluster women in
+    let avg_mistake_num_overall = avg_mistake_num runners in
+    let avg_mistake_num_men = avg_mistake_num men in
+    let avg_mistake_num_women = avg_mistake_num women in
 
     {
       num_men = List.length men;
@@ -299,9 +306,6 @@ module CourseStats = struct
       tilt_overall;
       tilt_men;
       tilt_women;
-      mistake_cluster_overall;
-      mistake_cluster_men;
-      mistake_cluster_women;
       mistake_time_overall;
       mistake_time_men;
       mistake_time_women;
@@ -320,6 +324,9 @@ module CourseStats = struct
       avg_time_for_mistake_overall;
       avg_time_for_mistake_men;
       avg_time_for_mistake_women;
+      avg_mistake_num_overall;
+      avg_mistake_num_men;
+      avg_mistake_num_women;
     }
 end
 
@@ -828,4 +835,4 @@ let%expect_test "course_stats" =
   let stats = CourseStats.of_results results in
   printf "%s" (CourseStats.yojson_of_t stats |> Yojson.Safe.to_string);
   [%expect
-    {| {"num_men":56,"num_women":19,"tilt_overall":32,"tilt_men":31,"tilt_women":33,"mistake_cluster_overall":["Scattered"],"mistake_cluster_men":["Scattered"],"mistake_cluster_women":["Scattered"],"mistake_time_overall":238,"mistake_time_men":232,"mistake_time_women":257,"blunder_perc_overall":13,"blunder_perc_men":13,"blunder_perc_women":10} |}]
+    {| {"num_men":56,"num_women":19,"tilt_overall":32,"tilt_men":31,"tilt_women":33,"mistake_time_overall":238,"mistake_time_men":232,"mistake_time_women":257,"blunder_perc_overall":4,"blunder_perc_men":4,"blunder_perc_women":3,"big_mistake_perc_overall":35,"big_mistake_perc_men":33,"big_mistake_perc_women":40,"small_mistake_perc_overall":60,"small_mistake_perc_men":62,"small_mistake_perc_women":56,"most_tricky_overall":15,"most_tricky_men":15,"most_tricky_women":14,"avg_time_for_mistake_overall":36,"avg_time_for_mistake_men":36,"avg_time_for_mistake_women":35,"avg_mistake_num_overall":6,"avg_mistake_num_men":6,"avg_mistake_num_women":7} |}]
