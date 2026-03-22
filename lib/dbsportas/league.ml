@@ -195,27 +195,6 @@ module CourseStats = struct
     in
     calculate_percent total found
 
-  let _most_tricky_control (runners : OverallResult.t list) =
-    let map = Int.Map.empty in
-    let map =
-      List.fold runners ~init:map ~f:(fun m r ->
-          match r.splits with
-          | None -> m
-          | Some splits ->
-              List.foldi splits ~init:m ~f:(fun i m split ->
-                  match split.mistake_time with
-                  | None -> m
-                  | Some _ ->
-                      Map.change m i ~f:(fun mistakes ->
-                          match mistakes with
-                          | None -> Some 1
-                          | Some mistakes -> Some (mistakes + 1))))
-    in
-    most_occurance_from_map ~compare:Int.compare map
-
-  (* TODO: check which is the correct implementation. I think its this one
-       because the upper one does not convert from mistake index to control
-       number *)
   let most_tricky_control (runners : OverallResult.t list) =
     let mistakes =
       List.fold runners ~init:[] ~f:(fun mistakes r ->
@@ -835,4 +814,4 @@ let%expect_test "course_stats" =
   let stats = CourseStats.of_results results in
   printf "%s" (CourseStats.yojson_of_t stats |> Yojson.Safe.to_string);
   [%expect
-    {| {"num_men":56,"num_women":19,"tilt_overall":32,"tilt_men":31,"tilt_women":33,"mistake_time_overall":238,"mistake_time_men":232,"mistake_time_women":257,"blunder_perc_overall":4,"blunder_perc_men":4,"blunder_perc_women":3,"big_mistake_perc_overall":35,"big_mistake_perc_men":33,"big_mistake_perc_women":40,"small_mistake_perc_overall":60,"small_mistake_perc_men":62,"small_mistake_perc_women":56,"most_tricky_overall":15,"most_tricky_men":15,"most_tricky_women":14,"avg_time_for_mistake_overall":36,"avg_time_for_mistake_men":36,"avg_time_for_mistake_women":35,"avg_mistake_num_overall":6,"avg_mistake_num_men":6,"avg_mistake_num_women":7} |}]
+    {| {"num_men":56,"num_women":19,"tilt_overall":32,"tilt_men":31,"tilt_women":33,"mistake_time_overall":238,"mistake_time_men":232,"mistake_time_women":257,"blunder_perc_overall":4,"blunder_perc_men":4,"blunder_perc_women":3,"big_mistake_perc_overall":35,"big_mistake_perc_men":33,"big_mistake_perc_women":40,"small_mistake_perc_overall":60,"small_mistake_perc_men":62,"small_mistake_perc_women":56,"most_tricky_overall":16,"most_tricky_men":16,"most_tricky_women":15,"avg_time_for_mistake_overall":36,"avg_time_for_mistake_men":36,"avg_time_for_mistake_women":35,"avg_mistake_num_overall":6,"avg_mistake_num_men":6,"avg_mistake_num_women":7} |}]

@@ -203,7 +203,6 @@ let%expect_test "of_race" =
     ]
   in
 
-  (* TODO: use this to test the RD increase due to inactivity *)
   let all_known_participants =
     List.concat race
     @ [

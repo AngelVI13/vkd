@@ -694,10 +694,8 @@ module M = struct
        then we get 3 parameters for it  *)
     let params = set_params sql in
     let rows = turso_post db sql params in
-    (* TODO: for some reason the map_summary_polyline has extra escape backslashes -> does it need fixing ? *)
     List.iter ~f:callback rows
 
-  (* TODO: TEST all of these *)
   let execute db sql set_params =
     let params = set_params sql in
     ignore (turso_post db sql params);
