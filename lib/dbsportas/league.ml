@@ -160,7 +160,6 @@ module CourseStats = struct
     calculate_percent total found
 
   let mode ~map data =
-    assert (List.length data > 0);
     let map =
       List.fold data ~init:map ~f:(fun m el ->
           Map.change m el ~f:(fun occurances ->
@@ -582,10 +581,12 @@ let download_league_info ~league_id =
   League.Fields.create ~url ~events ~id:league_id
 
 let%expect_test "download_league_info" =
-  (* let league_id = "244" in  (* 2025 *) *)
-  let league_id = "217" in
+  let league_id = "244" in
+
+  (* 2025 *)
   (* 2024 *)
 
+  (* let league_id = "217" in *)
   (* let league = download_league_info ~league_id in *)
   (* let _ = *)
   (*   League.yojson_of_t league *)
