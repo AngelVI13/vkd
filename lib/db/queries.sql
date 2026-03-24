@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS courses (
     controls TEXT NOT NULL
 );
 
+-- TODO: create a table for the rating info for each runner and maybe a separate one for the rating,rd,vol changes
+
 -- @create_course_stats
 CREATE TABLE IF NOT EXISTS course_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

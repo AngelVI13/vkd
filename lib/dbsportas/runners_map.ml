@@ -39,8 +39,7 @@ let update_runner_positions_for_same_time ~field ~control_idx (position, map)
      time
      ~time_field: specifies which field to sorting splits on, individual control time, overall time etc.
      *)
-let all_sorted_splits ~time_field (t : t) =
-  let runners = Map.data t in
+let all_sorted_splits ~time_field (runners : Runner_result.t list) =
   (* get list of splits for each runner *)
   let all_splits =
     List.map runners ~f:(fun r ->
@@ -59,7 +58,7 @@ let all_sorted_splits ~time_field (t : t) =
 
 (* get list of first best & list of second best splits for each control *)
 let fst_and_snd_best_splits ~time_field (t : t) =
-  let sorted_splits = all_sorted_splits ~time_field t in
+  let sorted_splits = all_sorted_splits ~time_field (Map.data t) in
   let fst_and_snd_splits =
     List.map sorted_splits ~f:(fun splits_for_control ->
         let fst = List.hd_exn splits_for_control in
@@ -81,7 +80,7 @@ let fst_and_snd_best_splits ~time_field (t : t) =
   (fst_times, snd_times)
 
 let update_runner_positions ~time_field ~position_field (t : t) =
-  let sorted_splits = all_sorted_splits ~time_field t in
+  let sorted_splits = all_sorted_splits ~time_field (Map.data t) in
   (* update runners position in map *)
   List.foldi sorted_splits ~init:t ~f:(fun control_idx map splits_for_control ->
       let update_fn =

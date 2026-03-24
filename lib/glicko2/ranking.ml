@@ -120,7 +120,6 @@ let of_race ~(settings : Settings.t) ~(race : Race.Race.t)
 
 (* TODO: store rating information for each player for each race (along with
    rating change & new values for rd and vol *)
-(* TODO: Test on real data what is meaningfull default values for tau, rd, vol etc. *)
 
 let%expect_test "update_ratings_1" =
   let settings =

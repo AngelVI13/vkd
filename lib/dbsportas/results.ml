@@ -94,6 +94,8 @@ module CourseResult = struct
             (position + 1, r :: finished)
           else (position, r :: finished))
     in
+    (* TODO: here create a RunnersMap and calculate the splits positions based on gender and later based on group *)
+
     (* here we reverse the finished because while `folding` we created the new
        list in reverse order *)
     { t with finished = List.rev finished }
