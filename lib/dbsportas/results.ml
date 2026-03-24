@@ -94,11 +94,50 @@ module CourseResult = struct
             (position + 1, r :: finished)
           else (position, r :: finished))
     in
-    (* TODO: here create a RunnersMap and calculate the splits positions based on gender and later based on group *)
-
     (* here we reverse the finished because while `folding` we created the new
        list in reverse order *)
-    { t with finished = List.rev finished }
+    let finished = List.rev finished in
+    let dsq = t.dsq in
+
+    (* here finished and t.dsq are all the runners -> narrow down to gender *)
+    let runners_by_gender =
+      List.filter (finished @ t.dsq) ~f:(fun r ->
+          let r_group = Map.find_exn runner_map r.number in
+
+          String.is_prefix ~prefix:gender_prefix r_group)
+    in
+
+    (* from here till the end of the fn we update runners position by gender
+       for each split *)
+    let control_time_field = Split.Fields.time in
+    let control_position_field = Split.Fields.position_gender in
+    let overall_time_field = Split.Fields.overall_time in
+    let overall_position_field = Split.Fields.overall_position_gender in
+
+    let runners_by_gender_map =
+      runners_by_gender |> Runners_map.of_runners
+      |> Runners_map.update_runner_positions ~time_field:control_time_field
+           ~position_field:control_position_field
+      |> Runners_map.update_runner_positions ~time_field:overall_time_field
+           ~position_field:overall_position_field
+    in
+
+    let finished =
+      List.map finished ~f:(fun r ->
+          match Map.find runners_by_gender_map r.number with
+          | None -> r
+          | Some runner -> runner)
+    in
+
+    (* TODO: check DSQ splits for gender *)
+    let dsq =
+      List.map dsq ~f:(fun r ->
+          match Map.find runners_by_gender_map r.number with
+          | None -> r
+          | Some runner -> runner)
+    in
+
+    { t with finished; dsq }
 
   let update_group (t : t) (runner_map : String.t Int.Map.t) =
     let groups =
