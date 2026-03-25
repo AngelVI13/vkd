@@ -129,7 +129,6 @@ module CourseResult = struct
           | Some runner -> runner)
     in
 
-    (* TODO: check DSQ splits for gender *)
     let dsq =
       List.map dsq ~f:(fun r ->
           match Map.find runners_by_gender_map r.number with
@@ -155,6 +154,7 @@ module CourseResult = struct
           in
           map)
     in
+    let dsq = t.dsq in
     let finished =
       List.map t.finished ~f:(fun r ->
           let position = Map.find_exn group_pos_map r.number in
@@ -162,7 +162,62 @@ module CourseResult = struct
             ~field:Runner_stats.Fields.position_group position)
     in
 
-    { t with finished }
+    (* from here till the end of the fn we update runners position by group
+       for each split *)
+    let control_time_field = Split.Fields.time in
+    let control_position_field = Split.Fields.position_group in
+    let overall_time_field = Split.Fields.overall_time in
+    let overall_position_field = Split.Fields.overall_position_group in
+
+    let runners_by_group =
+      (* create groups out of all runners (finished and dsq)
+         importantly here we use the already modified `finished`. *)
+      List.sort_and_group (finished @ dsq) ~compare:(fun r1 r2 ->
+          let group1 = Map.find_exn runner_map r1.number in
+          let group2 = Map.find_exn runner_map r2.number in
+          String.compare group1 group2)
+      (* create maps of runners for each group *)
+      |> List.map ~f:Runners_map.of_runners
+      |> List.map
+           ~f:
+             (Runners_map.update_runner_positions ~time_field:control_time_field
+                ~position_field:control_position_field)
+      |> List.map
+           ~f:
+             (Runners_map.update_runner_positions ~time_field:overall_time_field
+                ~position_field:overall_position_field)
+    in
+
+    let finished =
+      (* replace any finished runner with the value from the runners_by_group
+         maps because they have all the latest position and split info in them
+         *)
+      List.map finished ~f:(fun r ->
+          let r_opts =
+            List.map runners_by_group ~f:(fun group_map ->
+                Map.find group_map r.number)
+            |> List.filter_opt
+          in
+          if List.length r_opts = 0 then r
+          else (
+            assert (List.length r_opts = 1);
+            List.hd_exn r_opts))
+    in
+
+    let dsq =
+      List.map dsq ~f:(fun r ->
+          let r_opts =
+            List.map runners_by_group ~f:(fun group_map ->
+                Map.find group_map r.number)
+            |> List.filter_opt
+          in
+          if List.length r_opts = 0 then r
+          else (
+            assert (List.length r_opts = 1);
+            List.hd_exn r_opts))
+    in
+
+    { t with finished; dsq }
 
   let update_gender_and_group_positions t
       (simple_results : Simple_result.CourseResult.t list) =
