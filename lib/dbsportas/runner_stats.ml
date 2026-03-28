@@ -1,7 +1,25 @@
 open Core
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-type raceExecution = EvenSplit | NegativeSplit | PositiveSplit
+type raceExecution =
+  | PositiveSplit
+  | FadeAndKick
+  | FadeAndHold
+  | NegativeSplit
+  | KickAndFade
+  | KickAndHold
+  | LateFade
+  | LateKick
+  | EvenSplit
+(* | Down -> Down | PositiveSplit  | Started too hot, faded the whole way | *)
+(* | Down -> Up   | FadeAndKick    | Strong start, mid-race dip, strong finish | *)
+(* | Down -> Stay | FadeAndHold    | Went out too fast, faded early but stabilized | *)
+(* | Up -> Up     | Negative Split | Progressively got faster / moved up throughout | *)
+(* | Up -> Down   | KickAndFade    | Slow start, strong middle surge, faded at the end | *)
+(* | Up -> Stay   | KickAndHold    | Built into the race, then held strong | *)
+(* | Stay -> Down | LateFade       | Controlled start, held well, but died at the end | *)
+(* | Stay -> Up   | LateKick       | Patient and steady, then made a move at the end | *)
+(* | Stay -> Stay | Even Split     | Consistent execution throughout | *)
 [@@deriving yojson, show]
 
 type mistakeCluster =

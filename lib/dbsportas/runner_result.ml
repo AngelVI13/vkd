@@ -84,23 +84,44 @@ let update_potential_position r position =
   in
   { r with stats }
 
+type trend = Up | Down | Stay [@@deriving show { with_path = false }]
+
+let position_trend pos_a pos_b =
+  let diff = pos_b - pos_a in
+  (* if position B > position A -> runner dropped down places 
+     if position B < position A -> runner got up a few places 
+     if diff is about the same +- 1 place then no change happened *)
+  if abs diff <= 1 then Stay else if diff > 0 then Down else Up
+
 (* NOTE: this should only be called on Finished runner *)
 let update_race_execution r =
   let num_controls = List.length r.splits in
-  let middle_control_idx = num_controls / 2 in
-  let middle_split = List.nth_exn r.splits middle_control_idx in
-  let middle_position = Option.value_exn middle_split.overall_position in
+  let bucket_size = num_controls / 3 in
+  let begin_idx = bucket_size in
+  let mid_idx = 2 * bucket_size in
+  let end_idx = num_controls - 1 in
 
-  let end_split = List.last_exn r.splits in
-  let end_position = Option.value_exn end_split.overall_position in
+  let begin_pos = Splits.overall_position_exn r.splits begin_idx in
+  let mid_pos = Splits.overall_position_exn r.splits mid_idx in
+  let end_pos = Splits.overall_position_exn r.splits end_idx in
 
-  let diff = end_position - middle_position in
+  let trend_a = position_trend begin_pos mid_pos in
+  let trend_b = position_trend mid_pos end_pos in
 
   let race_execution =
-    if Int.abs diff <= 2 then Runner_stats.EvenSplit
-    else if diff > 0 then Runner_stats.PositiveSplit
-    else Runner_stats.NegativeSplit
+    match (trend_a, trend_b) with
+    | Down, Down -> Runner_stats.PositiveSplit
+    | Down, Up -> Runner_stats.FadeAndKick
+    | Down, Stay -> Runner_stats.FadeAndHold
+    | Up, Up -> Runner_stats.NegativeSplit
+    | Up, Down -> Runner_stats.KickAndFade
+    | Up, Stay -> Runner_stats.KickAndHold
+    | Stay, Down -> Runner_stats.LateFade (* TODO: should this be HoldAndFade *)
+    | Stay, Up -> Runner_stats.LateKick (* TODO: should this be HoldAndKick *)
+    | Stay, Stay -> Runner_stats.EvenSplit
   in
+
+  (* TODO: test this new categorization *)
   let stats =
     Field.fset Runner_stats.Fields.race_execution r.stats (Some race_execution)
   in

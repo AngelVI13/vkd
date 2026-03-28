@@ -581,12 +581,13 @@ let download_league_info ~league_id =
   League.Fields.create ~url ~events ~id:league_id
 
 let%expect_test "download_league_info" =
-  let league_id = "244" in
+  (* 
+     id - 217 -> 2024 
+     id - 244 -> 2025 
+     id - 269 -> 2026
+     *)
+  let league_id = "269" in
 
-  (* 2025 *)
-  (* 2024 *)
-
-  (* let league_id = "217" in *)
   (* let league = download_league_info ~league_id in *)
   (* let _ = *)
   (*   League.yojson_of_t league *)

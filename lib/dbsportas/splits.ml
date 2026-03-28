@@ -35,3 +35,8 @@ let of_string ~(start : int) s : t =
 let has_dsq (t : t) =
   let bad_splits = List.filter t ~f:(fun split -> Option.is_none split.time) in
   List.length bad_splits > 0
+
+let overall_position_exn (t : t) (idx : int) =
+  List.nth_exn t idx
+  |> Field.get Split.Fields.overall_position
+  |> Option.value_exn
