@@ -37,37 +37,40 @@ CREATE TABLE IF NOT EXISTS courses (
     controls TEXT NOT NULL
 );
 
--- TODO: create a table for the rating info for each runner and maybe a separate one for the rating,rd,vol changes
 
 -- @create_course_stats
 CREATE TABLE IF NOT EXISTS course_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
-    course_id INTEGER NOT NULL
+    course_id INTEGER NOT NULL,
 
-    -- TODO: add the following stats
-    -- TODO: fist calculate them from file just to see if these course stats tell a story or not
-    -- most tricky control overall
-    -- most tricky control for men
-    -- most tricky control for women
-    -- avg cum mistake time overall (this is about total time of mistakes)
-    -- avg cum mistake time for men
-    -- avg cum mistake time for women
-    -- avg mistake time overall
-    -- avg mistake time for men
-    -- avg mistake time for women
-    -- blunder % overall
-    -- blunder % for men
-    -- blunder % for women
-    -- tilt rate overall
-    -- tilt rate for men
-    -- tilt rate for women
-    -- mistake cluster overall
-    -- mistake cluster for men
-    -- mistake cluster for women
-    -- num_women
-    -- num_men
+    num_men  INTEGER NOT NULL,
+    num_women  INTEGER NOT NULL,
+    tilt_overall  INTEGER NOT NULL,
+    tilt_men  INTEGER NOT NULL,
+    tilt_women  INTEGER NOT NULL,
+    mistake_time_overall  INTEGER NOT NULL,
+    mistake_time_men  INTEGER NOT NULL,
+    mistake_time_women  INTEGER NOT NULL,
+    blunder_perc_overall  INTEGER NOT NULL,
+    blunder_perc_men  INTEGER NOT NULL,
+    blunder_perc_women  INTEGER NOT NULL,
+    big_mistake_perc_overall  INTEGER NOT NULL,
+    big_mistake_perc_men  INTEGER NOT NULL,
+    big_mistake_perc_women  INTEGER NOT NULL,
+    small_mistake_perc_overall  INTEGER NOT NULL,
+    small_mistake_perc_men  INTEGER NOT NULL,
+    small_mistake_perc_women  INTEGER NOT NULL,
+    most_tricky_overall  INTEGER,
+    most_tricky_men  INTEGER,
+    most_tricky_women  INTEGER,
+    avg_time_for_mistake_overall  INTEGER NOT NULL,
+    avg_time_for_mistake_men  INTEGER NOT NULL,
+    avg_time_for_mistake_women  INTEGER NOT NULL,
+    avg_mistake_num_overall  INTEGER NOT NULL,
+    avg_mistake_num_men  INTEGER NOT NULL,
+    avg_mistake_num_women  INTEGER NOT NULL
 );
 
 -- @create_age_groups
@@ -156,3 +159,17 @@ CREATE TABLE IF NOT EXISTS splits (
     split_timestamp INTEGER,
     mistake_time INTEGER
 );
+
+-- @create_ratings
+CREATE TABLE IF NOT EXISTS ratings (
+    league_id INTEGER NOT NULL,
+    event_nr INTEGER NOT NULL,
+    event_date TEXT NOT NULL,
+    course_id INTEGER NOT NULL,
+    runner_id INTEGER NOT NULL,
+
+    rating FLOAT NOT NULL,
+    rating_diff FLOAT NOT NULL,
+    rd FLOAT NOT NULL,
+    vol FLOAT NOT NULL
+)

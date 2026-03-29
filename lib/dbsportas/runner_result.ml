@@ -121,7 +121,6 @@ let update_race_execution r =
     | Stay, Stay -> Runner_stats.EvenSplit
   in
 
-  (* TODO: test this new categorization *)
   let stats =
     Field.fset Runner_stats.Fields.race_execution r.stats (Some race_execution)
   in

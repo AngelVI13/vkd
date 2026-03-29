@@ -237,8 +237,12 @@ module CourseStats = struct
   let of_results (results : OverallResults.t) : t =
     (* NOTE: disqualified runners are not included in the stats *)
     let runners = results.finished in
+    let all_runners = results.finished @ results.dsq in
+
     let men = runners_by_gender ~gender_prefix:"V-" runners in
+    let all_men = runners_by_gender ~gender_prefix:"V-" all_runners in
     let women = runners_by_gender ~gender_prefix:"M-" runners in
+    let all_women = runners_by_gender ~gender_prefix:"M-" all_runners in
 
     let tilt_overall = avg_stat ~field:Runner_stats.Fields.tilt_rate runners in
     let tilt_men = avg_stat ~field:Runner_stats.Fields.tilt_rate men in
@@ -279,8 +283,8 @@ module CourseStats = struct
     let avg_mistake_num_women = avg_mistake_num women in
 
     {
-      num_men = List.length men;
-      num_women = List.length women;
+      num_men = List.length all_men;
+      num_women = List.length all_women;
       tilt_overall;
       tilt_men;
       tilt_women;
