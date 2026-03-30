@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS splits (
 
 -- @create_ratings
 CREATE TABLE IF NOT EXISTS ratings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
     event_date TEXT NOT NULL,
