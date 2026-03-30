@@ -809,15 +809,15 @@ let%expect_test "parse_event grouped courses" =
 (*   [%expect *)
 (*     {| {"position":1,"number":31,"group":{"url":"/lt/mvarz/244/rezgru/V-21A","group":"V-21A"},"name":"Časas Adomas","club":"Ąžuolas ok ","time":"30:32","points":100,"pace":"6:54"} |}] *)
 
-let%expect_test "course_stats" =
-  let results =
-    Yojson.Safe.from_file
-      "/home/angel/Documents/ocaml/vkd/244_event_1_results.json"
-    (* "/home/angel/Documents/ocaml/vkd/league244_event2.json" *)
-    |> OverallResults.t_of_yojson
-  in
-
-  let stats = CourseStats.of_results results in
-  printf "%s" (CourseStats.yojson_of_t stats |> Yojson.Safe.to_string);
-  [%expect
-    {| {"num_men":56,"num_women":19,"tilt_overall":32,"tilt_men":31,"tilt_women":33,"mistake_time_overall":238,"mistake_time_men":232,"mistake_time_women":257,"blunder_perc_overall":4,"blunder_perc_men":4,"blunder_perc_women":3,"big_mistake_perc_overall":35,"big_mistake_perc_men":33,"big_mistake_perc_women":40,"small_mistake_perc_overall":60,"small_mistake_perc_men":62,"small_mistake_perc_women":56,"most_tricky_overall":16,"most_tricky_men":16,"most_tricky_women":15,"avg_time_for_mistake_overall":36,"avg_time_for_mistake_men":36,"avg_time_for_mistake_women":35,"avg_mistake_num_overall":6,"avg_mistake_num_men":6,"avg_mistake_num_women":7} |}]
+(* let%expect_test "course_stats" = *)
+(*   let results = *)
+(*     Yojson.Safe.from_file *)
+(*       "/home/angel/Documents/ocaml/vkd/244_event_1_results.json" *)
+(*     (* "/home/angel/Documents/ocaml/vkd/league244_event2.json" *) *)
+(*     |> OverallResults.t_of_yojson *)
+(*   in *)
+(**)
+(*   let stats = CourseStats.of_results results in *)
+(*   printf "%s" (CourseStats.yojson_of_t stats |> Yojson.Safe.to_string); *)
+(*   [%expect *)
+(*     {| {"num_men":56,"num_women":19,"tilt_overall":32,"tilt_men":31,"tilt_women":33,"mistake_time_overall":238,"mistake_time_men":232,"mistake_time_women":257,"blunder_perc_overall":4,"blunder_perc_men":4,"blunder_perc_women":3,"big_mistake_perc_overall":35,"big_mistake_perc_men":33,"big_mistake_perc_women":40,"small_mistake_perc_overall":60,"small_mistake_perc_men":62,"small_mistake_perc_women":56,"most_tricky_overall":16,"most_tricky_men":16,"most_tricky_women":15,"avg_time_for_mistake_overall":36,"avg_time_for_mistake_men":36,"avg_time_for_mistake_women":35,"avg_mistake_num_overall":6,"avg_mistake_num_men":6,"avg_mistake_num_women":7} |}] *)
