@@ -7,6 +7,16 @@ let fetch_page url =
   let out = match res with Ok c -> c.body | Error (_, s) -> failwith s in
   out
 
+module EventInfo = struct
+  type t = {
+    date : string;
+    thumbnail : string;
+    thumbnail_src : string;
+    map_info : string;
+    map_links : string list;
+  }
+end
+
 let parse_events_page ~(year : int) page_html =
   let open Soup in
   let soup = parse page_html in
@@ -17,52 +27,23 @@ let parse_events_page ~(year : int) page_html =
              stage $ ".map" $ ".title" $ ".date" |> R.leaf_text
            in
            let img_src = stage $ ".map" $ "img" |> R.attribute "src" in
+           (* printf "%s\n\n" (fetch_page img_src); *)
+           (* Out_channel.write_all *)
+           (*   (sprintf "/home/angel/Documents/ocaml/vkd/%s_%d.png" event_date *)
+           (*      year) *)
+           (*   ~data:(fetch_page img_src); *)
            let map_info = stage $ ".map-info" $ ".stage-info" |> R.leaf_text in
-           printf "%s -> %s\n%s\n\n" event_date img_src map_info)
+           let links =
+             stage $ ".stage-details" $$ "a" |> to_list
+             |> List.map ~f:(R.attribute "href")
+             |> List.filter ~f:(String.is_substring ~substring:"trails.lt")
+           in
+           printf "%s -> %s\n%s\n%s\n\n" event_date img_src map_info
+             (String.concat ~sep:", " links))
     (* TODO: stage-details - parse links to results and everything. Check what
        happens in case if those are missing ?? *)
   in
 
-  (* let rows = parse_table_rows soup in *)
-  (* (* TODO: remove this after testing *) *)
-  (* (* let rows = List.hd_exn rows in *) *)
-  (* (* let rows = List.drop rows 4 in *) *)
-  (* let rows = List.hd_exn rows in *)
-  (* let rows = [ rows ] in *)
-  (* (* let rows = List.take rows 5 in *) *)
-  (* let events = *)
-  (*   rows *)
-  (*   |> List.fold ~init:[] ~f:(fun acc tr -> *)
-  (*          let tds = *)
-  (*            tr $$ "td" |> to_list |> List.map ~f:R.leaf_text *)
-  (*            |> List.map ~f:strip *)
-  (*          in *)
-  (*          let event_nr = *)
-  (*            Option.bind (List.nth tds 0) ~f:(fun nr -> *)
-  (*                match Int.of_string with exception _ -> None | _ -> Some nr) *)
-  (*          in *)
-  (*          let results = *)
-  (*            tr $? ".w3-text-green" *)
-  (*            |> Option.bind ~f:(fun a -> *)
-  (*                   let url = R.attribute "href" a in *)
-  (*                   let url = sprintf "%s%s" base_url url in *)
-  (*                   printf "Downloading event page: %s\n" url; *)
-  (*                   let results_html = fetch_page url in *)
-  (*                   Time_ns_unix.pause (Time_ns.Span.create ~ms:1000 ()); *)
-  (*                   let event_nr = Option.value_exn event_nr in *)
-  (*                   let courses = *)
-  (*                     parse_event ~league_id ~event_nr results_html *)
-  (*                   in *)
-  (*                   Some (EventResults.Fields.create ~url ~courses)) *)
-  (*          in *)
-  (*          match tds with *)
-  (*          | [] -> acc *)
-  (*          | _ -> *)
-  (*              let event = LeagueEvent.of_td_list ~results tds in *)
-  (*              LeagueEvent.save_to_file ~league_id event; *)
-  (*              event :: acc) *)
-  (* in *)
-  (* List.rev events *)
   let _ = (soup, events, year) in
   ()
 
@@ -79,29 +60,45 @@ let download_events ~(year : int) =
   parse_events_page ~year page;
   ()
 
+let download_map ~url =
+  let _ = url in
+  (* https://trails.lt/events/vk-antakalnis-2026/#1%202 *)
+  (* TODO: to download the map simply make request to the url 
+    https://trails.lt/events/senasalis-2025/settings.json?v=1774895976042
+    where the data after ?v= is the '?v=' + Date.now()) (from JS) 
+    The JSON response contains the map url for downloading and all the controls ontop of it 
+    but then you have to draw the course based on the provided data in the response
+    *)
+  ()
+
 let%expect_test "download_events" =
   download_events ~year:2026;
-  [%expect {|
+  [%expect
+    {|
     2026.03.26 -> https://vilniausketvirtadieniai.lt/2026/antakalnis/screenshot-2026-03-24-at-16.13.15.png/image
     Žemėlapis:
     Skirmantas Ramoška
     2022 m.
     M 1:5000, H 2.5
+    https://trails.lt/events/vk-antakalnis-2026/#1%202, https://trails.lt/events/vk-antakalnis-2026/#3, https://trails.lt/events/vk-antakalnis-2026/#4, https://trails.lt/events/vk-antakalnis-2026/#5, https://trails.lt/events/vk-antakalnis-2026/#D
 
     2026.03.22 -> https://vilniausketvirtadieniai.lt/2026/viluniskes/screenshot-2026-03-20-at-10.06.42.png/image
     Žemėlapis:
     Rimvydas Kutka
     2019 m.
     M 1:10000, H 2.5
+    https://trails.lt/events/viluniskes-2026/#1, https://trails.lt/events/viluniskes-2026/#2, https://trails.lt/events/viluniskes-2026/#3, https://trails.lt/events/viluniskes-2026/#4, https://trails.lt/events/viluniskes-2026/#5
 
     2026.03.19 -> https://vilniausketvirtadieniai.lt/2026/skersine/screenshot-2026-03-16-at-11.16.42.png/image
     Žemėlapis:
     Skirmantas Ramoška
     2021 m.
     M 1:7500, H 2.5
+    https://trails.lt/events/skersine-2026/#1, https://trails.lt/events/skersine-2026/#2, https://trails.lt/events/skersine-2026/#3, https://trails.lt/events/skersine-2026/#4, https://trails.lt/events/skersine-2026/#4
 
     2026.02.06 -> https://vilniausketvirtadieniai.lt/2026/vingis-iof-konferencija/screenshot-2026-02-05-at-12.14.15.png/image
     Žemėlapis:
     Skirmantas Ramoška
     2001 - 2026 m.
-    M 1:7500, H 2.5 |}]
+    M 1:7500, H 2.5
+    https://trails.lt/events/vingis-iof-2026/#1, https://trails.lt/events/vingis-iof-2026/#2, https://trails.lt/events/vingis-iof-2026/#3 |}]
