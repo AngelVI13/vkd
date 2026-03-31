@@ -33,6 +33,8 @@ let parse_events_page ~(year : int) page_html =
            (*      year) *)
            (*   ~data:(fetch_page img_src); *)
            let map_info = stage $ ".map-info" $ ".stage-info" |> R.leaf_text in
+           (* TODO: for new events there are no links, i.e. the whole table is
+              missing. HANDLE THIS *)
            let links =
              stage $ ".stage-details" $$ "a" |> to_list
              |> List.map ~f:(R.attribute "href")
@@ -60,8 +62,28 @@ let download_events ~(year : int) =
   parse_events_page ~year page;
   ()
 
+let now_ms () =
+  let ns = Time_ns_unix.now () |> Time_ns_unix.to_int_ns_since_epoch in
+  ns / 1_000_000
+
+let parse_map_details (page : string) = ()
+
 let download_map ~url =
   let _ = url in
+  let url = "https://trails.lt/events/vk-antakalnis-2026/#1%202" in
+  let last_slash = String.rindex_exn url '/' in
+  let base_event_url =
+    String.drop_suffix url (String.length url - last_slash)
+  in
+  let timestamp = now_ms () in
+  let full_url = sprintf "%s/settings.json?v=%d" base_event_url timestamp in
+  (* let page = fetch_page full_url in *)
+  (* Out_channel.write_all "/home/angel/Documents/ocaml/vkd/map_settings.json" *)
+  (*   ~data:page; *)
+  let page =
+    In_channel.read_all "/home/angel/Documents/ocaml/vkd/map_settings.json"
+  in
+  printf "url = %s\n" full_url;
   (* https://trails.lt/events/vk-antakalnis-2026/#1%202 *)
   (* TODO: to download the map simply make request to the url 
     https://trails.lt/events/senasalis-2025/settings.json?v=1774895976042
@@ -69,6 +91,7 @@ let download_map ~url =
     The JSON response contains the map url for downloading and all the controls ontop of it 
     but then you have to draw the course based on the provided data in the response
     *)
+  (* TODO: is it possible to get the map data before the race by querying the backend directly *)
   ()
 
 let%expect_test "download_events" =
@@ -102,3 +125,11 @@ let%expect_test "download_events" =
     2001 - 2026 m.
     M 1:7500, H 2.5
     https://trails.lt/events/vingis-iof-2026/#1, https://trails.lt/events/vingis-iof-2026/#2, https://trails.lt/events/vingis-iof-2026/#3 |}]
+
+let%expect_test "download_map" =
+  download_map ~url:"";
+  [%expect
+    {|
+    last slash 43
+    url https://trails.lt/events/vk-antakalnis-2026
+    timestamp 1774964907359 |}]
