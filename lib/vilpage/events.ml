@@ -66,7 +66,11 @@ let now_ms () =
   let ns = Time_ns_unix.now () |> Time_ns_unix.to_int_ns_since_epoch in
   ns / 1_000_000
 
-let parse_map_details (page : string) = ()
+let later_ms ~(days : int) =
+  let ns = Time_ns_unix.now () in
+  let ns = Time_ns_unix.add ns (Time_ns_unix.Span.of_int_day days) in
+  let ns = ns |> Time_ns_unix.to_int_ns_since_epoch in
+  ns / 1_000_000
 
 let download_map ~url =
   let _ = url in
@@ -75,7 +79,8 @@ let download_map ~url =
   let base_event_url =
     String.drop_suffix url (String.length url - last_slash)
   in
-  let timestamp = now_ms () in
+  (* let timestamp = now_ms () in *)
+  let timestamp = later_ms ~days:2 in
   let full_url = sprintf "%s/settings.json?v=%d" base_event_url timestamp in
   (* let page = fetch_page full_url in *)
   (* Out_channel.write_all "/home/angel/Documents/ocaml/vkd/map_settings.json" *)
@@ -83,6 +88,9 @@ let download_map ~url =
   let page =
     In_channel.read_all "/home/angel/Documents/ocaml/vkd/map_settings.json"
   in
+  let json = Yojson.Safe.from_string page in
+  let settings = Trails.Settings.t_of_yojson json in
+  let _ = settings in
   printf "url = %s\n" full_url;
   (* https://trails.lt/events/vk-antakalnis-2026/#1%202 *)
   (* TODO: to download the map simply make request to the url 
@@ -128,6 +136,20 @@ let%expect_test "download_events" =
 
 let%expect_test "download_map" =
   download_map ~url:"";
+  [%expect
+    {|
+    last slash 43
+    url https://trails.lt/events/vk-antakalnis-2026
+    timestamp 1774964907359 |}]
+
+let%expect_test "parse_map_settings" =
+  let json =
+    Yojson.Safe.from_file "/home/angel/Documents/ocaml/vkd/map_settings.json"
+  in
+  let settings = Trails.Settings.t_of_yojson json in
+
+  printf "%s" (Trails.Settings.yojson_of_t settings |> Yojson.Safe.to_string);
+
   [%expect
     {|
     last slash 43
