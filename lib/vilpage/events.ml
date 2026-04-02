@@ -7,61 +7,6 @@ let fetch_page url =
   let out = match res with Ok c -> c.body | Error (_, s) -> failwith s in
   out
 
-module EventInfo = struct
-  type t = {
-    date : string;
-    thumbnail : string;
-    thumbnail_src : string;
-    map_info : string;
-    map_links : string list;
-  }
-end
-
-let parse_events_page ~(year : int) page_html =
-  let open Soup in
-  let soup = parse page_html in
-  let events =
-    soup $ ".PAGE__body" $$ ".stage" |> to_list
-    |> List.map ~f:(fun stage ->
-           let event_date =
-             stage $ ".map" $ ".title" $ ".date" |> R.leaf_text
-           in
-           let img_src = stage $ ".map" $ "img" |> R.attribute "src" in
-           (* printf "%s\n\n" (fetch_page img_src); *)
-           (* Out_channel.write_all *)
-           (*   (sprintf "/home/angel/Documents/ocaml/vkd/%s_%d.png" event_date *)
-           (*      year) *)
-           (*   ~data:(fetch_page img_src); *)
-           let map_info = stage $ ".map-info" $ ".stage-info" |> R.leaf_text in
-           (* TODO: for new events there are no links, i.e. the whole table is
-              missing. HANDLE THIS *)
-           let links =
-             stage $ ".stage-details" $$ "a" |> to_list
-             |> List.map ~f:(R.attribute "href")
-             |> List.filter ~f:(String.is_substring ~substring:"trails.lt")
-           in
-           printf "%s -> %s\n%s\n%s\n\n" event_date img_src map_info
-             (String.concat ~sep:", " links))
-    (* TODO: stage-details - parse links to results and everything. Check what
-       happens in case if those are missing ?? *)
-  in
-
-  let _ = (soup, events, year) in
-  ()
-
-let download_events ~(year : int) =
-  (* let url = sprintf "%s/%d" base_url year in *)
-  (* let page = fetch_page url in *)
-  (* Out_channel.write_all *)
-  (*   (sprintf "/home/angel/Documents/ocaml/vkd/vil_%d.html" year) *)
-  (*   ~data:page; *)
-  let page =
-    In_channel.read_all
-      (sprintf "/home/angel/Documents/ocaml/vkd/vil_%d.html" year)
-  in
-  parse_events_page ~year page;
-  ()
-
 let now_ms () =
   let ns = Time_ns_unix.now () |> Time_ns_unix.to_int_ns_since_epoch in
   ns / 1_000_000
@@ -72,75 +17,144 @@ let later_ms ~(days : int) =
   let ns = ns |> Time_ns_unix.to_int_ns_since_epoch in
   ns / 1_000_000
 
-let download_map ~url =
-  let _ = url in
-  let url = "https://trails.lt/events/vk-antakalnis-2026/#1%202" in
-  let last_slash = String.rindex_exn url '/' in
-  let base_event_url =
-    String.drop_suffix url (String.length url - last_slash)
-  in
-  (* let timestamp = now_ms () in *)
-  let timestamp = later_ms ~days:2 in
-  let full_url = sprintf "%s/settings.json?v=%d" base_event_url timestamp in
-  (* let page = fetch_page full_url in *)
-  (* Out_channel.write_all "/home/angel/Documents/ocaml/vkd/map_settings.json" *)
-  (*   ~data:page; *)
-  let page =
-    In_channel.read_all "/home/angel/Documents/ocaml/vkd/map_settings.json"
-  in
+let google_maps_url lat lng =
+  (* NOTE: to build gmaps link from lat,long coords - https://www.google.com/maps?q=54.722195,25.315314 *)
+  sprintf "https://www.google.com/maps?q=%.10f,%.10f" lat lng
+
+let download_map ~event_url =
+  let timestamp = now_ms () in
+  let full_url = sprintf "%s/settings.json?v=%d" event_url timestamp in
+  let page = fetch_page full_url in
   let json = Yojson.Safe.from_string page in
-  let settings = Trails.Settings.t_of_yojson json in
-  let _ = settings in
-  printf "url = %s\n" full_url;
-  (* https://trails.lt/events/vk-antakalnis-2026/#1%202 *)
-  (* TODO: to download the map simply make request to the url 
-    https://trails.lt/events/senasalis-2025/settings.json?v=1774895976042
-    where the data after ?v= is the '?v=' + Date.now()) (from JS) 
-    The JSON response contains the map url for downloading and all the controls ontop of it 
-    but then you have to draw the course based on the provided data in the response
-    *)
-  (* TODO: is it possible to get the map data before the race by querying the backend directly *)
-  ()
+  Trails.Settings.t_of_yojson json
 
-let%expect_test "download_events" =
-  download_events ~year:2026;
-  [%expect
-    {|
-    2026.03.26 -> https://vilniausketvirtadieniai.lt/2026/antakalnis/screenshot-2026-03-24-at-16.13.15.png/image
-    Žemėlapis:
-    Skirmantas Ramoška
-    2022 m.
-    M 1:5000, H 2.5
-    https://trails.lt/events/vk-antakalnis-2026/#1%202, https://trails.lt/events/vk-antakalnis-2026/#3, https://trails.lt/events/vk-antakalnis-2026/#4, https://trails.lt/events/vk-antakalnis-2026/#5, https://trails.lt/events/vk-antakalnis-2026/#D
+let download_and_encode_img ~url =
+  fetch_page url |> Base64.encode_exn ~pad:false
 
-    2026.03.22 -> https://vilniausketvirtadieniai.lt/2026/viluniskes/screenshot-2026-03-20-at-10.06.42.png/image
-    Žemėlapis:
-    Rimvydas Kutka
-    2019 m.
-    M 1:10000, H 2.5
-    https://trails.lt/events/viluniskes-2026/#1, https://trails.lt/events/viluniskes-2026/#2, https://trails.lt/events/viluniskes-2026/#3, https://trails.lt/events/viluniskes-2026/#4, https://trails.lt/events/viluniskes-2026/#5
+module MapSettings = struct
+  type t = {
+    key : string;
+    title : string;
+    (* NOTE: map data here is already base64 encoded *)
+    default_map_src : string;
+    default_map : string; [@opaque]
+    bike_map_src : string option;
+    bike_map : string option; [@opaque]
+    location_lat : float;
+    location_lon : float;
+  }
+  [@@deriving show]
 
-    2026.03.19 -> https://vilniausketvirtadieniai.lt/2026/skersine/screenshot-2026-03-16-at-11.16.42.png/image
-    Žemėlapis:
-    Skirmantas Ramoška
-    2021 m.
-    M 1:7500, H 2.5
-    https://trails.lt/events/skersine-2026/#1, https://trails.lt/events/skersine-2026/#2, https://trails.lt/events/skersine-2026/#3, https://trails.lt/events/skersine-2026/#4, https://trails.lt/events/skersine-2026/#4
+  let t_of_Settings ~event_url (settings : Trails.Settings.t) =
+    let default_map_src = sprintf "%s/%s" event_url settings.maps.default.url in
+    let default_map = download_and_encode_img ~url:default_map_src in
+    let bike_map_src, bike_map =
+      match settings.maps.d with
+      | None -> (None, None)
+      | Some m ->
+          let map_src = sprintf "%s/%s" event_url m.url in
+          let map = download_and_encode_img ~url:map_src in
+          (Some map_src, Some map)
+    in
+    let location_lat, location_lon =
+      match settings.map_settings.controls.finish_loc with
+      | [ lat; lon ] -> (lat, lon)
+      | _ ->
+          failwith
+            (sprintf "failed to parse finish location for event: %s" event_url)
+    in
+    {
+      key = settings.key;
+      title = settings.title;
+      default_map_src;
+      default_map;
+      bike_map_src;
+      bike_map;
+      location_lat;
+      location_lon;
+    }
+end
 
-    2026.02.06 -> https://vilniausketvirtadieniai.lt/2026/vingis-iof-konferencija/screenshot-2026-02-05-at-12.14.15.png/image
-    Žemėlapis:
-    Skirmantas Ramoška
-    2001 - 2026 m.
-    M 1:7500, H 2.5
-    https://trails.lt/events/vingis-iof-2026/#1, https://trails.lt/events/vingis-iof-2026/#2, https://trails.lt/events/vingis-iof-2026/#3 |}]
+module EventInfo = struct
+  type t = {
+    (* TODO: the date is in the format 2026.04.02 -> normalize it *)
+    date : string;
+    thumbnail : string; [@opaque]
+    thumbnail_src : string;
+    map_info : string;
+    map_links : string list;
+    map_settings : MapSettings.t option;
+  }
+  [@@deriving fields, show]
+end
 
-let%expect_test "download_map" =
-  download_map ~url:"";
-  [%expect
-    {|
-    last slash 43
-    url https://trails.lt/events/vk-antakalnis-2026
-    timestamp 1774964907359 |}]
+let parse_events_page page_html =
+  let open Soup in
+  let soup = parse page_html in
+  let events =
+    soup $ ".PAGE__body" $$ ".stage" |> to_list
+    |> List.map ~f:(fun stage ->
+           let event_date =
+             stage $ ".map" $ ".title" $ ".date" |> R.leaf_text
+           in
+           let img_src = stage $ ".map" $ "img" |> R.attribute "src" in
+           let img_data = download_and_encode_img ~url:img_src in
+           let map_info = stage $ ".map-info" $ ".stage-info" |> R.leaf_text in
+           let map_links =
+             stage $ ".stage-details" $$ "a" |> to_list
+             |> List.map ~f:(R.attribute "href")
+             |> List.filter ~f:(String.is_substring ~substring:"trails.lt")
+           in
+           let map_settings =
+             match map_links with
+             | [] -> None
+             | _ ->
+                 let url = List.hd_exn map_links in
+                 let last_slash = String.rindex_exn url '/' in
+                 let event_url =
+                   String.drop_suffix url (String.length url - last_slash)
+                 in
+                 let settings = download_map ~event_url in
+                 Some (MapSettings.t_of_Settings ~event_url settings)
+           in
+           EventInfo.Fields.create ~date:event_date ~thumbnail_src:img_src
+             ~thumbnail:img_data ~map_info ~map_links ~map_settings)
+  in
+  events
+
+let download_events ~(year : int) =
+  let url = sprintf "%s/%d" base_url year in
+  let page = fetch_page url in
+  parse_events_page page
+
+(* let%expect_test "download_events" = *)
+(*   let events = download_events ~year:2026 in *)
+(*   let ev = List.nth_exn events 1 in *)
+(*   printf "%s" (EventInfo.show ev); *)
+(*   [%expect *)
+(*     {| *)
+(*     { Events.EventInfo.date = "2026.03.26"; thumbnail = <opaque>; *)
+(*       thumbnail_src = *)
+(*       "https://vilniausketvirtadieniai.lt/2026/antakalnis/screenshot-2026-03-24-at-16.13.15.png/image"; *)
+(*       map_info = *)
+(*       "\197\189em\196\151lapis:\nSkirmantas Ramo\197\161ka\n2022 m.\nM 1:5000, H 2.5"; *)
+(*       map_links = *)
+(*       ["https://trails.lt/events/vk-antakalnis-2026/#1%202"; *)
+(*         "https://trails.lt/events/vk-antakalnis-2026/#3"; *)
+(*         "https://trails.lt/events/vk-antakalnis-2026/#4"; *)
+(*         "https://trails.lt/events/vk-antakalnis-2026/#5"; *)
+(*         "https://trails.lt/events/vk-antakalnis-2026/#D"]; *)
+(*       map_settings = *)
+(*       (Some { Events.MapSettings.key = "vk-antakalnis-2026"; *)
+(*               title = "VK Antakalnis 2026"; *)
+(*               default_map_src = *)
+(*               "https://trails.lt/events/vk-antakalnis-2026/vk-antakalnis-2026-default.gif"; *)
+(*               default_map = <opaque>; *)
+(*               bike_map_src = *)
+(*               (Some "https://trails.lt/events/vk-antakalnis-2026/vk-antakalnis-2026-d.gif"); *)
+(*               bike_map = <opaque>; location_lat = 54.722195; *)
+(*               location_lon = 25.315314 }) *)
+(*       } |}] *)
 
 let%expect_test "parse_map_settings" =
   let json =
@@ -152,6 +166,4 @@ let%expect_test "parse_map_settings" =
 
   [%expect
     {|
-    last slash 43
-    url https://trails.lt/events/vk-antakalnis-2026
-    timestamp 1774964907359 |}]
+    {"success":true,"key":"vk-antakalnis-2026","title":"VK Antakalnis 2026","map_settings":{"controls":{"F":[54.722195,25.315314]}},"maps":{"D":{"url":"vk-antakalnis-2026-d.gif"},"default":{"url":"vk-antakalnis-2026-default.gif"}}} |}]

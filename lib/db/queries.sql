@@ -14,6 +14,37 @@ CREATE TABLE IF NOT EXISTS events (
     location TEXT NOT NULL
 );
 
+-- @create_event_details 
+CREATE TABLE IF NOT EXISTS event_details (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    event_date TEXT NOT NULL,
+    location TEXT NOT NULL,
+    thumbnail TEXT NOT NULL,
+    map_info TEXT NOT NULL
+);
+
+-- @create_event_map_links
+CREATE TABLE IF NOT EXISTS event_map_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    event_date TEXT NOT NULL,
+    link TEXT NOT NULL
+);
+
+-- @create_event_maps
+CREATE TABLE IF NOT EXISTS event_maps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    event_date TEXT NOT NULL,
+    map_key TEXT NOT NULL,
+    title TEXT NOT NULL,
+    lat FLOAT NOT NULL,
+    lon FLOAT NOT NULL,
+    image TEXT NOT NULL,
+    for_bikes INTEGER NOT NULL
+);
+
 -- @create_event_stats
 CREATE TABLE IF NOT EXISTS event_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

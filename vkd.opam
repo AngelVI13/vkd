@@ -20,6 +20,7 @@ depends: [
   "sqlgg" {="20231201"}
   "re" {="1.14.0"}
   "integers" {="0.7.0"}
+  "base64" {>="3.5.2"}
   "ppx_jane" {="v0.16.0"}
   "ppx_inline_test" {="v0.16.1"}
   "ppx_expect" {="v0.16.1"}

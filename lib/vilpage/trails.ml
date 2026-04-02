@@ -10,7 +10,23 @@ module Maps = struct
   [@@deriving yojson] [@@yojson.allow_extra_fields]
 end
 
+module Controls = struct
+  type t = { finish_loc : float list [@key "F"] }
+  [@@deriving yojson] [@@yojson.allow_extra_fields]
+end
+
+module MapSettings = struct
+  type t = { controls : Controls.t }
+  [@@deriving yojson] [@@yojson.allow_extra_fields]
+end
+
 module Settings = struct
-  type t = { success : bool; key : string; title : string; maps : Maps.t }
+  type t = {
+    success : bool;
+    key : string;
+    title : string;
+    map_settings : MapSettings.t;
+    maps : Maps.t;
+  }
   [@@deriving yojson] [@@yojson.allow_extra_fields]
 end
