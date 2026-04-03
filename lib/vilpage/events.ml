@@ -77,8 +77,7 @@ end
 
 module EventInfo = struct
   type t = {
-    (* TODO: the date is in the format 2026.04.02 -> normalize it *)
-    date : string;
+    date : Time_ns_unix.t;
     thumbnail : string; [@opaque]
     thumbnail_src : string;
     map_info : string;
@@ -88,6 +87,10 @@ module EventInfo = struct
   [@@deriving fields, show]
 end
 
+let parse_date (date : string) =
+  (* date format: 2026.04.02 *)
+  Time_ns_unix.parse ~fmt:"%Y.%m.%d" ~zone:Timezone.utc date
+
 let parse_events_page page_html =
   let open Soup in
   let soup = parse page_html in
@@ -95,7 +98,7 @@ let parse_events_page page_html =
     soup $ ".PAGE__body" $$ ".stage" |> to_list
     |> List.map ~f:(fun stage ->
            let event_date =
-             stage $ ".map" $ ".title" $ ".date" |> R.leaf_text
+             stage $ ".map" $ ".title" $ ".date" |> R.leaf_text |> parse_date
            in
            let img_src = stage $ ".map" $ "img" |> R.attribute "src" in
            let img_data = download_and_encode_img ~url:img_src in

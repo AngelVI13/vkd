@@ -118,9 +118,6 @@ let of_race ~(settings : Settings.t) ~(race : Race.Race.t)
 
   t
 
-(* TODO: store rating information for each player for each race (along with
-   rating change & new values for rd and vol *)
-
 let%expect_test "update_ratings_1" =
   let settings =
     Settings.create ~tau:0.5 ~rd:200. ~vol:0.06 ~initial_rating:1500. ()

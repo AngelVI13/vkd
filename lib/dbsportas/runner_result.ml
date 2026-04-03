@@ -21,6 +21,8 @@ let of_resp (runner : Response.RunnerResp.t) =
   (* `value_exn` here should be safe because everyone should have a finish time (i think?) *)
   let time = Option.value_exn finish.overall_time in
   (* this is different than the `flag` value, it is determined by the actual data in the splits *)
+  (* TODO: this should be removed because in some cases those runners appear in the results ??
+     https://dbsportas.lt/lt/mvarz/269/split/2 -> need to ask at the event place *)
   let has_dsq = Splits.has_dsq splits in
 
   Fields.create ~number:runner.number ~name:runner.name ~club:runner.club

@@ -333,11 +333,20 @@ end
 module LeagueEvent = struct
   type t = {
     nr : int;
-    date : string;
+    date : Time_ns_unix.t;
     location : string;
     results : EventResults.t option;
   }
-  [@@deriving yojson]
+
+  let of_td_list ~results td_list =
+    assert (List.length td_list >= 3);
+    let date = List.nth_exn td_list 1 in
+    {
+      nr = Int.of_string @@ List.nth_exn td_list 0;
+      date = Time_ns_unix.parse ~fmt:"%Y-%m-%d" ~zone:Timezone.utc date;
+      location = List.nth_exn td_list 2;
+      results;
+    }
 
   (* NOTE: here we define custom printers for the LeagueEvent.t . This is
      needed because [@@deriving show] does not display the unicode characters
@@ -349,31 +358,16 @@ module LeagueEvent = struct
       | Some results -> sprintf "Some( %s )" results.url
     in
     Format.fprintf ppf "{ nr: %d; date: %s; location: %s; results_url: %s }"
-      r.nr r.date r.location results_url
+      r.nr
+      (Utils.format_time_as_date r.date)
+      r.location results_url
 
   let show r = Format.asprintf "%a" pp r
-
-  let of_td_list ~results td_list =
-    assert (List.length td_list >= 3);
-    {
-      nr = Int.of_string @@ List.nth_exn td_list 0;
-      date = List.nth_exn td_list 1;
-      location = List.nth_exn td_list 2;
-      results;
-    }
-
-  let save_to_file (t : t) ~league_id =
-    let project_dir = "/home/angel/Documents/ocaml/vkd/leagues" in
-    let filename =
-      sprintf "%s/%s/%d_%s_%s.json" project_dir league_id t.nr t.date t.location
-    in
-    let json = yojson_of_t t in
-    Yojson.Safe.to_file filename json
 end
 
 module League = struct
   type t = { id : string; url : string; events : LeagueEvent.t list }
-  [@@deriving show { with_path = false }, yojson, fields]
+  [@@deriving show { with_path = false }, fields]
 end
 
 (** Strip string (remove whitespaces, tabs & newlines before and after the
@@ -537,12 +531,6 @@ let parse_league_page ~league_id page_html =
   let soup = parse page_html in
   let rows = parse_table_rows soup in
 
-  (* TODO: remove this after testing *)
-  (* let rows = List.hd_exn rows in *)
-  (* let rows = List.drop rows 4 in *)
-  (* let rows = List.hd_exn rows in *)
-  (* let rows = [ rows ] in *)
-  (* let rows = List.take rows 5 in *)
   let events =
     rows
     |> List.fold ~init:[] ~f:(fun acc tr ->
@@ -573,7 +561,6 @@ let parse_league_page ~league_id page_html =
            | [] -> acc
            | _ ->
                let event = LeagueEvent.of_td_list ~results tds in
-               LeagueEvent.save_to_file ~league_id event;
                event :: acc)
   in
   List.rev events

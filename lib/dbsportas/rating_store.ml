@@ -1170,16 +1170,3 @@ let calculate_ratings ~(settings : Glicko2.Settings.t)
 (**)
 (*     300 2388.15 Mickus Donatas (180) (rd=81.96, vol=0.06): *)
 (*         75.75(1), 76.47, 77.17, 77.88, 78.57, 79.26, 79.94, 80.62, 81.29, 81.96, |}] *)
-
-(* TODO:Steps to do 
-  1. Create Rating_store.t with Glicko2 settings 
-  2. For every league event:
-    2.1 For each course of the vent:
-      2.1.1 Add (add_if_not_exist) each participant from the event course to the Rating_store.t (for each course)
-      2.1.2 Create a new Glicko2.Ranking.t with the settings from Rating_store.t 
-      2.1.3 Add each participant from the event course to the Glicko2.Ranking.t
-      2.1.4 Add event course results to the Glicko2.Ranking.t 
-      2.1.5 Calculate new ratings for results 
-        2.1.5.1 Limit how much rating a DSQ looses
-      2.1.6 Get all players from the Glicko2.Ranking.t and call Rating_store.update_info for each player 
-*)
