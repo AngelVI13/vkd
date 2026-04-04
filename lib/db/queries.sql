@@ -4,8 +4,11 @@ CREATE TABLE IF NOT EXISTS leagues (
     league_year INTEGER NOT NULL
 );
 
--- @create_events
-CREATE TABLE IF NOT EXISTS events (
+-- @add_league
+INSERT INTO leagues VALUES;
+
+-- @create_league_events
+CREATE TABLE IF NOT EXISTS league_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
@@ -13,6 +16,9 @@ CREATE TABLE IF NOT EXISTS events (
     event_date TEXT NOT NULL,
     location TEXT NOT NULL
 );
+
+-- @add_league_event
+INSERT INTO league_events VALUES;
 
 -- @create_event_details 
 CREATE TABLE IF NOT EXISTS event_details (
@@ -24,6 +30,9 @@ CREATE TABLE IF NOT EXISTS event_details (
     map_info TEXT NOT NULL
 );
 
+-- @add_event_details
+INSERT INTO event_details VALUES;
+
 -- @create_event_map_links
 CREATE TABLE IF NOT EXISTS event_map_links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,6 +40,9 @@ CREATE TABLE IF NOT EXISTS event_map_links (
     event_date TEXT NOT NULL,
     link TEXT NOT NULL
 );
+
+-- @add_event_map_link
+INSERT INTO event_map_links VALUES;
 
 -- @create_event_maps
 CREATE TABLE IF NOT EXISTS event_maps (
@@ -45,6 +57,9 @@ CREATE TABLE IF NOT EXISTS event_maps (
     for_bikes INTEGER NOT NULL
 );
 
+-- @add_event_map
+INSERT INTO event_maps VALUES;
+
 -- @create_event_stats
 CREATE TABLE IF NOT EXISTS event_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,6 +69,9 @@ CREATE TABLE IF NOT EXISTS event_stats (
     num_men INTEGER NOT NULL,
     num_women INTEGER NOT NULL
 );
+
+-- @add_event_stats
+INSERT INTO event_stats VALUES;
 
 -- @create_courses
 CREATE TABLE IF NOT EXISTS courses (
@@ -68,6 +86,8 @@ CREATE TABLE IF NOT EXISTS courses (
     controls TEXT NOT NULL
 );
 
+-- @add_course
+INSERT INTO courses VALUES;
 
 -- @create_course_stats
 CREATE TABLE IF NOT EXISTS course_stats (
@@ -104,6 +124,9 @@ CREATE TABLE IF NOT EXISTS course_stats (
     avg_mistake_num_women  INTEGER NOT NULL
 );
 
+-- @add_course_stats
+INSERT INTO course_stats VALUES;
+
 -- @create_age_groups
 CREATE TABLE IF NOT EXISTS age_groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,6 +135,9 @@ CREATE TABLE IF NOT EXISTS age_groups (
 
     group_id TEXT NOT NULL
 );
+
+-- @add_age_group
+INSERT INTO age_groups VALUES;
 
 -- @create_results
 CREATE TABLE IF NOT EXISTS results (
@@ -127,6 +153,9 @@ CREATE TABLE IF NOT EXISTS results (
     pace TEXT,
     finished INTEGER NOT NULL
 );
+
+-- @add_result
+INSERT INTO results VALUES;
 
 -- @create_result_stats
 CREATE TABLE IF NOT EXISTS result_stats (
@@ -174,6 +203,9 @@ CREATE TABLE IF NOT EXISTS result_stats (
     potential_position INTEGER
 );
 
+-- @add_result_stats
+INSERT INTO result_stats VALUES;
+
 -- @create_splits
 CREATE TABLE IF NOT EXISTS splits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -191,6 +223,9 @@ CREATE TABLE IF NOT EXISTS splits (
     mistake_time INTEGER
 );
 
+-- @add_splits
+INSERT INTO splits VALUES;
+
 -- @create_ratings
 CREATE TABLE IF NOT EXISTS ratings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -204,4 +239,7 @@ CREATE TABLE IF NOT EXISTS ratings (
     rating_diff FLOAT NOT NULL,
     rd FLOAT NOT NULL,
     vol FLOAT NOT NULL
-)
+);
+
+-- @add_rating
+INSERT INTO ratings VALUES;
