@@ -24,6 +24,7 @@ INSERT INTO league_events VALUES;
 CREATE TABLE IF NOT EXISTS event_details (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
+    event_link TEXT NOT NULL,
     event_date TEXT NOT NULL,
     location TEXT NOT NULL,
     thumbnail TEXT NOT NULL,

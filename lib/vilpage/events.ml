@@ -80,6 +80,8 @@ module EventInfo = struct
     date : Time_ns_unix.t;
     thumbnail : string; [@opaque]
     thumbnail_src : string;
+    event_link : string;
+    location : string;
     map_info : string;
     map_links : string list;
     map_settings : MapSettings.t option;
@@ -99,6 +101,10 @@ let parse_events_page page_html =
     |> List.map ~f:(fun stage ->
            let event_date =
              stage $ ".map" $ ".title" $ ".date" |> R.leaf_text |> parse_date
+           in
+           let location, event_link =
+             stage $ ".stage-place" $ "a" |> fun n ->
+             (R.leaf_text n, R.attribute "href" n)
            in
            let img_src = stage $ ".map" $ "img" |> R.attribute "src" in
            let img_data = download_and_encode_img ~url:img_src in
@@ -121,7 +127,8 @@ let parse_events_page page_html =
                  Some (MapSettings.t_of_Settings ~event_url settings)
            in
            EventInfo.Fields.create ~date:event_date ~thumbnail_src:img_src
-             ~thumbnail:img_data ~map_info ~map_links ~map_settings)
+             ~thumbnail:img_data ~location ~event_link ~map_info ~map_links
+             ~map_settings)
   in
   events
 
@@ -136,9 +143,12 @@ let download_events ~(year : int) =
 (*   printf "%s" (EventInfo.show ev); *)
 (*   [%expect *)
 (*     {| *)
-(*     { Events.EventInfo.date = "2026.03.26"; thumbnail = <opaque>; *)
+(*     { Events.EventInfo.date = 2026-03-26 02:00:00.000000000+02:00; *)
+(*       thumbnail = <opaque>; *)
 (*       thumbnail_src = *)
 (*       "https://vilniausketvirtadieniai.lt/2026/antakalnis/screenshot-2026-03-24-at-16.13.15.png/image"; *)
+(*       event_link = "https://vilniausketvirtadieniai.lt/2026/antakalnis/"; *)
+(*       location = "Antakalnis"; *)
 (*       map_info = *)
 (*       "\197\189em\196\151lapis:\nSkirmantas Ramo\197\161ka\n2022 m.\nM 1:5000, H 2.5"; *)
 (*       map_links = *)

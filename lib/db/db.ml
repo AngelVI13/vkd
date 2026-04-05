@@ -29,13 +29,31 @@ let to_int_option (i : Int64.t option) =
 
 let create_tables (handle : Turso.conn) =
   handle.immediate <- false;
+  (* NOTE: DO NOT FORGET TO BASE64 ENCODE EVERY LINK *)
   let _ = DB.create_leagues handle in
+  let _ = DB.create_league_events handle in
+  let _ = DB.create_event_details handle in
+  let _ = DB.create_event_map_links handle in
+  let _ = DB.create_event_maps handle in
+  let _ = DB.create_event_stats handle in
+  let _ = DB.create_courses handle in
+  let _ = DB.create_course_stats handle in
+  let _ = DB.create_age_groups handle in
+  let _ = DB.create_results handle in
+  let _ = DB.create_result_stats handle in
+  let _ = DB.create_splits handle in
   handle.immediate <- true;
-  let _ = DB.create_events handle in
+  let _ = DB.create_ratings handle in
   ()
 
 (* NOTE: this is not needed for turso connection *)
 let close _ = Ok ()
+
+let add_event_details (handle : Turso.conn)
+    (details : Vilpage.Events.EventInfo.t) =
+  let _ = (handle, details) in
+  (* TODO: continue from here *)
+  DB.add_event_details handle ~id:None
 
 let%expect_test "make" =
   printf "hello";
