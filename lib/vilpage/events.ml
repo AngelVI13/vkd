@@ -84,6 +84,7 @@ module EventInfo = struct
     location : string;
     map_info : string;
     map_links : string list;
+    result_link : string option;
     map_settings : MapSettings.t option;
   }
   [@@deriving fields, show]
@@ -109,9 +110,33 @@ let parse_events_page page_html =
            let img_src = stage $ ".map" $ "img" |> R.attribute "src" in
            let img_data = download_and_encode_img ~url:img_src in
            let map_info = stage $ ".map-info" $ ".stage-info" |> R.leaf_text in
+           let details_links =
+             match stage $? ".stage-details" with
+             | None -> []
+             | Some n -> n $$ "a" |> to_list |> List.map ~f:(R.attribute "href")
+           in
+           (* TODO: if this finds results link should it process all results as well ?
+              or should this be done somewhere else ? *)
+           let result_link =
+             details_links
+             |> List.filter ~f:(String.is_substring ~substring:"/reztra/")
+             |> List.hd
+             |> Option.bind ~f:(fun link ->
+                    let idx = String.substr_index_exn link ~pattern:"reztra/" in
+                    let base_url = String.slice link 0 idx in
+                    let remainder = String.slice link idx 0 in
+                    let event_nr =
+                      match String.split remainder ~on:'/' with
+                      | _ :: event_nr :: _ -> event_nr
+                      | _ ->
+                          failwith
+                            (sprintf "failed to extract event nr from link: %s"
+                               link)
+                    in
+                    Some (sprintf "%sreztur/%s" base_url event_nr))
+           in
            let map_links =
-             stage $ ".stage-details" $$ "a" |> to_list
-             |> List.map ~f:(R.attribute "href")
+             details_links
              |> List.filter ~f:(String.is_substring ~substring:"trails.lt")
            in
            let map_settings =
@@ -128,7 +153,7 @@ let parse_events_page page_html =
            in
            EventInfo.Fields.create ~date:event_date ~thumbnail_src:img_src
              ~thumbnail:img_data ~location ~event_link ~map_info ~map_links
-             ~map_settings)
+             ~result_link ~map_settings)
   in
   events
 
@@ -139,7 +164,7 @@ let download_events ~(year : int) =
 
 (* let%expect_test "download_events" = *)
 (*   let events = download_events ~year:2026 in *)
-(*   let ev = List.nth_exn events 1 in *)
+(*   let ev = List.nth_exn events 3 in *)
 (*   printf "%s" (EventInfo.show ev); *)
 (*   [%expect *)
 (*     {| *)
@@ -150,13 +175,14 @@ let download_events ~(year : int) =
 (*       event_link = "https://vilniausketvirtadieniai.lt/2026/antakalnis/"; *)
 (*       location = "Antakalnis"; *)
 (*       map_info = *)
-(*       "\197\189em\196\151lapis:\nSkirmantas Ramo\197\161ka\n2022 m.\nM 1:5000, H 2.5"; *)
+(*       "\197\189em\196\151lapis:\nSkirmantas Ramo\197\161ka\n2026 m.\nM 1:5000, H 2.5"; *)
 (*       map_links = *)
 (*       ["https://trails.lt/events/vk-antakalnis-2026/#1%202"; *)
 (*         "https://trails.lt/events/vk-antakalnis-2026/#3"; *)
 (*         "https://trails.lt/events/vk-antakalnis-2026/#4"; *)
 (*         "https://trails.lt/events/vk-antakalnis-2026/#5"; *)
 (*         "https://trails.lt/events/vk-antakalnis-2026/#D"]; *)
+(*       result_link = (Some "https://dbsportas.lt/lt/mvarz/269/reztur/1"); *)
 (*       map_settings = *)
 (*       (Some { Events.MapSettings.key = "vk-antakalnis-2026"; *)
 (*               title = "VK Antakalnis 2026"; *)
