@@ -1,11 +1,20 @@
 -- @create_leagues
 CREATE TABLE IF NOT EXISTS leagues (
     id INTEGER PRIMARY KEY,
-    league_year INTEGER NOT NULL
+    league_year INTEGER NOT NULL,
+    name TEXT NOT NULL
 );
 
 -- @add_league
 INSERT INTO leagues VALUES;
+
+-- @leagues_for_year
+SELECT * FROM leagues
+WHERE league_year == @year
+ORDER BY id;
+
+-- @all_leagues
+SELECT * FROM leagues ORDER BY league_year DESC, name DESC;
 
 -- @create_league_events
 CREATE TABLE IF NOT EXISTS league_events (
@@ -25,6 +34,9 @@ CREATE TABLE IF NOT EXISTS event_details (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     event_link TEXT NOT NULL,
+    -- NOTE: currently event date is the lookup key because both leagues are
+    -- done by the same organizers so they can't have 2 events at the same
+    -- date. If this changes then we have BIG PROBLEMS
     event_date TEXT NOT NULL,
     location TEXT NOT NULL,
     thumbnail TEXT NOT NULL,

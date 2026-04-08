@@ -1,4 +1,5 @@
 (executable
  (public_name vkd)
  (name main)
- (libraries dbsportas))
+ (preprocess (pps ppx_let))
+ (libraries dbsportas db core_unix.command_unix core_unix.filename_unix dotenv))

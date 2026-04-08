@@ -571,6 +571,46 @@ let download_league_info ~league_id =
   let events = parse_league_page ~league_id page_html in
   League.Fields.create ~url ~events ~id:league_id
 
+module LeagueInfo = struct
+  type t = { name : string; year : int; id : int } [@@deriving show, fields]
+
+  let main_league_name = "Vilniaus ketvirtadieniai"
+  let create_main = Fields.create ~name:main_league_name
+end
+
+let leagues =
+  [
+    (* 2020 *)
+    LeagueInfo.create_main ~year:2020 ~id:141;
+    LeagueInfo.Fields.create ~name:"Naktiniai Vilniaus ketvirtadieniai"
+      ~year:2020 ~id:150;
+    (* 2021 *)
+    LeagueInfo.create_main ~year:2021 ~id:155;
+    LeagueInfo.Fields.create ~name:"Naktiniai Vilniaus ketvirtadieniai"
+      ~year:2021 ~id:167;
+    (* 2022 *)
+    LeagueInfo.create_main ~year:2022 ~id:182;
+    LeagueInfo.Fields.create ~name:"Apuoko sprintai" ~year:2022 ~id:183;
+    LeagueInfo.Fields.create ~name:"Naktiniai Vilniaus ketvirtadieniai"
+      ~year:2022 ~id:192;
+    (* 2023 *)
+    LeagueInfo.create_main ~year:2023 ~id:205;
+    LeagueInfo.Fields.create ~name:"Apuoko sprintai" ~year:2023 ~id:208;
+    LeagueInfo.Fields.create ~name:"Naktiniai Vilniaus ketvirtadieniai"
+      ~year:2023 ~id:214;
+    (* 2024 *)
+    LeagueInfo.create_main ~year:2024 ~id:217;
+    LeagueInfo.Fields.create ~name:"Apuoko sprintai" ~year:2024 ~id:226;
+    LeagueInfo.Fields.create ~name:"Naktiniai Vilniaus ketvirtadieniai"
+      ~year:2024 ~id:227;
+    (* 2025 *)
+    LeagueInfo.create_main ~year:2025 ~id:244;
+    LeagueInfo.Fields.create ~name:"Apuoko lyga" ~year:2025 ~id:243;
+    (* 2026 *)
+    LeagueInfo.create_main ~year:2026 ~id:269;
+    LeagueInfo.Fields.create ~name:"Apuoko lyga" ~year:2026 ~id:272;
+  ]
+
 let%expect_test "download_league_info" =
   (* 
      id - 217 -> 2024 

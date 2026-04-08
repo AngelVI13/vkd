@@ -94,6 +94,41 @@ let parse_date (date : string) =
   (* date format: 2026.04.02 *)
   Time_ns_unix.parse ~fmt:"%Y.%m.%d" ~zone:Timezone.utc date
 
+let parse_results (links : string list) =
+  (*      let courses = *)
+  (*        parse_event ~league_id ~event_nr results_html *)
+  (*      in *)
+  (*      Some (EventResults.Fields.create ~url ~courses)) *)
+  (* let event = LeagueEvent.of_td_list ~results tds in *)
+  links
+  |> List.filter ~f:(String.is_substring ~substring:"/reztra/")
+  |> List.hd
+  |> Option.bind ~f:(fun link ->
+         let idx = String.substr_index_exn link ~pattern:"reztra/" in
+         let base_url = String.slice link 0 idx in
+         let remainder = String.slice link idx 0 in
+         let event_nr =
+           match String.split remainder ~on:'/' with
+           | _ :: event_nr :: _ -> event_nr
+           | _ ->
+               failwith
+                 (sprintf "failed to extract event nr from link: %s" link)
+         in
+         Some (sprintf "%sreztur/%s" base_url event_nr))
+
+let parse_map_settings (links : string list) =
+  let map_links =
+    links |> List.filter ~f:(String.is_substring ~substring:"trails.lt")
+  in
+  match map_links with
+  | [] -> ([], None)
+  | _ ->
+      let url = List.hd_exn map_links in
+      let last_slash = String.rindex_exn url '/' in
+      let event_url = String.drop_suffix url (String.length url - last_slash) in
+      let settings = download_map ~event_url in
+      (map_links, Some (MapSettings.t_of_Settings ~event_url settings))
+
 let parse_events_page page_html =
   let open Soup in
   let soup = parse page_html in
@@ -115,42 +150,8 @@ let parse_events_page page_html =
              | None -> []
              | Some n -> n $$ "a" |> to_list |> List.map ~f:(R.attribute "href")
            in
-           (* TODO: if this finds results link should it process all results as well ?
-              or should this be done somewhere else ? *)
-           let result_link =
-             details_links
-             |> List.filter ~f:(String.is_substring ~substring:"/reztra/")
-             |> List.hd
-             |> Option.bind ~f:(fun link ->
-                    let idx = String.substr_index_exn link ~pattern:"reztra/" in
-                    let base_url = String.slice link 0 idx in
-                    let remainder = String.slice link idx 0 in
-                    let event_nr =
-                      match String.split remainder ~on:'/' with
-                      | _ :: event_nr :: _ -> event_nr
-                      | _ ->
-                          failwith
-                            (sprintf "failed to extract event nr from link: %s"
-                               link)
-                    in
-                    Some (sprintf "%sreztur/%s" base_url event_nr))
-           in
-           let map_links =
-             details_links
-             |> List.filter ~f:(String.is_substring ~substring:"trails.lt")
-           in
-           let map_settings =
-             match map_links with
-             | [] -> None
-             | _ ->
-                 let url = List.hd_exn map_links in
-                 let last_slash = String.rindex_exn url '/' in
-                 let event_url =
-                   String.drop_suffix url (String.length url - last_slash)
-                 in
-                 let settings = download_map ~event_url in
-                 Some (MapSettings.t_of_Settings ~event_url settings)
-           in
+           let result_link = parse_results details_links in
+           let map_links, map_settings = parse_map_settings details_links in
            EventInfo.Fields.create ~date:event_date ~thumbnail_src:img_src
              ~thumbnail:img_data ~location ~event_link ~map_info ~map_links
              ~result_link ~map_settings)

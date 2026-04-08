@@ -416,6 +416,7 @@ type conn = {
   hostname : string;
   token : string;
   log_name : string;
+  debug : bool;
   mutable immediate : bool;
   mutable baton : string option;
   mutable statements : Libsql.Stmt.t list;

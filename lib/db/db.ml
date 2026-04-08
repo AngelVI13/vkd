@@ -4,7 +4,7 @@ module DB = DbOps (Turso)
 
 type t = Turso.conn [@@deriving show { with_path = false }]
 
-let make ~hostname ~token : Turso.conn =
+let make ?(debug = false) ~hostname ~token () : Turso.conn =
   (* TODO: check if db exists and if not, create it *)
   (* TODO: if you want to make use of the baton you have to first execute the
      following req "sql": "BEGIN"  *)
@@ -12,14 +12,16 @@ let make ~hostname ~token : Turso.conn =
     hostname;
     token;
     log_name = "db_logs.txt";
+    debug;
     baton = None;
     immediate = true;
     statements = [];
   }
 
-let log_db_conn t =
-  Turso.log_conn t (sprintf "\n\n\t>>>NEW CONN (%s) <<<\n\n" t.hostname);
-  ()
+let log_db_conn (t : t) =
+  if t.debug then
+    Turso.log_conn t (sprintf "\n\n\t>>>NEW CONN (%s) <<<\n\n" t.hostname)
+  else ()
 
 let to_int64_option (i : int option) =
   match i with None -> None | Some value -> Some (Int64.of_int value)
@@ -54,6 +56,14 @@ let add_event_details (handle : Turso.conn)
   let _ = (handle, details) in
   (* TODO: continue from here *)
   DB.add_event_details handle ~id:None
+
+let add_league (handle : Turso.conn) (league : Dbsportas.League.LeagueInfo.t) =
+  DB.add_league handle ~id:(Int64.of_int league.id)
+    ~league_year:(Int64.of_int league.year) ~name:league.name
+
+let test_add_leagues (handle : Turso.conn)
+    (leagues : Dbsportas.League.LeagueInfo.t list) =
+  ignore (List.map leagues ~f:(add_league handle))
 
 let%expect_test "make" =
   printf "hello";
