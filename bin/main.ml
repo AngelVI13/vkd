@@ -10,7 +10,7 @@ let command_test () =
        let db_token = Sys.getenv_exn "TURSO_DB_TOKEN" in
        let db = Db.make ~debug ~hostname:db_hostname ~token:db_token () in
        Db.create_tables db;
-       Db.test_add_leagues db Dbsportas.League.leagues;
+       Db.test db;
        Or_error.ok_exn (Db.close db))
 
 let command () =

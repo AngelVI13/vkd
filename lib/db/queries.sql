@@ -51,11 +51,34 @@ CREATE TABLE IF NOT EXISTS event_map_links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     event_date TEXT NOT NULL,
-    link TEXT NOT NULL
+    links TEXT NOT NULL
 );
 
 -- @add_event_map_link
 INSERT INTO event_map_links VALUES;
+
+-- @event_details_for_year
+SELECT 
+    e.*,
+    l.links
+FROM event_details e
+LEFT JOIN event_map_links l
+ON e.event_date = l.event_date
+-- comparing over range is better since it doesn't have to
+-- apply a function like strftime on each row
+-- WHERE e.event_date >= printf('%04d-01-01', @year)
+--   AND e.event_date <  printf('%04d-01-01', @year + 1)
+WHERE strftime('%Y', e.event_date) == @year
+ORDER BY e.event_date ASC;
+
+-- @event_details_for_date
+SELECT 
+    e.*,
+    l.links
+FROM event_details e
+LEFT JOIN event_map_links l
+ON e.event_date = l.event_date
+WHERE e.event_date == @event_date;
 
 -- @create_event_maps
 CREATE TABLE IF NOT EXISTS event_maps (
