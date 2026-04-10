@@ -26,8 +26,25 @@ CREATE TABLE IF NOT EXISTS league_events (
     location TEXT NOT NULL
 );
 
+
 -- @add_league_event
 INSERT INTO league_events VALUES;
+
+-- @league_event_before
+SELECT le.*, l.name AS league_name
+FROM league_events le
+JOIN leagues l ON le.league_id = l.id
+WHERE le.event_date < @input_date
+ORDER BY le.event_date DESC
+LIMIT 1;
+
+-- @league_event_after_or_eq
+SELECT le.*, l.name AS league_name
+FROM league_events le
+JOIN leagues l ON le.league_id = l.id
+WHERE le.event_date >= @input_date
+ORDER BY le.event_date ASC
+LIMIT 1;
 
 -- @create_event_details 
 CREATE TABLE IF NOT EXISTS event_details (
@@ -262,6 +279,14 @@ CREATE TABLE IF NOT EXISTS splits (
 -- @add_splits
 INSERT INTO splits VALUES;
 
+-- @create_runners
+CREATE TABLE IF NOT EXISTS runners (
+    id INTEGER PRIMARY KEY,
+    name TEXT,
+    club TEXT,
+    gender TEXT NOT NULL
+);
+
 -- @create_ratings
 CREATE TABLE IF NOT EXISTS ratings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -277,5 +302,52 @@ CREATE TABLE IF NOT EXISTS ratings (
     vol FLOAT NOT NULL
 );
 
+-- TODO: finish this
+-- @rating_for_league_and_course
+-- SELECT r.rating, r.rating_diff, r.diff
+
 -- @add_rating
 INSERT INTO ratings VALUES;
+
+-- @create_medals
+CREATE TABLE IF NOT EXISTS medals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_date TEXT NOT NULL,
+    course_id INTEGER NOT NULL,
+    runner_id INTEGER NOT NULL,
+    medal_type TEXT NOT NULL CHECK (medal_type IN ('gold', 'silver', 'bronze'))
+);
+
+-- @medals_for_runner_for_league
+SELECT 
+    l.name AS league_name,
+
+    SUM(CASE WHEN rm.medal_type = 'gold' THEN 1 ELSE 0 END) AS gold_count,
+    SUM(CASE WHEN rm.medal_type = 'silver' THEN 1 ELSE 0 END) AS silver_count,
+    SUM(CASE WHEN rm.medal_type = 'bronze' THEN 1 ELSE 0 END) AS bronze_count
+
+FROM medals rm
+JOIN league_events le ON rm.event_date = le.event_date
+JOIN leagues l ON le.league_id = l.id
+
+WHERE rm.runner_id = @runner_id AND l.id = @league_id;
+
+-- @medals_for_runner_overall
+SELECT 
+    SUM(CASE WHEN medal_type = 'gold' THEN 1 ELSE 0 END) AS gold,
+    SUM(CASE WHEN medal_type = 'silver' THEN 1 ELSE 0 END) AS silver,
+    SUM(CASE WHEN medal_type = 'bronze' THEN 1 ELSE 0 END) AS bronze
+FROM medals
+WHERE runner_id = @runner_id;
+
+-- @medal_history_for_runner
+SELECT 
+    rm.medal_type,
+    le.event_date,
+    le.event_nr,
+    l.name AS league_name
+FROM medals rm
+JOIN league_events le ON rm.event_date = le.event_date
+JOIN leagues l ON le.league_id = l.id
+WHERE rm.runner_id = @runner_id
+ORDER BY le.event_date ASC;
