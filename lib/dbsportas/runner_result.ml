@@ -20,14 +20,10 @@ let of_resp (runner : Response.RunnerResp.t) =
   let finish = List.last_exn splits in
   (* `value_exn` here should be safe because everyone should have a finish time (i think?) *)
   let time = Option.value_exn finish.overall_time in
-  (* this is different than the `flag` value, it is determined by the actual data in the splits *)
-  (* TODO: this should be removed because in some cases those runners appear in the results ??
-     https://dbsportas.lt/lt/mvarz/269/split/2 -> need to ask at the event place *)
-  let has_dsq = Splits.has_dsq splits in
 
   Fields.create ~number:runner.number ~name:runner.name ~club:runner.club
     ~start:runner.start ~time
-    ~status:(if runner.flag = 0 && not has_dsq then Finished else Dsq)
+    ~status:(if runner.flag = 0 then Finished else Dsq)
     ~splits ~stats:(Runner_stats.empty ())
 
 let print (r : t) (i : int) : unit =
@@ -96,7 +92,7 @@ let position_trend pos_a pos_b =
   if abs diff <= 1 then Stay else if diff > 0 then Down else Up
 
 (* NOTE: this should only be called on Finished runner *)
-let update_race_execution r =
+let update_race_execution_aux r =
   let num_controls = List.length r.splits in
   let bucket_size = num_controls / 3 in
   let begin_idx = bucket_size in
@@ -127,6 +123,16 @@ let update_race_execution r =
     Field.fset Runner_stats.Fields.race_execution r.stats (Some race_execution)
   in
   { r with stats }
+
+let update_race_execution r =
+  (* NOTE: this is different than the `flag` value, it is determined by the
+     actual data in the splits. Sometimes runners which are classified as
+     finished have missing splits. It happens when sometimes the SI doesn't
+     record the control but the event organizer checks that the person has been
+     there by GPS tracking and he restores him in the results.
+     Some examples can be found here: https://dbsportas.lt/lt/mvarz/269/split/2
+     *)
+  if not (Splits.has_dsq r.splits) then update_race_execution_aux r else r
 
 let update_mistake_cluster r =
   if r.stats.mistake_num = 0 then r
