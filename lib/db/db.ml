@@ -44,8 +44,10 @@ let create_tables (handle : Turso.conn) =
   let _ = DB.create_results handle in
   let _ = DB.create_result_stats handle in
   let _ = DB.create_splits handle in
-  handle.immediate <- true;
+  let _ = DB.create_runners handle in
   let _ = DB.create_ratings handle in
+  handle.immediate <- true;
+  let _ = DB.create_medals handle in
   ()
 
 (* NOTE: this is not needed for turso connection *)
