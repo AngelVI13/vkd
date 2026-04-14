@@ -26,7 +26,6 @@ CREATE TABLE IF NOT EXISTS league_events (
     location TEXT NOT NULL
 );
 
-
 -- @add_league_event
 INSERT INTO league_events VALUES;
 
@@ -284,9 +283,13 @@ CREATE TABLE IF NOT EXISTS runners (
     id INTEGER PRIMARY KEY,
     name TEXT,
     club TEXT,
-    gender TEXT NOT NULL
+    gender TEXT NOT NULL CHECK (gender IN ('M', 'V'))
 );
 
+-- @add_runner
+INSERT INTO runners VALUES;
+
+-- NOTE: ratings are only ever created for VKD
 -- @create_ratings
 CREATE TABLE IF NOT EXISTS ratings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -302,9 +305,29 @@ CREATE TABLE IF NOT EXISTS ratings (
     vol FLOAT NOT NULL
 );
 
--- TODO: finish this
 -- @rating_for_league_and_course
--- SELECT r.rating, r.rating_diff, r.diff
+SELECT r.rating, r.rating_diff, r.rd, r.vol
+FROM ratings r 
+JOIN runners rn 
+WHERE r.league_id = @league_id 
+    AND r.course_id = @course_id
+    AND rn.gender = @gender
+ORDER BY r.rating DESC;
+
+-- @rating_history_for_league_and_course
+SELECT *
+FROM ratings
+WHERE runner_id = @runner_id 
+    AND league_id = @league_id 
+    AND course_id = @course_id
+ORDER BY event_date ASC;
+
+-- @rating_history_for_course
+SELECT *
+FROM ratings
+WHERE runner_id = @runner_id 
+    AND course_id = @course_id
+ORDER BY event_date ASC;
 
 -- @add_rating
 INSERT INTO ratings VALUES;
