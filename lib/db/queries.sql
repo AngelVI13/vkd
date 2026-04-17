@@ -29,22 +29,6 @@ CREATE TABLE IF NOT EXISTS league_events (
 -- @add_league_event
 INSERT INTO league_events VALUES;
 
--- @league_event_before
-SELECT le.*, l.name AS league_name
-FROM league_events le
-JOIN leagues l ON le.league_id = l.id
-WHERE le.event_date < @input_date
-ORDER BY le.event_date DESC
-LIMIT 1;
-
--- @league_event_after_or_eq
-SELECT le.*, l.name AS league_name
-FROM league_events le
-JOIN leagues l ON le.league_id = l.id
-WHERE le.event_date >= @input_date
-ORDER BY le.event_date ASC
-LIMIT 1;
-
 -- @create_event_details 
 CREATE TABLE IF NOT EXISTS event_details (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,11 +51,32 @@ CREATE TABLE IF NOT EXISTS event_map_links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     event_date TEXT NOT NULL,
+    -- NOTE: this is a comma separated base64 encoded urls
     links TEXT NOT NULL
 );
 
 -- @add_event_map_link
 INSERT INTO event_map_links VALUES;
+
+-- @league_event_before
+SELECT le.*, l.name AS league_name, ed.event_link, ed.thumbnail, ed.map_info, ls.links
+FROM league_events le
+JOIN leagues l ON le.league_id = l.id
+LEFT JOIN event_details ed ON le.event_date = ed.event_date
+LEFT JOIN event_map_links ls ON le.event_date = ls.event_date
+WHERE le.event_date < @input_date
+ORDER BY le.event_date DESC
+LIMIT 1;
+
+-- @league_event_after_or_eq
+SELECT le.*, l.name AS league_name, ed.event_link, ed.thumbnail, ed.map_info, ls.links
+FROM league_events le
+JOIN leagues l ON le.league_id = l.id
+LEFT JOIN event_details ed ON le.event_date = ed.event_date
+LEFT JOIN event_map_links ls ON le.event_date = ls.event_date
+WHERE le.event_date >= @input_date
+ORDER BY le.event_date ASC
+LIMIT 1;
 
 -- @event_details_for_year
 SELECT 
@@ -305,13 +310,34 @@ CREATE TABLE IF NOT EXISTS ratings (
     vol FLOAT NOT NULL
 );
 
--- @rating_for_league_and_course
-SELECT r.rating, r.rating_diff, r.rd, r.vol
-FROM ratings r 
-JOIN runners rn 
-WHERE r.league_id = @league_id 
-    AND r.course_id = @course_id
-    AND rn.gender = @gender
+-- TODO: how to calculate position change due to rating loss/gain
+-- @ratings_for_course
+SELECT r.*
+FROM ratings r
+INNER JOIN (
+    -- NOTE: inner join is needed to find the latest rating based on event_date
+    -- for a runner
+    SELECT runner_id, MAX(event_date) AS max_date
+    FROM ratings
+    GROUP BY runner_id
+) latest ON r.runner_id = latest.runner_id AND r.event_date = latest.max_date
+-- NOTE: we take latest ratings irrespective of league since we only track the main VKD league
+WHERE r.course_id = @course_id
+ORDER BY r.rating DESC;
+
+-- @ratings_for_course_by_gender
+SELECT r.*
+FROM ratings r
+INNER JOIN (
+    -- NOTE: inner join is needed to find the latest rating based on event_date
+    -- for a runner
+    SELECT runner_id, MAX(event_date) AS max_date
+    FROM ratings
+    GROUP BY runner_id
+) latest ON r.runner_id = latest.runner_id AND r.event_date = latest.max_date
+INNER JOIN runners rn ON r.runner_id = rn.id
+-- NOTE: we take latest ratings irrespective of league since we only track the main VKD league
+WHERE rn.gender = @gender AND r.course_id = @course_id
 ORDER BY r.rating DESC;
 
 -- @rating_history_for_league_and_course
