@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS event_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
+    event_date TEXT NOT NULL,
 
     num_men INTEGER NOT NULL,
     num_women INTEGER NOT NULL
@@ -135,6 +136,7 @@ CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
+    event_date TEXT NOT NULL,
     course_id INTEGER NOT NULL,
 
     course_name TEXT NOT NULL,
@@ -151,6 +153,7 @@ CREATE TABLE IF NOT EXISTS course_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
+    event_date TEXT NOT NULL,
     course_id INTEGER NOT NULL,
 
     num_men  INTEGER NOT NULL,
@@ -190,7 +193,7 @@ CREATE TABLE IF NOT EXISTS age_groups (
     league_id INTEGER NOT NULL,
     runner_id INTEGER NOT NULL,
 
-    group_id TEXT NOT NULL
+    age_group_id TEXT NOT NULL
 );
 
 -- @add_age_group
@@ -201,11 +204,12 @@ CREATE TABLE IF NOT EXISTS results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
+    event_date TEXT NOT NULL,
     course_id INTEGER NOT NULL,
     runner_id INTEGER NOT NULL,
 
     time_sec INTEGER,
-    start INTEGER,
+    start_time INTEGER,
     points INTEGER NOT NULL,
     pace TEXT,
     finished INTEGER NOT NULL
@@ -214,11 +218,14 @@ CREATE TABLE IF NOT EXISTS results (
 -- @add_result
 INSERT INTO results VALUES;
 
+-- TODO: add query for results
+
 -- @create_result_stats
 CREATE TABLE IF NOT EXISTS result_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
+    event_date TEXT NOT NULL,
     course_id INTEGER NOT NULL,
     runner_id INTEGER NOT NULL,
 
@@ -268,6 +275,7 @@ CREATE TABLE IF NOT EXISTS splits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
+    event_date TEXT NOT NULL,
     course_id INTEGER NOT NULL,
     runner_id INTEGER NOT NULL,
     split_idx INTEGER NOT NULL,
@@ -378,7 +386,6 @@ SELECT
 FROM medals rm
 JOIN league_events le ON rm.event_date = le.event_date
 JOIN leagues l ON le.league_id = l.id
-
 WHERE rm.runner_id = @runner_id AND l.id = @league_id;
 
 -- @medals_for_runner_overall
