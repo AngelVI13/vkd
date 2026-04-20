@@ -187,6 +187,12 @@ CREATE TABLE IF NOT EXISTS course_stats (
 -- @add_course_stats
 INSERT INTO course_stats VALUES;
 
+-- @stats_for_course
+SELECT * FROM course_stats
+WHERE league_id = @league_id
+    AND event_date = @event_date
+    AND course_id = @course_id;
+
 -- @create_age_groups
 CREATE TABLE IF NOT EXISTS age_groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -212,8 +218,17 @@ CREATE TABLE IF NOT EXISTS results (
     start_time INTEGER,
     points INTEGER NOT NULL,
     pace TEXT,
-    finished INTEGER NOT NULL
+    dsq INTEGER NOT NULL
 );
+
+-- @results_for_course
+SELECT * FROM results
+WHERE league_id = @league_id
+    AND event_date = @event_date
+    AND course_id = @course_id
+ORDER BY
+    dsq ASC,
+    time_sec ASC;
 
 -- @add_result
 INSERT INTO results VALUES;
