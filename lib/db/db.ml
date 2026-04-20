@@ -53,6 +53,32 @@ let create_tables (handle : Turso.conn) =
 (* NOTE: this is not needed for turso connection *)
 let close _ = Ok ()
 
+let action_download_event_details (handle : Turso.conn) =
+  let _ = handle in
+  (* TODO: implement this *)
+  ()
+
+let event_details_for_year (handle : Turso.conn) (year : string) :
+    Vilpage.Events.EventInfo.t list =
+  let event_details = ref [] in
+  ignore
+    (DB.event_details_for_year handle ~year
+       (fun ~id ~event_link ~event_date ~location ~thumbnail ~map_info ~links ->
+         let _ = id in
+         let map_links =
+           links |> String.split ~on:',' |> List.map ~f:Base64.decode_exn
+         in
+         let event =
+           (* NOTE: the EventInfo object returned from here will be missing some info
+              because we don't store results url & other data into the db *)
+           Vilpage.Events.EventInfo.Fields.create
+             ~date:(Time_ns_unix.of_string event_date)
+             ~thumbnail ~thumbnail_src:"" ~event_link ~location ~map_info
+             ~map_links ~map_settings:None ~result_link:None
+         in
+         event_details := event :: !event_details));
+  !event_details
+
 let add_event_details (handle : Turso.conn)
     (details : Vilpage.Events.EventInfo.t) =
   let _ = (handle, details) in
