@@ -32,6 +32,9 @@ let iso8601_to_date timestamp =
 let format_time_as_date (time : Time_ns_unix.t) =
   Time_ns_unix.format ~zone:Timezone.utc time "%Y-%m-%d"
 
+let to_base64 s = Base64.encode_exn ~pad:false s
+let of_base64 s = Base64.decode_exn ~pad:false s
+
 let%expect_test "time_of_string" =
   let time = time_of_string "1:02:03" in
   printf "%d" (Option.value_exn time);

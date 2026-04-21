@@ -53,6 +53,8 @@ let create_tables (handle : Turso.conn) =
 (* NOTE: this is not needed for turso connection *)
 let close _ = Ok ()
 
+(** NOTE: the EventInfo objects returned from here will be missing some info
+    because we don't store results url & other data into the db *)
 let event_details_for_year (handle : Turso.conn) (year : string) :
     Vilpage.Events.EventInfo.t list =
   let event_details = ref [] in
@@ -61,12 +63,9 @@ let event_details_for_year (handle : Turso.conn) (year : string) :
        (fun ~id ~event_link ~event_date ~location ~thumbnail ~map_info ~links ->
          let _ = id in
          let map_links =
-           links |> String.split ~on:','
-           |> List.map ~f:(Base64.decode_exn ~pad:false)
+           links |> String.split ~on:',' |> List.map ~f:Utils.of_base64
          in
          let event =
-           (* NOTE: the EventInfo object returned from here will be missing some info
-              because we don't store results url & other data into the db *)
            Vilpage.Events.EventInfo.Fields.create
              ~date:(Time_ns_unix.of_string event_date)
              ~thumbnail ~thumbnail_src:"" ~event_link ~location ~map_info
@@ -76,22 +75,27 @@ let event_details_for_year (handle : Turso.conn) (year : string) :
   !event_details
 
 (** NOTE: does not commit *)
-let add_event_links (handle : Turso.conn) (event_date : string)
+let _add_event_links (handle : Turso.conn) (event_date : Time_ns.t)
     (links : string list) =
-  let links =
-    links
-    |> List.map ~f:(Base64.encode_exn ~pad:false)
-    |> String.concat ~sep:","
-  in
-  ignore (DB.add_event_map_link handle ~id:None ~event_date ~links)
+  let links = links |> List.map ~f:Utils.to_base64 |> String.concat ~sep:"," in
+  ignore
+    (DB.add_event_map_link handle ~id:None
+       ~event_date:(Utils.format_time_as_date event_date)
+       ~links)
 
 (** NOTE: does not commit *)
-let add_event_details (handle : Turso.conn)
+let _add_event_details (handle : Turso.conn)
     (details : Vilpage.Events.EventInfo.t) =
-  let _ = (handle, details) in
-  (* TODO: continue from here *)
-  ignore (DB.add_event_details handle ~id:None)
+  ignore
+    (DB.add_event_details handle ~id:None
+       ~event_link:(Utils.to_base64 details.event_link)
+       ~event_date:(Utils.format_time_as_date details.date)
+       ~location:details.location ~thumbnail:details.thumbnail
+       ~map_info:details.map_info)
 
+(** Update missing event details and map links for a particular year.
+
+    @param year: Format: '2013'. If not provided, uses the current year*)
 let action_refresh_event_details ?(year : string option = None)
     (handle : Turso.conn) =
   let year =
@@ -103,17 +107,17 @@ let action_refresh_event_details ?(year : string option = None)
   in
   let existing = event_details_for_year handle year in
   let new_events = Vilpage.Events.download_events ~year in
+  (* TODO: should we insert the map images to the db here ? *)
   List.iter new_events ~f:(fun ev ->
       match List.find existing ~f:(fun v -> Time_ns.(ev.date = v.date)) with
-      | None ->
-          (* TODO: add event details & links here *)
-          assert false
-      | Some _ ->
-          (* TODO: check if links exist and if not - add links here *)
-          assert false);
+      | None -> _add_event_details handle ev
+      | Some v ->
+          if List.length v.map_links = 0 && List.length ev.map_links > 0 then
+            _add_event_links handle ev.date ev.map_links
+          else ());
   Turso.commit handle
-(* TODO: should we insert the map images to the db here ? *)
-(* TODO: implement this *)
+
+(* TODO: add all leagues to league table: id and name and year *)
 
 let add_league (handle : Turso.conn) (league : Dbsportas.League.LeagueInfo.t) =
   DB.add_league handle ~id:(Int64.of_int league.id)
