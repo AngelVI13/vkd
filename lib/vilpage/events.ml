@@ -158,8 +158,9 @@ let parse_events_page page_html =
   in
   events
 
-let download_events ~(year : int) =
-  let url = sprintf "%s/%d" base_url year in
+(** year is in format `2013` *)
+let download_events ~(year : string) =
+  let url = sprintf "%s/%s" base_url year in
   let page = fetch_page url in
   parse_events_page page
 

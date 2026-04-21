@@ -417,7 +417,6 @@ type conn = {
   token : string;
   log_name : string;
   debug : bool;
-  mutable immediate : bool;
   mutable baton : string option;
   mutable statements : Libsql.Stmt.t list;
 }
@@ -643,7 +642,34 @@ module M = struct
     let out = match res with Ok c -> c.body | Error (_, s) -> failwith s in
     out
 
-  let turso_post db sql params =
+  (** Sends every buffered statement to turso (in one request). `Select`
+      statements do this automatically so they don't need to call this method.
+      `Execute` statements need to call this if they wish send the query to
+      turso. If they don't call this then their statement is just added to the
+      buffer. *)
+  let commit db =
+    (* if no statements in buffer then do nothing *)
+    if List.length db.statements = 0 then []
+    else
+      let request =
+        Libsql.Requests.make ~baton:db.baton (List.rev db.statements)
+      in
+
+      (* reset statements after preparing outbound request *)
+      db.statements <- [];
+
+      log_conn db (sprintf "%s\n" (Libsql.Requests.to_json_string request));
+      let resp =
+        make_turso_request db (`String (Libsql.Requests.to_json_string request))
+      in
+      log_conn db (sprintf "%s\n" resp);
+      let resp = Yojson.Safe.from_string resp |> Libsql.Response.t_of_yojson in
+      db.baton <- resp.baton;
+
+      let rows = Libsql.Response.rows resp in
+      rows
+
+  let turso_post ~(immediate : bool) db sql params =
     let regexp = Re.Perl.re {|\@(\w+)|} |> Re.compile in
     let matches =
       Re.all regexp sql
@@ -667,26 +693,7 @@ module M = struct
     in
     let stmt = Libsql.Stmt.make ~sql ~named_args in
     db.statements <- stmt :: db.statements;
-
-    if db.immediate then (
-      let request =
-        Libsql.Requests.make ~baton:db.baton (List.rev db.statements)
-      in
-
-      (* reset statements after preparing outbound request *)
-      db.statements <- [];
-
-      log_conn db (sprintf "%s\n" (Libsql.Requests.to_json_string request));
-      let resp =
-        make_turso_request db (`String (Libsql.Requests.to_json_string request))
-      in
-      log_conn db (sprintf "%s\n" resp);
-      let resp = Yojson.Safe.from_string resp |> Libsql.Response.t_of_yojson in
-      db.baton <- resp.baton;
-
-      let rows = Libsql.Response.rows resp in
-      rows)
-    else []
+    if immediate then commit db else []
 
   let select db sql set_params callback =
     (* NOTE: if there is a `?` then we send unnamed arguments
@@ -694,23 +701,23 @@ module M = struct
        Each param responds to the each @argument. If named arg appears 3 times
        then we get 3 parameters for it  *)
     let params = set_params sql in
-    let rows = turso_post db sql params in
+    let rows = turso_post ~immediate:true db sql params in
     List.iter ~f:callback rows
 
   let execute db sql set_params =
     let params = set_params sql in
-    ignore (turso_post db sql params);
+    ignore (turso_post ~immediate:false db sql params);
     1L
 
   let select_one_maybe db sql set_params convert =
     let params = set_params sql in
-    match turso_post db sql params with
+    match turso_post ~immediate:true db sql params with
     | [] -> None
     | row :: _ -> Some (convert row)
 
   let select_one db sql set_params convert =
     let params = set_params sql in
-    match turso_post db sql params with
+    match turso_post ~immediate:true db sql params with
     | row :: _ -> convert row
     | [] -> raise (Oops "Expected one row, got zero")
 end
