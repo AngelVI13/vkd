@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS courses (
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
     event_date TEXT NOT NULL,
-    course_id INTEGER NOT NULL,
+    course_id TEXT NOT NULL,
 
     course_name TEXT NOT NULL,
     distance FLOAT NOT NULL,
@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS course_stats (
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
     event_date TEXT NOT NULL,
-    course_id INTEGER NOT NULL,
+    course_id TEXT NOT NULL,
 
     num_men  INTEGER NOT NULL,
     num_women  INTEGER NOT NULL,
@@ -211,7 +211,7 @@ CREATE TABLE IF NOT EXISTS results (
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
     event_date TEXT NOT NULL,
-    course_id INTEGER NOT NULL,
+    course_id TEXT NOT NULL,
     runner_id INTEGER NOT NULL,
 
     time_sec INTEGER,
@@ -241,7 +241,7 @@ CREATE TABLE IF NOT EXISTS result_stats (
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
     event_date TEXT NOT NULL,
-    course_id INTEGER NOT NULL,
+    course_id TEXT NOT NULL,
     runner_id INTEGER NOT NULL,
 
     mistake_time INTEGER NOT NULL,
@@ -291,7 +291,7 @@ CREATE TABLE IF NOT EXISTS splits (
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
     event_date TEXT NOT NULL,
-    course_id INTEGER NOT NULL,
+    course_id TEXT NOT NULL,
     runner_id INTEGER NOT NULL,
     split_idx INTEGER NOT NULL,
 
@@ -324,7 +324,7 @@ CREATE TABLE IF NOT EXISTS ratings (
     league_id INTEGER NOT NULL,
     event_nr INTEGER NOT NULL,
     event_date TEXT NOT NULL,
-    course_id INTEGER NOT NULL,
+    course_id TEXT NOT NULL,
     runner_id INTEGER NOT NULL,
 
     rating FLOAT NOT NULL,
@@ -385,7 +385,7 @@ INSERT INTO ratings VALUES;
 CREATE TABLE IF NOT EXISTS medals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_date TEXT NOT NULL,
-    course_id INTEGER NOT NULL,
+    course_id TEXT NOT NULL,
     runner_id INTEGER NOT NULL,
     medal_type TEXT NOT NULL CHECK (medal_type IN ('gold', 'silver', 'bronze'))
 );

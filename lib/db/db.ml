@@ -45,10 +45,7 @@ let create_tables (handle : Turso.conn) =
   let _ = DB.create_runners handle in
   let _ = DB.create_ratings handle in
   let _ = DB.create_medals handle in
-  ignore (Turso.commit handle);
-  (* TODO: Do i bother with this flag or do i just make everything be buffered
-     operation until user calls `force execute or commit or sth ? *)
-  ()
+  ignore (Turso.commit handle)
 
 (* NOTE: this is not needed for turso connection *)
 let close _ = Ok ()
@@ -93,18 +90,21 @@ let _add_event_details (handle : Turso.conn)
        ~location:details.location ~thumbnail:details.thumbnail
        ~map_info:details.map_info)
 
+(** If year is provided it will just unpack it. If None is provided it will
+    return the current year. *)
+let year_from_opt (year : string option) =
+  match year with
+  | Some y -> y
+  | None ->
+      let now = Time_ns_unix.now () in
+      Time_ns_unix.format ~zone:Timezone.utc now "%Y"
+
 (** Update missing event details and map links for a particular year.
 
     @param year: Format: '2013'. If not provided, uses the current year*)
 let action_refresh_event_details ?(year : string option = None)
     (handle : Turso.conn) =
-  let year =
-    match year with
-    | Some y -> y
-    | None ->
-        let now = Time_ns_unix.now () in
-        Time_ns_unix.format ~zone:Timezone.utc now "%Y"
-  in
+  let year = year_from_opt year in
   let existing = event_details_for_year handle year in
   let new_events = Vilpage.Events.download_events ~year in
   (* TODO: should we insert the map images to the db here ? *)
@@ -117,15 +117,116 @@ let action_refresh_event_details ?(year : string option = None)
           else ());
   Turso.commit handle
 
-(* TODO: add all leagues to league table: id and name and year *)
+(** NOTE: does not commit *)
+let _add_league (handle : Turso.conn) (league : Dbsportas.League.LeagueInfo.t) =
+  ignore
+    (DB.add_league handle ~id:(Int64.of_int league.id)
+       ~league_year:(Int64.of_int league.year) ~name:league.name)
 
-let add_league (handle : Turso.conn) (league : Dbsportas.League.LeagueInfo.t) =
-  DB.add_league handle ~id:(Int64.of_int league.id)
-    ~league_year:(Int64.of_int league.year) ~name:league.name
+let all_leagues (handle : Turso.conn) : Dbsportas.League.LeagueInfo.t list =
+  let leagues = ref [] in
+  ignore
+    (DB.all_leagues handle (fun ~id ~league_year ~name ->
+         let league =
+           Dbsportas.League.LeagueInfo.Fields.create ~id:(Int64.to_int_exn id)
+             ~year:(Int64.to_int_exn league_year)
+             ~name
+         in
+         leagues := league :: !leagues));
+  !leagues
 
-let test_add_leagues (handle : Turso.conn)
+let add_leagues_if_not_exists (handle : Turso.conn)
     (leagues : Dbsportas.League.LeagueInfo.t list) =
-  ignore (List.map leagues ~f:(add_league handle))
+  let existing = all_leagues handle in
+  List.iter leagues ~f:(fun new_league ->
+      match List.find existing ~f:(fun v -> Int.(v.id = new_league.id)) with
+      | None -> _add_league handle new_league
+      | Some _ -> ());
+  Turso.commit handle
+
+let leagues_for_year (handle : Turso.conn) (year : string option) =
+  let year = year_from_opt year in
+  (* TODO: continue from here *)
+  let _ = (handle, year) in
+  ()
+
+let ratings_aux ~f (handle : Turso.conn) =
+  let ratings = ref [] in
+  ignore
+    (f handle
+       (fun
+         ~id
+         ~league_id
+         ~event_nr
+         ~event_date
+         ~course_id
+         ~runner_id
+         ~rating
+         ~rating_diff
+         ~rd
+         ~vol
+       ->
+         let _ = id in
+         let rating =
+           Glicko2.Rating.Info.Fields.create
+             ~league_id:(Int64.to_int_exn league_id)
+             ~event_nr:(Int64.to_int_exn event_nr)
+             ~event_date ~course_id
+             ~runner_id:(Int64.to_int_exn runner_id)
+             ~rating ~rating_diff ~rd ~vol
+         in
+         ratings := rating :: !ratings));
+  !ratings
+
+let ratings_for_course (handle : Turso.conn) (course_id : string) =
+  ratings_aux ~f:(DB.ratings_for_course ~course_id) handle
+
+type gender = Men | Women [@@deriving show { with_path = false }]
+
+let gender_prefix = function Men -> "V" | Women -> "M"
+
+let ratings_for_course_by_gender (handle : Turso.conn) (course_id : string)
+    (gender : gender) =
+  ratings_aux
+    ~f:
+      (DB.ratings_for_course_by_gender ~gender:(gender_prefix gender) ~course_id)
+    handle
+
+let rating_history_for_league_and_course (handle : Turso.conn)
+    (course_id : string) (runner_id : int) (league_id : int) =
+  ratings_aux
+    ~f:
+      (DB.rating_history_for_league_and_course
+         ~runner_id:(Int64.of_int_exn runner_id)
+         ~league_id:(Int64.of_int_exn league_id)
+         ~course_id)
+    handle
+
+let rating_history_for_course (handle : Turso.conn) (course_id : string)
+    (runner_id : int) =
+  ratings_aux
+    ~f:
+      (DB.rating_history_for_course
+         ~runner_id:(Int64.of_int_exn runner_id)
+         ~course_id)
+    handle
+
+(** NOTE: does not commit *)
+let add_rating (handle : Turso.conn) (rating : Glicko2.Rating.Info.t) =
+  ignore
+    (DB.add_rating handle ~id:None
+       ~league_id:(Int64.of_int_exn rating.league_id)
+       ~event_nr:(Int64.of_int_exn rating.event_nr)
+       ~event_date:rating.event_date ~course_id:rating.course_id
+       ~runner_id:(Int64.of_int_exn rating.runner_id)
+       ~rating:rating.rating ~rating_diff:rating.rating_diff ~rd:rating.rd
+       ~vol:rating.vol)
+
+(* TODO: add methods to get all ratings and then based on results calculate the ratings and insert new ratings to db *)
+
+(* let test_add_leagues (handle : Turso.conn) *)
+(*     (leagues : Dbsportas.League.LeagueInfo.t list) = *)
+(*   ignore (List.map leagues ~f:(add_league handle)) *)
 
 let test (handle : Turso.conn) =
   let _ = handle in
