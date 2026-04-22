@@ -117,16 +117,10 @@ let action_refresh_event_details ?(year : string option = None)
           else ());
   Turso.commit handle
 
-(** NOTE: does not commit *)
-let _add_league (handle : Turso.conn) (league : Dbsportas.League.LeagueInfo.t) =
-  ignore
-    (DB.add_league handle ~id:(Int64.of_int league.id)
-       ~league_year:(Int64.of_int league.year) ~name:league.name)
-
-let all_leagues (handle : Turso.conn) : Dbsportas.League.LeagueInfo.t list =
+let leagues_aux ~f (handle : Turso.conn) =
   let leagues = ref [] in
   ignore
-    (DB.all_leagues handle (fun ~id ~league_year ~name ->
+    (f handle (fun ~id ~league_year ~name ->
          let league =
            Dbsportas.League.LeagueInfo.Fields.create ~id:(Int64.to_int_exn id)
              ~year:(Int64.to_int_exn league_year)
@@ -134,6 +128,15 @@ let all_leagues (handle : Turso.conn) : Dbsportas.League.LeagueInfo.t list =
          in
          leagues := league :: !leagues));
   !leagues
+
+(** NOTE: does not commit *)
+let _add_league (handle : Turso.conn) (league : Dbsportas.League.LeagueInfo.t) =
+  ignore
+    (DB.add_league handle ~id:(Int64.of_int league.id)
+       ~league_year:(Int64.of_int league.year) ~name:league.name)
+
+let all_leagues (handle : Turso.conn) : Dbsportas.League.LeagueInfo.t list =
+  leagues_aux handle ~f:DB.all_leagues
 
 let add_leagues_if_not_exists (handle : Turso.conn)
     (leagues : Dbsportas.League.LeagueInfo.t list) =
@@ -146,9 +149,16 @@ let add_leagues_if_not_exists (handle : Turso.conn)
 
 let leagues_for_year (handle : Turso.conn) (year : string option) =
   let year = year_from_opt year in
-  (* TODO: continue from here *)
-  let _ = (handle, year) in
-  ()
+  leagues_aux handle ~f:(DB.leagues_for_year ~year:(Int64.of_string year))
+
+(** NOTE: does not commit *)
+let add_league_event (handle : Turso.conn)
+    (event : Dbsportas.League.LeagueEvent.t) (league_id : int) =
+  DB.add_league_event handle ~id:None
+    ~league_id:(Int64.of_int_exn league_id)
+    ~event_nr:(Int64.of_int_exn event.nr)
+    ~event_date:(Utils.format_time_as_date event.date)
+    ~location:event.location
 
 let ratings_aux ~f (handle : Turso.conn) =
   let ratings = ref [] in
