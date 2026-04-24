@@ -232,6 +232,26 @@ let add_rating (handle : Turso.conn) (rating : Glicko2.Rating.Info.t) =
        ~rating:rating.rating ~rating_diff:rating.rating_diff ~rd:rating.rd
        ~vol:rating.vol)
 
+(** NOTE: does not commit *)
+let add_event_stats ~(league_id : int) (handle : Turso.conn)
+    (event : Dbsportas.League.LeagueEvent.t) =
+  let results = Option.value_exn event.results in
+  let num_men =
+    List.map results.courses ~f:(fun c -> c.stats.num_men)
+    |> List.fold ~init:0 ~f:( + )
+  in
+  let num_women =
+    List.map results.courses ~f:(fun c -> c.stats.num_women)
+    |> List.fold ~init:0 ~f:( + )
+  in
+  ignore
+    (DB.add_event_stats handle ~id:None
+       ~league_id:(Int64.of_int_exn league_id)
+       ~event_nr:(Int64.of_int_exn event.nr)
+       ~event_date:(Utils.format_time_as_date event.date)
+       ~num_men:(Int64.of_int_exn num_men)
+       ~num_women:(Int64.of_int_exn num_women))
+
 (* TODO: add methods to get all ratings and then based on results calculate the ratings and insert new ratings to db *)
 
 (* let test_add_leagues (handle : Turso.conn) *)
