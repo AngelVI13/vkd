@@ -139,14 +139,20 @@ CREATE TABLE IF NOT EXISTS courses (
     event_date TEXT NOT NULL,
     course_id TEXT NOT NULL,
 
-    course_name TEXT NOT NULL,
     distance FLOAT NOT NULL,
-    num_controls TEXT NOT NULL,
+    num_controls INTEGER NOT NULL,
     controls TEXT NOT NULL
 );
 
 -- @add_course
 INSERT INTO courses VALUES;
+
+-- @courses_for_event
+-- TODO: should this also join with course stats 
+-- and results etc ?
+SELECT * FROM courses 
+WHERE event_date = @event_date
+ORDER BY course_id ASC;
 
 -- @create_course_stats
 CREATE TABLE IF NOT EXISTS course_stats (

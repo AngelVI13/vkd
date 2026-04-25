@@ -252,6 +252,44 @@ let add_event_stats ~(league_id : int) (handle : Turso.conn)
        ~num_men:(Int64.of_int_exn num_men)
        ~num_women:(Int64.of_int_exn num_women))
 
+(** NOTE: does not commit *)
+let add_course ~(league_id : int) ~(event_nr : int) ~(event_date : string)
+    (handle : Turso.conn) (course : Dbsportas.League.Course.t) =
+  let controls =
+    match course.controls with None -> "" | Some c -> String.concat ~sep:"," c
+  in
+  ignore
+    (DB.add_course handle ~id:None
+       ~league_id:(Int64.of_int_exn league_id)
+       ~event_nr:(Int64.of_int_exn event_nr)
+       ~event_date ~course_id:course.id ~distance:course.distance
+       ~num_controls:(Int64.of_int_exn course.controls_num)
+       ~controls)
+
+(** Update missing events & results for a particular year.
+
+    @param year: Format: '2013'. If not provided, uses the current year*)
+let action_refresh_events_and_results ?(year : string option = None)
+    (handle : Turso.conn) =
+  let year = year_from_opt year in
+  let _ = year in
+  (* TODO: maybe accept league id as input,
+     get all events for league (including stats)
+     for any events withuot stats -> add event stats if available
+     in the add event function -> add everything, event stats, courses, course
+     stats, results, ratings, medals, etc
+     *)
+  (* let existing = event_details_for_year handle year in *)
+  (* let new_events = Vilpage.Events.download_events ~year in *)
+  (* List.iter new_events ~f:(fun ev -> *)
+  (*     match List.find existing ~f:(fun v -> Time_ns.(ev.date = v.date)) with *)
+  (*     | None -> _add_event_details handle ev *)
+  (*     | Some v -> *)
+  (*         if List.length v.map_links = 0 && List.length ev.map_links > 0 then *)
+  (*           _add_event_links handle ev.date ev.map_links *)
+  (*         else ()); *)
+  Turso.commit handle
+
 (* TODO: add methods to get all ratings and then based on results calculate the ratings and insert new ratings to db *)
 
 (* let test_add_leagues (handle : Turso.conn) *)
