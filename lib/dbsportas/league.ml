@@ -526,7 +526,7 @@ let parse_event ~league_id ~event_nr page_html =
 
   courses
 
-let parse_league_page ~league_id page_html =
+let parse_league_page ?(with_results = true) ~league_id page_html =
   let open Soup in
   let soup = parse page_html in
   let rows = parse_table_rows soup in
@@ -546,16 +546,18 @@ let parse_league_page ~league_id page_html =
            let results =
              tr $? ".w3-text-green"
              |> Option.bind ~f:(fun a ->
-                    let url = R.attribute "href" a in
-                    let url = sprintf "%s%s" base_url url in
-                    printf "Downloading event page: %s\n" url;
-                    let results_html = fetch_page url in
-                    Time_ns_unix.pause (Time_ns.Span.create ~ms:1000 ());
-                    let event_nr = Option.value_exn event_nr in
-                    let courses =
-                      parse_event ~league_id ~event_nr results_html
-                    in
-                    Some (EventResults.Fields.create ~url ~courses))
+                    if not with_results then None
+                    else
+                      let url = R.attribute "href" a in
+                      let url = sprintf "%s%s" base_url url in
+                      printf "Downloading event page: %s\n" url;
+                      let results_html = fetch_page url in
+                      Time_ns_unix.pause (Time_ns.Span.create ~ms:1000 ());
+                      let event_nr = Option.value_exn event_nr in
+                      let courses =
+                        parse_event ~league_id ~event_nr results_html
+                      in
+                      Some (EventResults.Fields.create ~url ~courses))
            in
            match tds with
            | [] -> acc

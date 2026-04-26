@@ -138,27 +138,36 @@ let _add_league (handle : Turso.conn) (league : Dbsportas.League.LeagueInfo.t) =
 let all_leagues (handle : Turso.conn) : Dbsportas.League.LeagueInfo.t list =
   leagues_aux handle ~f:DB.all_leagues
 
-let add_leagues_if_not_exists (handle : Turso.conn)
-    (leagues : Dbsportas.League.LeagueInfo.t list) =
-  let existing = all_leagues handle in
-  List.iter leagues ~f:(fun new_league ->
-      match List.find existing ~f:(fun v -> Int.(v.id = new_league.id)) with
-      | None -> _add_league handle new_league
-      | Some _ -> ());
-  Turso.commit handle
-
 let leagues_for_year (handle : Turso.conn) (year : string option) =
   let year = year_from_opt year in
   leagues_aux handle ~f:(DB.leagues_for_year ~year:(Int64.of_string year))
 
 (** NOTE: does not commit *)
-let add_league_event (handle : Turso.conn)
-    (event : Dbsportas.League.LeagueEvent.t) (league_id : int) =
+let _add_league_event (handle : Turso.conn) (league_id : int)
+    (event : Dbsportas.League.LeagueEvent.t) =
   DB.add_league_event handle ~id:None
     ~league_id:(Int64.of_int_exn league_id)
     ~event_nr:(Int64.of_int_exn event.nr)
     ~event_date:(Utils.format_time_as_date event.date)
     ~location:event.location
+
+(* NOTE: use this when a new league is available *)
+let add_leagues_if_not_exists (handle : Turso.conn)
+    (leagues : Dbsportas.League.LeagueInfo.t list) =
+  let existing = all_leagues handle in
+  List.iter leagues ~f:(fun new_league ->
+      match List.find existing ~f:(fun v -> Int.(v.id = new_league.id)) with
+      | None ->
+          _add_league handle new_league;
+          let league_data =
+            Dbsportas.League.download_league_info
+              ~league_id:(Int.to_string new_league.id)
+          in
+          ignore
+            (List.map league_data.events
+               ~f:(_add_league_event handle new_league.id))
+      | Some _ -> ());
+  Turso.commit handle
 
 let ratings_aux ~f (handle : Turso.conn) =
   let ratings = ref [] in
@@ -222,7 +231,7 @@ let rating_history_for_course (handle : Turso.conn) (course_id : string)
     handle
 
 (** NOTE: does not commit *)
-let add_rating (handle : Turso.conn) (rating : Glicko2.Rating.Info.t) =
+let _add_rating (handle : Turso.conn) (rating : Glicko2.Rating.Info.t) =
   ignore
     (DB.add_rating handle ~id:None
        ~league_id:(Int64.of_int_exn rating.league_id)
@@ -233,7 +242,7 @@ let add_rating (handle : Turso.conn) (rating : Glicko2.Rating.Info.t) =
        ~vol:rating.vol)
 
 (** NOTE: does not commit *)
-let add_event_stats ~(league_id : int) (handle : Turso.conn)
+let _add_event_stats ~(league_id : int) (handle : Turso.conn)
     (event : Dbsportas.League.LeagueEvent.t) =
   let results = Option.value_exn event.results in
   let num_men =
@@ -253,7 +262,7 @@ let add_event_stats ~(league_id : int) (handle : Turso.conn)
        ~num_women:(Int64.of_int_exn num_women))
 
 (** NOTE: does not commit *)
-let add_course ~(league_id : int) ~(event_nr : int) ~(event_date : string)
+let _add_course ~(league_id : int) ~(event_nr : int) ~(event_date : string)
     (handle : Turso.conn) (course : Dbsportas.League.Course.t) =
   let controls =
     match course.controls with None -> "" | Some c -> String.concat ~sep:"," c
@@ -272,22 +281,13 @@ let add_course ~(league_id : int) ~(event_nr : int) ~(event_date : string)
 let action_refresh_events_and_results ?(year : string option = None)
     (handle : Turso.conn) =
   let year = year_from_opt year in
-  let _ = year in
-  (* TODO: maybe accept league id as input,
-     get all events for league (including stats)
-     for any events withuot stats -> add event stats if available
-     in the add event function -> add everything, event stats, courses, course
-     stats, results, ratings, medals, etc
+  (* TODO: get all unprocessed events for the year 
+     group them by league_id
+     download events for each league -> just the missing ones 
+     add all missing results to db (event_stats, courses , course_stats, splits etc.)
      *)
-  (* let existing = event_details_for_year handle year in *)
-  (* let new_events = Vilpage.Events.download_events ~year in *)
-  (* List.iter new_events ~f:(fun ev -> *)
-  (*     match List.find existing ~f:(fun v -> Time_ns.(ev.date = v.date)) with *)
-  (*     | None -> _add_event_details handle ev *)
-  (*     | Some v -> *)
-  (*         if List.length v.map_links = 0 && List.length ev.map_links > 0 then *)
-  (*           _add_event_links handle ev.date ev.map_links *)
-  (*         else ()); *)
+  (* TODO: the above doesn't event have to be for a specific year!! *)
+  let _ = year in
   Turso.commit handle
 
 (* TODO: add methods to get all ratings and then based on results calculate the ratings and insert new ratings to db *)

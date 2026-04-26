@@ -131,6 +131,22 @@ CREATE TABLE IF NOT EXISTS event_stats (
 -- @add_event_stats
 INSERT INTO event_stats VALUES;
 
+-- NOTE: this includes events from both leagues
+-- @events_to_be_processed
+SELECT le.*
+FROM league_events le
+LEFT JOIN event_stats es ON le.event_date = es.event_date
+WHERE es.id IS NULL;
+
+-- NOTE: this includes events from both leagues
+-- @events_to_be_processed_for_year
+SELECT le.*
+FROM league_events le
+JOIN leagues l ON le.league_id = l.id
+LEFT JOIN event_stats es ON le.event_date = es.event_date
+WHERE l.league_year = @league_year
+  AND es.id IS NULL;
+
 -- @create_courses
 CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
