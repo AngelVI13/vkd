@@ -337,6 +337,7 @@ module LeagueEvent = struct
     location : string;
     results : EventResults.t option;
   }
+  [@@deriving fields]
 
   let of_td_list ~results td_list =
     assert (List.length td_list >= 3);
@@ -526,10 +527,12 @@ let parse_event ~league_id ~event_nr page_html =
 
   courses
 
-let parse_league_page ?(with_results = true) ~league_id page_html =
+let parse_league_page ?(with_results = true)
+    ?(include_events : int list option = None) ~league_id page_html =
   let open Soup in
   let soup = parse page_html in
   let rows = parse_table_rows soup in
+  let has_includes = Option.is_some include_events in
 
   let events =
     rows
@@ -543,34 +546,56 @@ let parse_league_page ?(with_results = true) ~league_id page_html =
                  match Int.of_string with exception _ -> None | _ -> Some nr)
            in
 
-           let results =
-             tr $? ".w3-text-green"
-             |> Option.bind ~f:(fun a ->
-                    if not with_results then None
-                    else
-                      let url = R.attribute "href" a in
-                      let url = sprintf "%s%s" base_url url in
-                      printf "Downloading event page: %s\n" url;
-                      let results_html = fetch_page url in
-                      Time_ns_unix.pause (Time_ns.Span.create ~ms:1000 ());
-                      let event_nr = Option.value_exn event_nr in
-                      let courses =
-                        parse_event ~league_id ~event_nr results_html
-                      in
-                      Some (EventResults.Fields.create ~url ~courses))
-           in
-           match tds with
-           | [] -> acc
-           | _ ->
-               let event = LeagueEvent.of_td_list ~results tds in
-               event :: acc)
+           (* if event_nr is found and whitelist is provided but the event_nr
+              is not in the whitelist -> skip downloading event results *)
+           if
+             Option.is_some event_nr && has_includes
+             && Option.is_none
+                  (List.find (Option.value_exn include_events) ~f:(fun v ->
+                       Int.of_string (Option.value_exn event_nr) = v))
+           then acc
+           else
+             let results =
+               tr $? ".w3-text-green"
+               |> Option.bind ~f:(fun a ->
+                      if not with_results then None
+                      else
+                        let url = R.attribute "href" a in
+                        let url = sprintf "%s%s" base_url url in
+                        printf "Downloading event page: %s\n" url;
+                        let results_html = fetch_page url in
+                        Utils.sleep ~s:1;
+                        let event_nr = Option.value_exn event_nr in
+                        let courses =
+                          parse_event ~league_id ~event_nr results_html
+                        in
+                        Some (EventResults.Fields.create ~url ~courses))
+             in
+             match tds with
+             | [] -> acc
+             | _ ->
+                 let event = LeagueEvent.of_td_list ~results tds in
+                 event :: acc)
   in
   List.rev events
 
-let download_league_info ~league_id =
+(** Download league events from DBsportas league page.
+
+    @param with_results
+      Flag to indicate if to download event resutls. default: [true]
+
+    @param include_events
+      Optional list of event numbers that specifies only which events to be
+      processed
+
+    @param league_id DBSportas league id *)
+let download_league_info ?(with_results = true)
+    ?(include_events : int list option = None) ~(league_id : string) () =
   let url = sprintf "%s/%s" league_url league_id in
   let page_html = fetch_page url in
-  let events = parse_league_page ~league_id page_html in
+  let events =
+    parse_league_page ~with_results ~include_events ~league_id page_html
+  in
   League.Fields.create ~url ~events ~id:league_id
 
 module LeagueInfo = struct

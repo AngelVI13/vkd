@@ -115,7 +115,7 @@ let action_refresh_event_details ?(year : string option = None)
           if List.length v.map_links = 0 && List.length ev.map_links > 0 then
             _add_event_links handle ev.date ev.map_links
           else ());
-  Turso.commit handle
+  ignore (Turso.commit handle)
 
 let leagues_aux ~f (handle : Turso.conn) =
   let leagues = ref [] in
@@ -160,14 +160,15 @@ let add_leagues_if_not_exists (handle : Turso.conn)
       | None ->
           _add_league handle new_league;
           let league_data =
-            Dbsportas.League.download_league_info
+            Dbsportas.League.download_league_info ~with_results:false
               ~league_id:(Int.to_string new_league.id)
+              ()
           in
           ignore
             (List.map league_data.events
                ~f:(_add_league_event handle new_league.id))
       | Some _ -> ());
-  Turso.commit handle
+  ignore (Turso.commit handle)
 
 let ratings_aux ~f (handle : Turso.conn) =
   let ratings = ref [] in
@@ -275,20 +276,91 @@ let _add_course ~(league_id : int) ~(event_nr : int) ~(event_date : string)
        ~num_controls:(Int64.of_int_exn course.controls_num)
        ~controls)
 
+(** Fetch all events which don't have results associated with them in the db.
+    @param year:
+      Format: '2013'. If not provided, it will try to refresh any unprocessed
+      events
+
+    @return
+      List of tuples where first tuple element is the league id and the second
+      is the league event (the league event doesn't have any results) *)
+let unprocessed_league_events ?(year : string option = None)
+    (handle : Turso.conn) : (int * Dbsportas.League.LeagueEvent.t) list =
+  let fetch_fn =
+    match year with
+    | Some y ->
+        DB.events_to_be_processed_for_year ~league_year:(Int64.of_string y)
+    | None -> DB.events_to_be_processed
+  in
+
+  let events = ref [] in
+  ignore
+    (fetch_fn handle (fun ~id ~league_id ~event_nr ~event_date ~location ->
+         let _ = id in
+         let league_id = Int64.to_int_exn league_id in
+         let event =
+           Dbsportas.League.LeagueEvent.Fields.create
+             ~nr:(Int64.to_int_exn event_nr)
+             ~date:(Time_ns_unix.of_string event_date)
+             ~location ~results:None
+         in
+         events := (league_id, event) :: !events));
+  !events
+
+(** Add full event info (including results, stats, ratings, medals, etc.)
+
+    NOTE: does not commit *)
+let _add_full_event ~(league_id : int) (handle : Turso.conn)
+    (event : Dbsportas.League.LeagueEvent.t) =
+  (* TODO: implement this *)
+  let _ = (league_id, handle, event) in
+  ()
+
 (** Update missing events & results for a particular year.
 
-    @param year: Format: '2013'. If not provided, uses the current year*)
+    @param year:
+      Format: '2013'. If not provided, it will try to refresh any unprocessed
+      events *)
 let action_refresh_events_and_results ?(year : string option = None)
     (handle : Turso.conn) =
-  let year = year_from_opt year in
-  (* TODO: get all unprocessed events for the year 
-     group them by league_id
-     download events for each league -> just the missing ones 
-     add all missing results to db (event_stats, courses , course_stats, splits etc.)
-     *)
-  (* TODO: the above doesn't event have to be for a specific year!! *)
-  let _ = year in
-  Turso.commit handle
+  assert (List.length handle.statements = 0);
+  let unprocessed = unprocessed_league_events ~year handle in
+
+  let now = Time_ns_unix.now () in
+  let today = Time_ns_unix.to_date ~zone:Timezone.utc now in
+  let tomorrow = Date.add_days today 1 in
+
+  (* NOTE: exclude any unprocessed events that happen in the future - there won't be results 
+     for them anyways so no need to try to process them *)
+  let past_events =
+    List.filter unprocessed ~f:(fun (_, event) ->
+        let event_date = Time_ns_unix.to_date ~zone:Timezone.utc event.date in
+        Date.(event_date < tomorrow))
+  in
+
+  if List.length past_events = 0 then () (* nothing to do -> return *)
+  else
+    let events_to_add =
+      (* group by league id *)
+      List.sort_and_group past_events ~compare:(fun (id1, _) (id2, _) ->
+          Int.compare id1 id2)
+      (* for each league download results for 'past' events *)
+      |> List.map ~f:(fun group ->
+             let league_id, _ = List.hd_exn group in
+             let event_nrs_to_include =
+               List.map group ~f:(fun (_, ev) -> ev.nr)
+             in
+             Dbsportas.League.download_league_info
+               ~include_events:(Some event_nrs_to_include)
+               ~league_id:(Int.to_string league_id) ())
+    in
+    (* prepare db statements for adding event data *)
+    List.iter events_to_add ~f:(fun league ->
+        List.iter league.events
+          ~f:(_add_full_event handle ~league_id:(Int.of_string league.id)));
+
+    (* send all statements to turso *)
+    ignore (Turso.commit handle)
 
 (* TODO: add methods to get all ratings and then based on results calculate the ratings and insert new ratings to db *)
 

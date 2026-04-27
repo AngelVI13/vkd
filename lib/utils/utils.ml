@@ -35,6 +35,9 @@ let format_time_as_date (time : Time_ns_unix.t) =
 let to_base64 s = Base64.encode_exn ~pad:false s
 let of_base64 s = Base64.decode_exn ~pad:false s
 
+let sleep ~(s : int) =
+  Time_ns_unix.pause (Time_ns.Span.create ~ms:(s * 1000) ())
+
 let%expect_test "time_of_string" =
   let time = time_of_string "1:02:03" in
   printf "%d" (Option.value_exn time);
