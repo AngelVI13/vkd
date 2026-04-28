@@ -359,9 +359,6 @@ let action_refresh_events_and_results ?(year : string option = None)
         List.iter league.events
           ~f:(_add_full_event handle ~league_id:(Int.of_string league.id)));
 
-    (* NOTE: we need to get ratings info before or after all data that needs to
-       be committed but not inbetween *)
-
     (* send all statements to turso *)
     ignore (Turso.send_buffered handle)
 
