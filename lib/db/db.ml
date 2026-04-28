@@ -367,14 +367,9 @@ let action_refresh_events_and_results ?(year : string option = None)
 
 (* TODO: add methods to get all ratings and then based on results calculate the ratings and insert new ratings to db *)
 
-(* let test_add_leagues (handle : Turso.conn) *)
-(*     (leagues : Dbsportas.League.LeagueInfo.t list) = *)
-(*   ignore (List.map leagues ~f:(add_league handle)) *)
-
 let test (handle : Turso.conn) =
   let _ = handle in
   printf "hello\n";
-  (* test_add_leagues handle *)
   ()
 
 let%expect_test "make" =
