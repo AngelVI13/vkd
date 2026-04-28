@@ -287,21 +287,21 @@ CREATE TABLE IF NOT EXISTS result_stats (
     consecutive_mistakes INTEGER NOT NULL,
     tilt_rate INTEGER NOT NULL,
 
-    mistake_cluster TEXT,
-    mistakes_impact TEXT,
-    race_execution TEXT,
+    mistake_cluster TEXT DEFAULT NULL,
+    mistakes_impact TEXT DEFAULT NULL,
+    race_execution TEXT DEFAULT NULL,
 
     best_splits INTEGER NOT NULL,
     top5_splits INTEGER NOT NULL,
     top10_splits INTEGER NOT NULL,
     performance INTEGER NOT NULL,
 
-    overall_position INTEGER,
-    position_gender INTEGER,
-    position_group INTEGER,
+    overall_position INTEGER DEFAULT NULL,
+    position_gender INTEGER DEFAULT NULL,
+    position_group INTEGER DEFAULT NULL,
 
-    potential_time INTEGER,
-    potential_position INTEGER
+    potential_time INTEGER DEFAULT NULL,
+    potential_position INTEGER DEFAULT NULL
 );
 
 -- @add_result_stats
@@ -317,12 +317,12 @@ CREATE TABLE IF NOT EXISTS splits (
     runner_id INTEGER NOT NULL,
     split_idx INTEGER NOT NULL,
 
-    time_sec INTEGER,
-    position INTEGER,
-    overall_time INTEGER,
-    overall_position INTEGER,
-    split_timestamp INTEGER,
-    mistake_time INTEGER
+    time_sec INTEGER DEFAULT NULL,
+    position INTEGER DEFAULT NULL,
+    overall_time INTEGER DEFAULT NULL,
+    overall_position INTEGER DEFAULT NULL,
+    split_timestamp INTEGER DEFAULT NULL,
+    mistake_time INTEGER DEFAULT NULL
 );
 
 -- @add_splits

@@ -337,7 +337,78 @@ let unprocessed_league_events ?(year : string option = None)
          events := (league_id, event) :: !events));
   !events
 
-(* NOTE: does not commit *)
+(** NOTE: does not commit *)
+let _add_result_stats (handle : Turso.conn) ~(event_params : EventParams.t)
+    ~(course_id : string) ~(runner_id : int64)
+    (stats : Dbsportas.Runner_stats.t option) =
+  match stats with
+  | None -> ()
+  | Some s ->
+      ignore
+        (DB.add_result_stats handle ~id:None ~league_id:event_params.league_id
+           ~event_nr:event_params.event_nr ~event_date:event_params.event_date
+           ~course_id ~runner_id ~mistake_time:(to_int64 s.mistake_time)
+           ~mistake_num:(to_int64 s.mistake_num)
+           ~small_mistake_time:(to_int64 s.small_mistakes.time)
+           ~small_mistake_num:(to_int64 s.small_mistakes.num)
+           ~small_mistake_time_ratio:(to_int64 s.small_mistakes.time_ratio)
+           ~small_mistake_num_ratio:(to_int64 s.small_mistakes.num_ratio)
+           ~big_mistake_time:(to_int64 s.big_mistakes.time)
+           ~big_mistake_num:(to_int64 s.big_mistakes.num)
+           ~big_mistake_time_ratio:(to_int64 s.big_mistakes.time_ratio)
+           ~big_mistake_num_ratio:(to_int64 s.big_mistakes.num_ratio)
+           ~blunder_mistake_time:(to_int64 s.blunder_mistakes.time)
+           ~blunder_mistake_num:(to_int64 s.blunder_mistakes.num)
+           ~blunder_mistake_time_ratio:(to_int64 s.blunder_mistakes.time_ratio)
+           ~blunder_mistake_num_ratio:(to_int64 s.blunder_mistakes.num_ratio)
+           ~consecutive_mistakes:(to_int64 s.consecutive_mistakes)
+           ~tilt_rate:(to_int64 s.tilt_rate)
+           ~mistake_cluster:
+             (Option.bind s.mistake_cluster ~f:(fun v ->
+                  Some (Dbsportas.Runner_stats.show_mistakeCluster v)))
+           ~mistakes_impact:
+             (Option.bind s.mistakes_impact ~f:(fun v ->
+                  Some (Dbsportas.Runner_stats.show_mistakesImpact v)))
+           ~race_execution:
+             (Option.bind s.race_execution ~f:(fun v ->
+                  Some (Dbsportas.Runner_stats.show_raceExecution v)))
+           ~best_splits:(to_int64 s.best_splits)
+           ~top5_splits:(to_int64 s.top5_splits)
+           ~top10_splits:(to_int64 s.top10_splits)
+           ~performance:(to_int64 s.performance)
+           ~overall_position:(to_int64_option s.overall_position)
+           ~position_gender:(to_int64_option s.position_gender)
+           ~position_group:(to_int64_option s.position_group)
+           ~potential_time:(to_int64_option s.potential_time)
+           ~potential_position:(to_int64_option s.potential_position))
+
+(** NOTE: does not commit *)
+let _add_split (handle : Turso.conn) ~(event_params : EventParams.t)
+    ~(course_id : string) ~(runner_id : int64) (split : Dbsportas.Split.t)
+    (split_idx : int64) =
+  ignore
+    (DB.add_splits handle ~id:None ~league_id:event_params.league_id
+       ~event_nr:event_params.event_nr ~event_date:event_params.event_date
+       ~course_id ~runner_id ~split_idx
+       ~time_sec:(to_int64_option split.time)
+       ~position:(to_int64_option split.position)
+       ~overall_time:(to_int64_option split.overall_time)
+       ~overall_position:(to_int64_option split.overall_position)
+       ~split_timestamp:(to_int64_option split.timestamp)
+       ~mistake_time:(to_int64_option split.mistake_time))
+
+(** NOTE: does not commit *)
+let _add_splits (handle : Turso.conn) ~(event_params : EventParams.t)
+    ~(course_id : string) ~(runner_id : int64)
+    (splits : Dbsportas.Splits.t option) =
+  match splits with
+  | None -> ()
+  | Some splits ->
+      List.iteri splits ~f:(fun idx split ->
+          _add_split handle ~event_params ~course_id ~runner_id split
+            (to_int64 idx))
+
+(** NOTE: does not commit *)
 let _add_result (handle : Turso.conn) ~(event_params : EventParams.t)
     ~(course_id : string) (result : Dbsportas.League.OverallResult.t) =
   let dsq = (match result.status with Dsq -> 1 | _ -> 0) |> to_int64 in
@@ -348,18 +419,22 @@ let _add_result (handle : Turso.conn) ~(event_params : EventParams.t)
        ~runner_id:(to_int64 result.runner_nr)
        ~time_sec:(to_int64_option result.time)
        ~start_time:(to_int64_option result.start)
-       ~points:(to_int64 result.points) ~pace:result.pace ~dsq);
-  (* TODO: add stats *)
-  (* TODO: add splits *)
-  (* TODO: add add group if it doesn't exist *)
-  ()
+       ~points:(to_int64 result.points) ~pace:result.pace ~dsq)
 
+(** NOTE: does not commit *)
 let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
     ~(course_id : string) (results : Dbsportas.League.OverallResults.t) =
   let all = results.finished @ results.dsq in
   List.iter all ~f:(fun result ->
-      _add_result ~event_params ~course_id handle result);
-  ()
+      let runner_id = to_int64 result.runner_nr in
+      _add_result ~event_params ~course_id handle result;
+      _add_result_stats ~event_params ~course_id ~runner_id handle result.stats;
+      _add_splits ~event_params ~course_id ~runner_id handle result.splits;
+      (* TODO: add group if it doesn't exist *)
+      (* TODO: add runner if it doesn't exist *)
+      (* TODO: add/update ratings *)
+      (* TODO: add medals *)
+      ())
 
 (** Add full event info (including results, stats, ratings, medals, etc.)
 
