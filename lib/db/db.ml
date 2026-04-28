@@ -31,6 +31,16 @@ let to_int64_option (i : int option) =
 let to_int_option (i : Int64.t option) =
   match i with None -> None | Some value -> Some (of_int64 value)
 
+module EventParams = struct
+  type t = { league_id : int64; event_nr : int64; event_date : string }
+
+  let create ~(league_id : string) ~(event_nr : int) ~(event_date : Time_ns.t) =
+    let league_id = Int64.of_string league_id in
+    let event_nr = to_int64 event_nr in
+    let event_date = Utils.format_time_as_date event_date in
+    { league_id; event_nr; event_date }
+end
+
 let create_tables (handle : Turso.conn) =
   (* NOTE: DO NOT FORGET TO BASE64 ENCODE EVERY LINK *)
   let _ = DB.create_leagues handle in
@@ -236,9 +246,8 @@ let _add_rating (handle : Turso.conn) (rating : Glicko2.Rating.Info.t) =
        ~vol:rating.vol)
 
 (** NOTE: does not commit *)
-let _add_event_stats ~(league_id : int) (handle : Turso.conn)
-    (event : Dbsportas.League.LeagueEvent.t) =
-  let results = Option.value_exn event.results in
+let _add_event_stats ~(event_params : EventParams.t) (handle : Turso.conn)
+    (results : Dbsportas.League.EventResults.t) =
   let num_men =
     List.map results.courses ~f:(fun c -> c.stats.num_men)
     |> List.fold ~init:0 ~f:( + )
@@ -248,36 +257,34 @@ let _add_event_stats ~(league_id : int) (handle : Turso.conn)
     |> List.fold ~init:0 ~f:( + )
   in
   ignore
-    (DB.add_event_stats handle ~id:None ~league_id:(to_int64 league_id)
-       ~event_nr:(to_int64 event.nr)
-       ~event_date:(Utils.format_time_as_date event.date)
+    (DB.add_event_stats handle ~id:None ~league_id:event_params.league_id
+       ~event_nr:event_params.event_nr ~event_date:event_params.event_date
        ~num_men:(to_int64 num_men) ~num_women:(to_int64 num_women))
 
 (** NOTE: does not commit *)
-let _add_course ~(league_id : int) ~(event_nr : int) ~(event_date : string)
-    (handle : Turso.conn) (course : Dbsportas.League.Course.t) =
+let _add_course ~(event_params : EventParams.t) (handle : Turso.conn)
+    (course : Dbsportas.League.Course.t) =
   let controls =
     match course.controls with None -> "" | Some c -> String.concat ~sep:"," c
   in
   ignore
-    (DB.add_course handle ~id:None ~league_id:(to_int64 league_id)
-       ~event_nr:(to_int64 event_nr) ~event_date ~course_id:course.id
-       ~distance:course.distance
+    (DB.add_course handle ~id:None ~league_id:event_params.league_id
+       ~event_nr:event_params.event_nr ~event_date:event_params.event_date
+       ~course_id:course.id ~distance:course.distance
        ~num_controls:(to_int64 course.controls_num)
        ~controls)
 
 (** NOTE: does not commit *)
-let _add_course_stats ~(league_id : int) ~(event_nr : int)
-    ~(event_date : string) (handle : Turso.conn)
+let _add_course_stats ~(event_params : EventParams.t) (handle : Turso.conn)
     (course : Dbsportas.League.Course.t) =
   let s = course.stats in
   let course_id = course.id in
   ignore
-    (DB.add_course_stats handle ~id:None ~league_id:(to_int64 league_id)
-       ~event_nr:(to_int64 event_nr) ~event_date ~course_id
-       ~num_men:(to_int64 s.num_men) ~num_women:(to_int64 s.num_women)
-       ~tilt_overall:(to_int64 s.tilt_overall) ~tilt_men:(to_int64 s.tilt_men)
-       ~tilt_women:(to_int64 s.tilt_women)
+    (DB.add_course_stats handle ~id:None ~league_id:event_params.league_id
+       ~event_nr:event_params.event_nr ~event_date:event_params.event_date
+       ~course_id ~num_men:(to_int64 s.num_men)
+       ~num_women:(to_int64 s.num_women) ~tilt_overall:(to_int64 s.tilt_overall)
+       ~tilt_men:(to_int64 s.tilt_men) ~tilt_women:(to_int64 s.tilt_women)
        ~mistake_time_overall:(to_int64 s.mistake_time_overall)
        ~mistake_time_men:(to_int64 s.mistake_time_men)
        ~mistake_time_women:(to_int64 s.mistake_time_women)
@@ -330,23 +337,48 @@ let unprocessed_league_events ?(year : string option = None)
          events := (league_id, event) :: !events));
   !events
 
+(* NOTE: does not commit *)
+let _add_result (handle : Turso.conn) ~(event_params : EventParams.t)
+    ~(course_id : string) (result : Dbsportas.League.OverallResult.t) =
+  let dsq = (match result.status with Dsq -> 1 | _ -> 0) |> to_int64 in
+  ignore
+    (DB.add_result handle ~id:None ~league_id:event_params.league_id
+       ~event_nr:event_params.event_nr ~event_date:event_params.event_date
+       ~course_id
+       ~runner_id:(to_int64 result.runner_nr)
+       ~time_sec:(to_int64_option result.time)
+       ~start_time:(to_int64_option result.start)
+       ~points:(to_int64 result.points) ~pace:result.pace ~dsq);
+  (* TODO: add stats *)
+  (* TODO: add splits *)
+  (* TODO: add add group if it doesn't exist *)
+  ()
+
+let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
+    ~(course_id : string) (results : Dbsportas.League.OverallResults.t) =
+  let all = results.finished @ results.dsq in
+  List.iter all ~f:(fun result ->
+      _add_result ~event_params ~course_id handle result);
+  ()
+
 (** Add full event info (including results, stats, ratings, medals, etc.)
 
     NOTE: does not commit *)
-let _add_full_event ~(league_id : int) (handle : Turso.conn)
+let _add_full_event ~(league_id : string) (handle : Turso.conn)
     (event : Dbsportas.League.LeagueEvent.t) =
-  _add_event_stats ~league_id handle event;
-
+  let event_params =
+    EventParams.create ~league_id ~event_nr:event.nr ~event_date:event.date
+  in
   let results = Option.value_exn event.results in
 
+  _add_event_stats ~event_params handle results;
+
   List.iter results.courses ~f:(fun course ->
+      let course_id = course.id in
       (* TODO: these have the same inputs -> group them in a single fn *)
-      _add_course ~league_id ~event_nr:event.nr
-        ~event_date:(Utils.format_time_as_date event.date)
-        handle course;
-      _add_course_stats ~league_id ~event_nr:event.nr
-        ~event_date:(Utils.format_time_as_date event.date)
-        handle course;
+      _add_course ~event_params handle course;
+      _add_course_stats ~event_params handle course;
+      _add_results ~event_params ~course_id handle course.results;
       (* TODO: continue here *)
       ());
 
@@ -392,8 +424,7 @@ let action_refresh_events_and_results ?(year : string option = None)
     in
     (* prepare db statements for adding event data *)
     List.iter events_to_add ~f:(fun league ->
-        List.iter league.events
-          ~f:(_add_full_event handle ~league_id:(Int.of_string league.id)));
+        List.iter league.events ~f:(_add_full_event handle ~league_id:league.id));
 
     (* send all statements to turso *)
     ignore (Turso.send_buffered handle)

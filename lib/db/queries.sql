@@ -236,10 +236,10 @@ CREATE TABLE IF NOT EXISTS results (
     course_id TEXT NOT NULL,
     runner_id INTEGER NOT NULL,
 
-    time_sec INTEGER,
-    start_time INTEGER,
+    time_sec INTEGER DEFAULT NULL,
+    start_time INTEGER DEFAULT NULL,
     points INTEGER NOT NULL,
-    pace TEXT,
+    pace TEXT DEFAULT NULL,
     dsq INTEGER NOT NULL
 );
 
