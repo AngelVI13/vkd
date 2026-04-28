@@ -22,11 +22,14 @@ let log_db_conn (t : t) =
     Turso.log_conn t (sprintf "\n\n\t>>>NEW CONN (%s) <<<\n\n" t.hostname)
   else ()
 
+let to_int64 (i : int) = Int64.of_int i
+let of_int64 (i : Int64.t) = Int64.to_int_exn i
+
 let to_int64_option (i : int option) =
-  match i with None -> None | Some value -> Some (Int64.of_int value)
+  match i with None -> None | Some value -> Some (to_int64 value)
 
 let to_int_option (i : Int64.t option) =
-  match i with None -> None | Some value -> Some (Int64.to_int_exn value)
+  match i with None -> None | Some value -> Some (of_int64 value)
 
 let create_tables (handle : Turso.conn) =
   (* NOTE: DO NOT FORGET TO BASE64 ENCODE EVERY LINK *)
@@ -122,9 +125,8 @@ let leagues_aux ~f (handle : Turso.conn) =
   ignore
     (f handle (fun ~id ~league_year ~name ->
          let league =
-           Dbsportas.League.LeagueInfo.Fields.create ~id:(Int64.to_int_exn id)
-             ~year:(Int64.to_int_exn league_year)
-             ~name
+           Dbsportas.League.LeagueInfo.Fields.create ~id:(of_int64 id)
+             ~year:(of_int64 league_year) ~name
          in
          leagues := league :: !leagues));
   !leagues
@@ -132,8 +134,8 @@ let leagues_aux ~f (handle : Turso.conn) =
 (** NOTE: does not commit *)
 let _add_league (handle : Turso.conn) (league : Dbsportas.League.LeagueInfo.t) =
   ignore
-    (DB.add_league handle ~id:(Int64.of_int league.id)
-       ~league_year:(Int64.of_int league.year) ~name:league.name)
+    (DB.add_league handle ~id:(to_int64 league.id)
+       ~league_year:(to_int64 league.year) ~name:league.name)
 
 let all_leagues (handle : Turso.conn) : Dbsportas.League.LeagueInfo.t list =
   leagues_aux handle ~f:DB.all_leagues
@@ -145,9 +147,8 @@ let leagues_for_year (handle : Turso.conn) (year : string option) =
 (** NOTE: does not commit *)
 let _add_league_event (handle : Turso.conn) (league_id : int)
     (event : Dbsportas.League.LeagueEvent.t) =
-  DB.add_league_event handle ~id:None
-    ~league_id:(Int64.of_int_exn league_id)
-    ~event_nr:(Int64.of_int_exn event.nr)
+  DB.add_league_event handle ~id:None ~league_id:(to_int64 league_id)
+    ~event_nr:(to_int64 event.nr)
     ~event_date:(Utils.format_time_as_date event.date)
     ~location:event.location
 
@@ -188,12 +189,9 @@ let ratings_aux ~f (handle : Turso.conn) =
        ->
          let _ = id in
          let rating =
-           Glicko2.Rating.Info.Fields.create
-             ~league_id:(Int64.to_int_exn league_id)
-             ~event_nr:(Int64.to_int_exn event_nr)
-             ~event_date ~course_id
-             ~runner_id:(Int64.to_int_exn runner_id)
-             ~rating ~rating_diff ~rd ~vol
+           Glicko2.Rating.Info.Fields.create ~league_id:(of_int64 league_id)
+             ~event_nr:(of_int64 event_nr) ~event_date ~course_id
+             ~runner_id:(of_int64 runner_id) ~rating ~rating_diff ~rd ~vol
          in
          ratings := rating :: !ratings));
   !ratings
@@ -216,29 +214,24 @@ let rating_history_for_league_and_course (handle : Turso.conn)
     (course_id : string) (runner_id : int) (league_id : int) =
   ratings_aux
     ~f:
-      (DB.rating_history_for_league_and_course
-         ~runner_id:(Int64.of_int_exn runner_id)
-         ~league_id:(Int64.of_int_exn league_id)
-         ~course_id)
+      (DB.rating_history_for_league_and_course ~runner_id:(to_int64 runner_id)
+         ~league_id:(to_int64 league_id) ~course_id)
     handle
 
 let rating_history_for_course (handle : Turso.conn) (course_id : string)
     (runner_id : int) =
   ratings_aux
-    ~f:
-      (DB.rating_history_for_course
-         ~runner_id:(Int64.of_int_exn runner_id)
-         ~course_id)
+    ~f:(DB.rating_history_for_course ~runner_id:(to_int64 runner_id) ~course_id)
     handle
 
 (** NOTE: does not commit *)
 let _add_rating (handle : Turso.conn) (rating : Glicko2.Rating.Info.t) =
   ignore
     (DB.add_rating handle ~id:None
-       ~league_id:(Int64.of_int_exn rating.league_id)
-       ~event_nr:(Int64.of_int_exn rating.event_nr)
-       ~event_date:rating.event_date ~course_id:rating.course_id
-       ~runner_id:(Int64.of_int_exn rating.runner_id)
+       ~league_id:(to_int64 rating.league_id)
+       ~event_nr:(to_int64 rating.event_nr) ~event_date:rating.event_date
+       ~course_id:rating.course_id
+       ~runner_id:(to_int64 rating.runner_id)
        ~rating:rating.rating ~rating_diff:rating.rating_diff ~rd:rating.rd
        ~vol:rating.vol)
 
@@ -255,12 +248,10 @@ let _add_event_stats ~(league_id : int) (handle : Turso.conn)
     |> List.fold ~init:0 ~f:( + )
   in
   ignore
-    (DB.add_event_stats handle ~id:None
-       ~league_id:(Int64.of_int_exn league_id)
-       ~event_nr:(Int64.of_int_exn event.nr)
+    (DB.add_event_stats handle ~id:None ~league_id:(to_int64 league_id)
+       ~event_nr:(to_int64 event.nr)
        ~event_date:(Utils.format_time_as_date event.date)
-       ~num_men:(Int64.of_int_exn num_men)
-       ~num_women:(Int64.of_int_exn num_women))
+       ~num_men:(to_int64 num_men) ~num_women:(to_int64 num_women))
 
 (** NOTE: does not commit *)
 let _add_course ~(league_id : int) ~(event_nr : int) ~(event_date : string)
@@ -269,12 +260,45 @@ let _add_course ~(league_id : int) ~(event_nr : int) ~(event_date : string)
     match course.controls with None -> "" | Some c -> String.concat ~sep:"," c
   in
   ignore
-    (DB.add_course handle ~id:None
-       ~league_id:(Int64.of_int_exn league_id)
-       ~event_nr:(Int64.of_int_exn event_nr)
-       ~event_date ~course_id:course.id ~distance:course.distance
-       ~num_controls:(Int64.of_int_exn course.controls_num)
+    (DB.add_course handle ~id:None ~league_id:(to_int64 league_id)
+       ~event_nr:(to_int64 event_nr) ~event_date ~course_id:course.id
+       ~distance:course.distance
+       ~num_controls:(to_int64 course.controls_num)
        ~controls)
+
+(** NOTE: does not commit *)
+let _add_course_stats ~(league_id : int) ~(event_nr : int)
+    ~(event_date : string) (handle : Turso.conn)
+    (course : Dbsportas.League.Course.t) =
+  let s = course.stats in
+  let course_id = course.id in
+  ignore
+    (DB.add_course_stats handle ~id:None ~league_id:(to_int64 league_id)
+       ~event_nr:(to_int64 event_nr) ~event_date ~course_id
+       ~num_men:(to_int64 s.num_men) ~num_women:(to_int64 s.num_women)
+       ~tilt_overall:(to_int64 s.tilt_overall) ~tilt_men:(to_int64 s.tilt_men)
+       ~tilt_women:(to_int64 s.tilt_women)
+       ~mistake_time_overall:(to_int64 s.mistake_time_overall)
+       ~mistake_time_men:(to_int64 s.mistake_time_men)
+       ~mistake_time_women:(to_int64 s.mistake_time_women)
+       ~blunder_perc_overall:(to_int64 s.blunder_perc_overall)
+       ~blunder_perc_men:(to_int64 s.blunder_perc_men)
+       ~blunder_perc_women:(to_int64 s.blunder_perc_women)
+       ~big_mistake_perc_overall:(to_int64 s.big_mistake_perc_overall)
+       ~big_mistake_perc_men:(to_int64 s.big_mistake_perc_men)
+       ~big_mistake_perc_women:(to_int64 s.big_mistake_perc_women)
+       ~small_mistake_perc_overall:(to_int64 s.small_mistake_perc_overall)
+       ~small_mistake_perc_men:(to_int64 s.small_mistake_perc_men)
+       ~small_mistake_perc_women:(to_int64 s.small_mistake_perc_women)
+       ~most_tricky_overall:(to_int64_option s.most_tricky_overall)
+       ~most_tricky_men:(to_int64_option s.most_tricky_men)
+       ~most_tricky_women:(to_int64_option s.most_tricky_women)
+       ~avg_time_for_mistake_overall:(to_int64 s.avg_time_for_mistake_overall)
+       ~avg_time_for_mistake_men:(to_int64 s.avg_time_for_mistake_men)
+       ~avg_time_for_mistake_women:(to_int64 s.avg_time_for_mistake_women)
+       ~avg_mistake_num_overall:(to_int64 s.avg_mistake_num_overall)
+       ~avg_mistake_num_men:(to_int64 s.avg_mistake_num_men)
+       ~avg_mistake_num_women:(to_int64 s.avg_mistake_num_women))
 
 (** Fetch all events which don't have results associated with them in the db.
     @param year:
@@ -297,10 +321,9 @@ let unprocessed_league_events ?(year : string option = None)
   ignore
     (fetch_fn handle (fun ~id ~league_id ~event_nr ~event_date ~location ->
          let _ = id in
-         let league_id = Int64.to_int_exn league_id in
+         let league_id = of_int64 league_id in
          let event =
-           Dbsportas.League.LeagueEvent.Fields.create
-             ~nr:(Int64.to_int_exn event_nr)
+           Dbsportas.League.LeagueEvent.Fields.create ~nr:(of_int64 event_nr)
              ~date:(Time_ns_unix.of_string event_date)
              ~location ~results:None
          in
@@ -312,8 +335,21 @@ let unprocessed_league_events ?(year : string option = None)
     NOTE: does not commit *)
 let _add_full_event ~(league_id : int) (handle : Turso.conn)
     (event : Dbsportas.League.LeagueEvent.t) =
-  (* TODO: implement this *)
-  let _ = (league_id, handle, event) in
+  _add_event_stats ~league_id handle event;
+
+  let results = Option.value_exn event.results in
+
+  List.iter results.courses ~f:(fun course ->
+      (* TODO: these have the same inputs -> group them in a single fn *)
+      _add_course ~league_id ~event_nr:event.nr
+        ~event_date:(Utils.format_time_as_date event.date)
+        handle course;
+      _add_course_stats ~league_id ~event_nr:event.nr
+        ~event_date:(Utils.format_time_as_date event.date)
+        handle course;
+      (* TODO: continue here *)
+      ());
+
   ()
 
 (** Update missing events & results for a particular year.
