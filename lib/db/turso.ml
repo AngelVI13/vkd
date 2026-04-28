@@ -642,33 +642,43 @@ module M = struct
     let out = match res with Ok c -> c.body | Error (_, s) -> failwith s in
     out
 
-  (** Sends every buffered statement to turso (in one request). `Select`
-      statements do this automatically so they don't need to call this method.
-      `Execute` statements need to call this if they wish send the query to
-      turso. If they don't call this then their statement is just added to the
-      buffer. *)
-  let commit db =
+  (** Sends [statements] to turso (in one request). *)
+  let _send db statements =
+    let request = Libsql.Requests.make ~baton:db.baton statements in
+    log_conn db (sprintf "%s\n" (Libsql.Requests.to_json_string request));
+    let resp =
+      make_turso_request db (`String (Libsql.Requests.to_json_string request))
+    in
+    log_conn db (sprintf "%s\n" resp);
+    let resp = Yojson.Safe.from_string resp |> Libsql.Response.t_of_yojson in
+    db.baton <- resp.baton;
+
+    let rows = Libsql.Response.rows resp in
+    rows
+
+  (** Sends every buffered statement to turso (in one request). 
+
+      After sending resets the buffer. If no statements in buffer, does nothing. 
+
+      @note You need to call this manually when you want to send {i execute} type statements to
+      turso. 
+
+      (this is done automatically for {i select} type statements) *)
+  let send_buffered db =
     (* if no statements in buffer then do nothing *)
     if List.length db.statements = 0 then []
     else
-      let request =
-        Libsql.Requests.make ~baton:db.baton (List.rev db.statements)
-      in
+      let results = _send db (List.rev db.statements) in
 
       (* reset statements after preparing outbound request *)
       db.statements <- [];
+      results
 
-      log_conn db (sprintf "%s\n" (Libsql.Requests.to_json_string request));
-      let resp =
-        make_turso_request db (`String (Libsql.Requests.to_json_string request))
-      in
-      log_conn db (sprintf "%s\n" resp);
-      let resp = Yojson.Safe.from_string resp |> Libsql.Response.t_of_yojson in
-      db.baton <- resp.baton;
+  (** Prepare a db statement and maybe send it to turso.
 
-      let rows = Libsql.Response.rows resp in
-      rows
-
+      @param immediate
+        Flag to indicate if statement should be executed straight away or it
+        should be put in the buffer to be sent later *)
   let turso_post ~(immediate : bool) db sql params =
     let regexp = Re.Perl.re {|\@(\w+)|} |> Re.compile in
     let matches =
@@ -692,8 +702,11 @@ module M = struct
       |> List.map ~f:(fun (name, value) -> Libsql.NamedArg.make ~name ~value)
     in
     let stmt = Libsql.Stmt.make ~sql ~named_args in
-    db.statements <- stmt :: db.statements;
-    if immediate then commit db else []
+
+    if immediate then _send db [ stmt ]
+    else (
+      db.statements <- stmt :: db.statements;
+      [])
 
   let select db sql set_params callback =
     (* NOTE: if there is a `?` then we send unnamed arguments

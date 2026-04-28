@@ -45,7 +45,7 @@ let create_tables (handle : Turso.conn) =
   let _ = DB.create_runners handle in
   let _ = DB.create_ratings handle in
   let _ = DB.create_medals handle in
-  ignore (Turso.commit handle)
+  ignore (Turso.send_buffered handle)
 
 (* NOTE: this is not needed for turso connection *)
 let close _ = Ok ()
@@ -115,7 +115,7 @@ let action_refresh_event_details ?(year : string option = None)
           if List.length v.map_links = 0 && List.length ev.map_links > 0 then
             _add_event_links handle ev.date ev.map_links
           else ());
-  ignore (Turso.commit handle)
+  ignore (Turso.send_buffered handle)
 
 let leagues_aux ~f (handle : Turso.conn) =
   let leagues = ref [] in
@@ -168,7 +168,7 @@ let add_leagues_if_not_exists (handle : Turso.conn)
             (List.map league_data.events
                ~f:(_add_league_event handle new_league.id))
       | Some _ -> ());
-  ignore (Turso.commit handle)
+  ignore (Turso.send_buffered handle)
 
 let ratings_aux ~f (handle : Turso.conn) =
   let ratings = ref [] in
@@ -359,8 +359,11 @@ let action_refresh_events_and_results ?(year : string option = None)
         List.iter league.events
           ~f:(_add_full_event handle ~league_id:(Int.of_string league.id)));
 
+    (* NOTE: we need to get ratings info before or after all data that needs to
+       be committed but not inbetween *)
+
     (* send all statements to turso *)
-    ignore (Turso.commit handle)
+    ignore (Turso.send_buffered handle)
 
 (* TODO: add methods to get all ratings and then based on results calculate the ratings and insert new ratings to db *)
 
