@@ -136,7 +136,10 @@ INSERT INTO event_stats VALUES;
 SELECT le.*
 FROM league_events le
 LEFT JOIN event_stats es ON le.event_date = es.event_date
-WHERE es.id IS NULL;
+WHERE es.id IS NULL
+ORDER BY 
+    le.league_id ASC, 
+    le.event_date ASC;
 
 -- NOTE: this includes events from both leagues
 -- @events_to_be_processed_for_year
@@ -145,7 +148,10 @@ FROM league_events le
 JOIN leagues l ON le.league_id = l.id
 LEFT JOIN event_stats es ON le.event_date = es.event_date
 WHERE l.league_year = @league_year
-  AND es.id IS NULL;
+  AND es.id IS NULL
+ORDER BY 
+    le.league_id ASC, 
+    le.event_date ASC;
 
 -- @create_courses
 CREATE TABLE IF NOT EXISTS courses (
@@ -224,8 +230,11 @@ CREATE TABLE IF NOT EXISTS age_groups (
     age_group_id TEXT NOT NULL
 );
 
--- @add_age_group
+-- @add_age_group_for_runner
 INSERT INTO age_groups VALUES;
+
+-- @all_groups
+SELECT * FROM age_groups;
 
 -- @create_results
 CREATE TABLE IF NOT EXISTS results (
@@ -331,13 +340,17 @@ INSERT INTO splits VALUES;
 -- @create_runners
 CREATE TABLE IF NOT EXISTS runners (
     id INTEGER PRIMARY KEY,
-    name TEXT,
-    club TEXT,
+    join_date TEXT NOT NULL,
+    name TEXT NOT NULL,
+    club TEXT NOT NULL,
     gender TEXT NOT NULL CHECK (gender IN ('M', 'V'))
 );
 
 -- @add_runner
 INSERT INTO runners VALUES;
+
+-- @all_runners
+SELECT * FROM runners;
 
 -- NOTE: ratings are only ever created for VKD
 -- @create_ratings

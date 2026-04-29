@@ -481,18 +481,86 @@ let _add_medals (handle : Turso.conn) ~(event_params : EventParams.t)
            position + List.length group)
        sorted_groups)
 
+(** Get map of runner_id -> age_group. *)
+let all_groups (handle : Turso.conn) : string Int64.Map.t =
+  let groups = ref Int64.Map.empty in
+  DB.all_groups handle (fun ~id ~league_id ~runner_id ~age_group_id ->
+      let _ = (id, league_id) in
+      groups := Map.set !groups ~key:runner_id ~data:age_group_id);
+  !groups
+
+(** Add runner age group information to DB if DB doesn't already have it.
+
+    NOTE: does not commit *)
+let _add_age_group_for_runner (handle : Turso.conn)
+    ~(event_params : EventParams.t) ~(runner_id : int64)
+    ~(age_group_id : string) (groups : string Int64.Map.t) =
+  (* TODO: should this commit the runner info ? it will be a problem if its
+     used somewhere else in a get query? *)
+  match Map.find groups runner_id with
+  | None ->
+      ignore
+        (DB.add_age_group_for_runner handle ~id:None
+           ~league_id:event_params.league_id ~runner_id ~age_group_id)
+  | Some _ -> ()
+
+module RunnerInfo = struct
+  type t = {
+    id : int64;
+    join_date : string;
+    name : string;
+    club : string;
+    gender : string;
+  }
+  [@@deriving fields]
+end
+
+(** Get all runners from DB
+
+    @return Map with runner id as key and {!RunnerInfo.t} as values *)
+let all_runners (handle : Turso.conn) : RunnerInfo.t Int64.Map.t =
+  let runners = ref Int64.Map.empty in
+  DB.all_runners handle (fun ~id ~join_date ~name ~club ~gender ->
+      let info = RunnerInfo.Fields.create ~id ~join_date ~name ~club ~gender in
+      runners := Map.set !runners ~key:id ~data:info);
+  !runners
+
+(** Add runner information to DB if DB doesn't already have it.
+
+    NOTE: does not commit *)
+let _add_runner (handle : Turso.conn) ~(event_params : EventParams.t)
+    ~(runner : Dbsportas.League.OverallResult.t)
+    (runners : RunnerInfo.t Int64.Map.t) =
+  (* TODO: should this commit the runner info ? it will be a problem if its
+     used somewhere else in a get query? *)
+  let runner_id = to_int64 runner.runner_nr in
+  match Map.find runners runner_id with
+  | None ->
+      ignore
+        (DB.add_runner handle ~id:runner_id ~join_date:event_params.event_date
+           ~name:runner.name ~club:runner.club ~gender:"")
+  | Some _ -> ()
+
 (** NOTE: does not commit *)
 let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
     ~(course_id : string) (results : Dbsportas.League.OverallResults.t) =
-  let all = results.finished @ results.dsq in
-  List.iter all ~f:(fun result ->
+  let runners_in_results = results.finished @ results.dsq in
+  let runner_age_groups = all_groups handle in
+  let runners_in_db = all_runners handle in
+  (* let all_groups =  *)
+  List.iter runners_in_results ~f:(fun result ->
       let runner_id = to_int64 result.runner_nr in
+      let age_group_id = result.group.group in
       _add_result ~event_params ~course_id handle result;
       _add_result_stats ~event_params ~course_id ~runner_id handle result.stats;
       _add_splits ~event_params ~course_id ~runner_id handle result.splits;
-      (* TODO: add group if it doesn't exist *)
-      (* TODO: add runner if it doesn't exist *)
-      (* TODO: add/update ratings *)
+      _add_age_group_for_runner ~event_params ~runner_id ~age_group_id handle
+        runner_age_groups;
+      _add_runner ~event_params ~runner:result handle runners_in_db;
+      (* TODO: check if all the DB tables that do not have autoincrement IDs have received an ID from the data *)
+      (* TODO: add/update ratings - Update ratings should happen to every
+         person that has any kind of rating and not only people that
+         participated in the event *)
       ());
   _add_medals ~event_params ~course_id handle results.finished
 
