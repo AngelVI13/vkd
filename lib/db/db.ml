@@ -421,6 +421,66 @@ let _add_result (handle : Turso.conn) ~(event_params : EventParams.t)
        ~start_time:(to_int64_option result.start)
        ~points:(to_int64 result.points) ~pace:result.pace ~dsq)
 
+type medal_type = Gold | Silver | Bronze
+
+let medal_type_to_string = function
+  | Gold -> "gold"
+  | Silver -> "silver"
+  | Bronze -> "bronze"
+
+let medal_type_of_string = function
+  | "gold" -> Gold
+  | "silver" -> Silver
+  | "bronze" -> Bronze
+  | _ -> assert false
+
+(** NOTE: does not commit *)
+let _add_medal (handle : Turso.conn) ~(event_params : EventParams.t)
+    ~(course_id : string) ~(runner_id : int64) ~(medal : medal_type) =
+  ignore
+    (DB.add_medal handle ~id:None ~league_id:event_params.league_id
+       ~event_nr:event_params.league_id ~event_date:event_params.event_date
+       ~course_id ~runner_id
+       ~medal_type:(medal_type_to_string medal))
+
+(** Compute & add medals to db. Medals are determined based on overall time and
+    not based on the field from stats (because sometimes stats are not
+    available). If two people have the same time for second place (for example)
+    they will both get a silver medal but there won't be a bronze medal since
+    the next position afterwards will be 4th.
+
+    NOTE: does not commit *)
+let _add_medals (handle : Turso.conn) ~(event_params : EventParams.t)
+    ~(course_id : string) (finished : Dbsportas.League.OverallResult.t list) =
+  let sorted_groups =
+    List.sort_and_group finished ~compare:(fun r1 r2 ->
+        match (r1.time, r2.time) with
+        | Some t1, Some t2 -> Int.compare t1 t2
+        (* here we indicate that any value is smaller than NO_VALUE to push
+           nones to the end of the list *)
+        | Some _, None -> -1
+        | None, Some _ -> 1
+        | None, None -> 0)
+  in
+
+  ignore
+    (List.fold ~init:1
+       ~f:(fun position group ->
+         if position > 3 then position
+         else
+           let medal =
+             match position with
+             | 1 -> Gold
+             | 2 -> Silver
+             | 3 -> Bronze
+             | _ -> assert false
+           in
+           List.iter group ~f:(fun r ->
+               _add_medal ~event_params ~course_id
+                 ~runner_id:(to_int64 r.runner_nr) ~medal handle);
+           position + List.length group)
+       sorted_groups)
+
 (** NOTE: does not commit *)
 let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
     ~(course_id : string) (results : Dbsportas.League.OverallResults.t) =
@@ -433,8 +493,8 @@ let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
       (* TODO: add group if it doesn't exist *)
       (* TODO: add runner if it doesn't exist *)
       (* TODO: add/update ratings *)
-      (* TODO: add medals *)
-      ())
+      ());
+  _add_medals ~event_params ~course_id handle results.finished
 
 (** Add full event info (including results, stats, ratings, medals, etc.)
 

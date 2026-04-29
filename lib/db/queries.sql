@@ -406,11 +406,16 @@ INSERT INTO ratings VALUES;
 -- @create_medals
 CREATE TABLE IF NOT EXISTS medals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    league_id INTEGER NOT NULL,
+    event_nr INTEGER NOT NULL,
     event_date TEXT NOT NULL,
     course_id TEXT NOT NULL,
     runner_id INTEGER NOT NULL,
     medal_type TEXT NOT NULL CHECK (medal_type IN ('gold', 'silver', 'bronze'))
 );
+
+-- @add_medal
+INSERT INTO medals VALUES;
 
 -- @medals_for_runner_for_league
 SELECT 
