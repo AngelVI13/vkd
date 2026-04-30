@@ -154,6 +154,9 @@ let leagues_for_year (handle : Turso.conn) (year : string option) =
   let year = year_from_opt year in
   leagues_aux handle ~f:(DB.leagues_for_year ~year:(Int64.of_string year))
 
+let leagues_for_name (handle : Turso.conn) (league_name : string) =
+  leagues_aux handle ~f:(DB.leagues_for_name ~league_name)
+
 (** NOTE: does not commit *)
 let _add_league_event (handle : Turso.conn) (league_id : int)
     (event : Dbsportas.League.LeagueEvent.t) =
@@ -162,6 +165,7 @@ let _add_league_event (handle : Turso.conn) (league_id : int)
     ~event_date:(Utils.format_time_as_date event.date)
     ~location:event.location
 
+(* TODO: make sure to add leagues first and then start processing events *)
 (* NOTE: use this when a new league is available *)
 let add_leagues_if_not_exists (handle : Turso.conn)
     (leagues : Dbsportas.League.LeagueInfo.t list) =
@@ -547,7 +551,7 @@ let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
   let runners_in_results = results.finished @ results.dsq in
   let runner_age_groups = all_groups handle in
   let runners_in_db = all_runners handle in
-  (* let all_groups =  *)
+
   List.iter runners_in_results ~f:(fun result ->
       let runner_id = to_int64 result.runner_nr in
       let age_group_id = result.group.group in
@@ -557,18 +561,29 @@ let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
       _add_age_group_for_runner ~event_params ~runner_id ~age_group_id handle
         runner_age_groups;
       _add_runner ~event_params ~runner:result handle runners_in_db;
-      (* TODO: check if all the DB tables that do not have autoincrement IDs have received an ID from the data *)
-      (* TODO: add/update ratings - Update ratings should happen to every
-         person that has any kind of rating and not only people that
-         participated in the event *)
       ());
   _add_medals ~event_params ~course_id handle results.finished
+
+let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
+    ~(course_id : string) (results : Dbsportas.League.OverallResults.t) =
+  (* TODO: add/update ratings - Update ratings should happen to every
+         person that has any kind of rating and not only people that
+         participated in the event *)
+  (* TODO: one person has a separate ratings for each course he has participated in! *)
+
+  (* TODO: steps 
+     1. Fetch all users with ratings for this course and create the store 
+     2. Add any participants from this course which didn't exist in db yet to the store 
+     3. Make a race of the results and update ratings in the store 
+     4. For each person in the store, write back their new rating to db.
+   *)
+  ()
 
 (** Add full event info (including results, stats, ratings, medals, etc.)
 
     NOTE: does not commit *)
-let _add_full_event ~(league_id : string) (handle : Turso.conn)
-    (event : Dbsportas.League.LeagueEvent.t) =
+let _add_full_event ~(league_id : string) ~(is_part_of_main_league : bool)
+    (handle : Turso.conn) (event : Dbsportas.League.LeagueEvent.t) =
   let event_params =
     EventParams.create ~league_id ~event_nr:event.nr ~event_date:event.date
   in
@@ -578,12 +593,13 @@ let _add_full_event ~(league_id : string) (handle : Turso.conn)
 
   List.iter results.courses ~f:(fun course ->
       let course_id = course.id in
-      (* TODO: these have the same inputs -> group them in a single fn *)
       _add_course ~event_params handle course;
       _add_course_stats ~event_params handle course;
       _add_results ~event_params ~course_id handle course.results;
-      (* TODO: continue here *)
-      ());
+
+      if is_part_of_main_league then
+        _update_ratings ~event_params ~course_id handle course.results
+      else ());
 
   ()
 
@@ -611,6 +627,9 @@ let action_refresh_events_and_results ?(year : string option = None)
 
   if List.length past_events = 0 then () (* nothing to do -> return *)
   else
+    let main_league_name = Dbsportas.League.LeagueInfo.main_league_name in
+    let main_leagues = leagues_for_name handle main_league_name in
+
     let events_to_add =
       (* group by league id *)
       List.sort_and_group past_events ~compare:(fun (id1, _) (id2, _) ->
@@ -627,7 +646,13 @@ let action_refresh_events_and_results ?(year : string option = None)
     in
     (* prepare db statements for adding event data *)
     List.iter events_to_add ~f:(fun league ->
-        List.iter league.events ~f:(_add_full_event handle ~league_id:league.id));
+        let is_part_of_main_league =
+          Option.is_some
+            (List.find main_leagues ~f:(fun l -> l.id = Int.of_string league.id))
+        in
+        List.iter league.events
+          ~f:
+            (_add_full_event handle ~league_id:league.id ~is_part_of_main_league));
 
     (* send all statements to turso *)
     ignore (Turso.send_buffered handle)

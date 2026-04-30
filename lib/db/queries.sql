@@ -13,6 +13,11 @@ SELECT * FROM leagues
 WHERE league_year == @year
 ORDER BY id;
 
+-- @leagues_for_name
+SELECT * FROM leagues
+WHERE name = @league_name
+ORDER BY id;
+
 -- @all_leagues
 SELECT * FROM leagues ORDER BY league_year DESC, name DESC;
 
