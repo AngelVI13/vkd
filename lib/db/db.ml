@@ -565,18 +565,20 @@ let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
   _add_medals ~event_params ~course_id handle results.finished
 
 let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
-    ~(course_id : string) (results : Dbsportas.League.OverallResults.t) =
-  (* TODO: add/update ratings - Update ratings should happen to every
-         person that has any kind of rating and not only people that
-         participated in the event *)
-  (* TODO: one person has a separate ratings for each course he has participated in! *)
+    (event : Dbsportas.League.LeagueEvent.t) =
+  let settings = Glicko2.Settings.create () in
+  let store = Dbsportas.Rating_store.Store.create ~settings in
 
-  (* TODO: steps 
-     1. Fetch all users with ratings for this course and create the store 
-     2. Add any participants from this course which didn't exist in db yet to the store 
-     3. Make a race of the results and update ratings in the store 
-     4. For each person in the store, write back their new rating to db.
-   *)
+  (* TODO: fetch all ratings from db and add them to the store *)
+  let store =
+    Dbsportas.Rating_store.calculate_ratings_for_event ~settings ~store
+      ~league_id:(Int64.to_string event_params.league_id)
+      event
+  in
+
+  (* TODO: set new ratings for all values from store to db *)
+  let _ = (store, event, event_params, handle) in
+
   ()
 
 (** Add full event info (including results, stats, ratings, medals, etc.)
@@ -595,13 +597,10 @@ let _add_full_event ~(league_id : string) ~(is_part_of_main_league : bool)
       let course_id = course.id in
       _add_course ~event_params handle course;
       _add_course_stats ~event_params handle course;
-      _add_results ~event_params ~course_id handle course.results;
+      _add_results ~event_params ~course_id handle course.results);
 
-      if is_part_of_main_league then
-        _update_ratings ~event_params ~course_id handle course.results
-      else ());
-
-  ()
+  if is_part_of_main_league then _update_ratings ~event_params handle event
+  else ()
 
 (** Update missing events & results for a particular year.
 

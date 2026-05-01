@@ -173,80 +173,81 @@ module Store = struct
     { t with map }
 end
 
+let calculate_ratings_for_event ~(settings : Glicko2.Settings.t)
+    ~(store : Store.t) ~(league_id : string) (event : League.LeagueEvent.t) :
+    Store.t =
+  match event.results with
+  | None -> store
+  | Some results ->
+      List.fold results.courses ~init:store ~f:(fun store course ->
+          let all_runners = course.results.finished in
+          let store =
+            (* NOTE: all runners (finished + dsq) have to be added to the store 
+                     but only finished are added to the glicko race *)
+            List.fold (all_runners @ course.results.dsq) ~init:store
+              ~f:(fun store runner ->
+                (* make sure runner exists in the store *)
+                Store.add_if_not_exist store ~id:runner.runner_nr
+                  ~name:runner.name ~course:course.id)
+          in
+
+          let all_known_participants =
+            Store.all_participants store ~course:course.id
+          in
+
+          let race =
+            List.map all_runners ~f:(fun runner ->
+                let participant =
+                  Store.participant store ~id:runner.runner_nr ~course:course.id
+                  |> Option.value_exn
+                in
+                [ participant ])
+          in
+
+          (* printf "Participants in event: %d %s %d %s\n" (List.length race) *)
+          (*   course.id event.nr event.location; *)
+          let glicko2 =
+            Glicko2.Ranking.of_race ~settings ~race ~all_known_participants
+            |> Glicko2.Ranking.update_ratings
+          in
+          let updated_ratings = Glicko2.Ranking.players glicko2 in
+
+          (* add updated ratings for all runners who finished *)
+          let store =
+            List.fold updated_ratings ~init:store ~f:(fun store ratings ->
+                let position =
+                  match
+                    List.findi all_runners ~f:(fun _ runner ->
+                        runner.runner_nr = ratings.id)
+                  with
+                  | None -> None
+                  | Some (idx, _) -> Some (idx + 1)
+                in
+                (* convert from index to position *)
+                Store.update_info store ~id:ratings.id ~position ~league_id
+                  ~event_nr:event.nr ~event_loc:event.location ~course:course.id
+                  ~rating:ratings.rating ~rd:ratings.rd ~vol:ratings.vol)
+          in
+          (* remove 20 points from a disqualified runner's rating *)
+          List.fold course.results.dsq ~init:store ~f:(fun store runner ->
+              let rating =
+                Store.info store ~id:runner.runner_nr ~course:course.id
+                |> Option.value_exn
+              in
+              (* TODO: should the RD decrease for disqualified runners. 
+                       In theory being disqualified give us some information *)
+              Store.update_info store ~id:runner.runner_nr ~position:None
+                ~league_id ~event_nr:event.nr ~event_loc:event.location
+                ~course:course.id ~rating:(rating.rating -. 20.) ~rd:rating.rd
+                ~vol:rating.vol))
+
 let calculate_ratings ~(settings : Glicko2.Settings.t)
     ~(league : League.League.t) : Store.t =
   let store = Store.create ~settings in
 
   let store =
     List.fold league.events ~init:store ~f:(fun store event ->
-        match event.results with
-        | None -> store
-        | Some results ->
-            List.fold results.courses ~init:store ~f:(fun store course ->
-                let all_runners = course.results.finished in
-                let store =
-                  (* NOTE: all runners (finished + dsq) have to be added to the store 
-                     but only finished are added to the glicko race *)
-                  List.fold (all_runners @ course.results.dsq) ~init:store
-                    ~f:(fun store runner ->
-                      (* make sure runner exists in the store *)
-                      Store.add_if_not_exist store ~id:runner.runner_nr
-                        ~name:runner.name ~course:course.id)
-                in
-
-                let all_known_participants =
-                  Store.all_participants store ~course:course.id
-                in
-
-                let race =
-                  List.map all_runners ~f:(fun runner ->
-                      let participant =
-                        Store.participant store ~id:runner.runner_nr
-                          ~course:course.id
-                        |> Option.value_exn
-                      in
-                      [ participant ])
-                in
-
-                (* printf "Participants in event: %d %s %d %s\n" (List.length race) *)
-                (*   course.id event.nr event.location; *)
-                let glicko2 =
-                  Glicko2.Ranking.of_race ~settings ~race
-                    ~all_known_participants
-                  |> Glicko2.Ranking.update_ratings
-                in
-                let updated_ratings = Glicko2.Ranking.players glicko2 in
-
-                (* add updated ratings for all runners who finished *)
-                let store =
-                  List.fold updated_ratings ~init:store ~f:(fun store ratings ->
-                      let position =
-                        match
-                          List.findi all_runners ~f:(fun _ runner ->
-                              runner.runner_nr = ratings.id)
-                        with
-                        | None -> None
-                        | Some (idx, _) -> Some (idx + 1)
-                      in
-                      (* convert from index to position *)
-                      Store.update_info store ~id:ratings.id ~position
-                        ~league_id:league.id ~event_nr:event.nr
-                        ~event_loc:event.location ~course:course.id
-                        ~rating:ratings.rating ~rd:ratings.rd ~vol:ratings.vol)
-                in
-                (* remove 20 points from a disqualified runner's rating *)
-                List.fold course.results.dsq ~init:store ~f:(fun store runner ->
-                    let rating =
-                      Store.info store ~id:runner.runner_nr ~course:course.id
-                      |> Option.value_exn
-                    in
-                    (* TODO: should the RD decrease for disqualified runners. 
-                       In theory being disqualified give us some information *)
-                    Store.update_info store ~id:runner.runner_nr ~position:None
-                      ~league_id:league.id ~event_nr:event.nr
-                      ~event_loc:event.location ~course:course.id
-                      ~rating:(rating.rating -. 20.) ~rd:rating.rd
-                      ~vol:rating.vol)))
+        calculate_ratings_for_event ~settings ~store ~league_id:league.id event)
   in
   store
 
