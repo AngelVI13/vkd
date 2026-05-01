@@ -200,12 +200,16 @@ let ratings_aux ~f (handle : Turso.conn) =
          ~rating_diff
          ~rd
          ~vol
+         ~runner_name
+         ~runner_club
+         ~runner_gender
        ->
          let _ = id in
          let rating =
            Glicko2.Rating.Info.Fields.create ~league_id:(of_int64 league_id)
              ~event_nr:(of_int64 event_nr) ~event_date ~course_id
              ~runner_id:(of_int64 runner_id) ~rating ~rating_diff ~rd ~vol
+             ~runner_name ~runner_club ~runner_gender
          in
          ratings := rating :: !ratings));
   !ratings
@@ -564,18 +568,55 @@ let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
       ());
   _add_medals ~event_params ~course_id handle results.finished
 
+let all_latest_ratings (handle : Turso.conn) =
+  let ratings = ref [] in
+  DB.all_latest_ratings handle
+    (fun
+      ~id
+      ~league_id
+      ~event_nr
+      ~event_date
+      ~course_id
+      ~runner_id
+      ~rating
+      ~rating_diff
+      ~rd
+      ~vol
+      ~runner_name
+      ~runner_club
+      ~runner_gender
+    ->
+      let _ = id in
+      let info =
+        Glicko2.Rating.Info.Fields.create ~league_id:(of_int64 league_id)
+          ~event_nr:(of_int64 event_nr) ~event_date ~course_id
+          ~runner_id:(of_int64 runner_id) ~rating ~rating_diff ~rd ~vol
+          ~runner_name ~runner_club ~runner_gender
+      in
+      ratings := info :: !ratings);
+  !ratings
+
+(** NOTE: does not commit *)
 let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
     (event : Dbsportas.League.LeagueEvent.t) =
   let settings = Glicko2.Settings.create () in
   let store = Dbsportas.Rating_store.Store.create ~settings in
 
-  (* TODO: fetch all ratings from db and add them to the store *)
+  let current_ratings = all_latest_ratings handle in
+  let store =
+    List.fold current_ratings ~init:store ~f:(fun s rating ->
+        Dbsportas.Rating_store.Store.add s ~name:rating.runner_name
+          ~id:rating.runner_id ~course:rating.course_id ~rating:rating.rating
+          ~rd:rating.rd ~vol:rating.vol)
+  in
+
   let store =
     Dbsportas.Rating_store.calculate_ratings_for_event ~settings ~store
       ~league_id:(Int64.to_string event_params.league_id)
       event
   in
 
+  let new_ratings = Dbsportas.Rating_store.Store.all_ratings in
   (* TODO: set new ratings for all values from store to db *)
   let _ = (store, event, event_params, handle) in
 

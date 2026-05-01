@@ -31,6 +31,9 @@ module History = struct
       vol_diff = [];
     }
 
+  let latest_rating_diff t =
+    match List.last t.rating_diff with None -> 0. | Some diff -> diff
+
   let add t ~position ~league_id ~event_nr ~event_loc ~rating ~rd ~vol =
     let rating_diff =
       match List.last t.rating with
@@ -145,6 +148,16 @@ module Store = struct
 
     { t with map }
 
+  let add t ~name ~id ~course ~rating ~rd ~vol =
+    let hash = runner_hash ~id ~course in
+    let runner_info =
+      Info.Fields.create ~id ~name ~course ~rating ~rd ~vol
+        ~history:(History.empty ())
+    in
+    let map = Map.add_exn t.map ~key:hash ~data:runner_info in
+
+    { t with map }
+
   let info t ~id ~course =
     let hash = runner_hash ~id ~course in
     Map.find t.map hash
@@ -158,6 +171,15 @@ module Store = struct
   let all_participants t ~course =
     let m = Map.filter t.map ~f:(fun info -> String.(info.course = course)) in
     List.map (Map.data m) ~f:Info.to_participant
+
+  let all_ratings t ~league_id ~event_nr ~event_date =
+    (* TODO: continue from here *)
+    List.map (Map.data t.map) ~f:(fun info ->
+        Glicko2.Rating.Info.Fields.create ~league_id ~event_nr ~event_date
+          ~course_id:info.course ~runner_id:info.id ~runner_name:info.name
+          ~runner_club ~runner_gender ~rating:info.rating
+          ~rating_diff:(History.latest_rating_diff info.history)
+          ~rd:info.rd ~vol:info.vol)
 
   let update_info t ~id ~course ~position ~league_id ~event_nr ~event_loc
       ~rating ~rd ~vol =

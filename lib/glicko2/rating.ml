@@ -8,6 +8,9 @@ module Info = struct
     event_date : string;
     course_id : string;
     runner_id : int;
+    runner_name : string;
+    runner_club : string;
+    runner_gender : string;
     rating : float;
     rating_diff : float;
     rd : float;
