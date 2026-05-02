@@ -103,6 +103,18 @@ let _add_event_details (handle : Turso.conn)
        ~location:details.location ~thumbnail:details.thumbnail
        ~map_info:details.map_info)
 
+(** NOTE: does not commit *)
+let _add_event_map (handle : Turso.conn)
+    (map_info : Vilpage.Events.MapSettings.t option) ~(event_date : string) =
+  match map_info with
+  | None -> ()
+  | Some map_info ->
+      ignore
+        (DB.add_event_map handle ~id:None ~event_date ~map_key:map_info.key
+           ~title:map_info.title ~lat:map_info.location_lat
+           ~lon:map_info.location_lon ~default_map_img:map_info.default_map
+           ~bike_map_img:map_info.bike_map)
+
 (** If year is provided it will just unpack it. If None is provided it will
     return the current year. *)
 let year_from_opt (year : string option) =
@@ -120,13 +132,15 @@ let action_refresh_event_details ?(year : string option = None)
   let year = year_from_opt year in
   let existing = event_details_for_year handle year in
   let new_events = Vilpage.Events.download_events ~year in
-  (* TODO: should we insert the map images to the db here ? *)
+
   List.iter new_events ~f:(fun ev ->
       match List.find existing ~f:(fun v -> Time_ns.(ev.date = v.date)) with
       | None -> _add_event_details handle ev
       | Some v ->
-          if List.length v.map_links = 0 && List.length ev.map_links > 0 then
-            _add_event_links handle ev.date ev.map_links
+          if List.length v.map_links = 0 && List.length ev.map_links > 0 then (
+            _add_event_links handle ev.date ev.map_links;
+            _add_event_map handle ev.map_settings
+              ~event_date:(Utils.format_time_as_date ev.date))
           else ());
   ignore (Turso.send_buffered handle)
 
@@ -616,11 +630,13 @@ let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
       event
   in
 
-  let new_ratings = Dbsportas.Rating_store.Store.all_ratings in
-  (* TODO: set new ratings for all values from store to db *)
-  let _ = (store, event, event_params, handle) in
-
-  ()
+  let new_ratings =
+    Dbsportas.Rating_store.Store.all_ratings store
+      ~league_id:(of_int64 event_params.league_id)
+      ~event_nr:(of_int64 event_params.event_nr)
+      ~event_date:event_params.event_date
+  in
+  List.iter new_ratings ~f:(_add_rating handle)
 
 (** Add full event info (including results, stats, ratings, medals, etc.)
 
@@ -696,8 +712,6 @@ let action_refresh_events_and_results ?(year : string option = None)
 
     (* send all statements to turso *)
     ignore (Turso.send_buffered handle)
-
-(* TODO: add methods to get all ratings and then based on results calculate the ratings and insert new ratings to db *)
 
 let test (handle : Turso.conn) =
   let _ = handle in

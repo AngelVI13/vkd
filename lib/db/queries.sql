@@ -113,10 +113,10 @@ CREATE TABLE IF NOT EXISTS event_maps (
     event_date TEXT NOT NULL,
     map_key TEXT NOT NULL,
     title TEXT NOT NULL,
+    default_map_img TEXT NOT NULL,
+    bike_map_img TEXT DEFAULT NULL,
     lat FLOAT NOT NULL,
-    lon FLOAT NOT NULL,
-    image TEXT NOT NULL,
-    for_bikes INTEGER NOT NULL
+    lon FLOAT NOT NULL
 );
 
 -- @add_event_map
@@ -268,8 +268,6 @@ ORDER BY
 
 -- @add_result
 INSERT INTO results VALUES;
-
--- TODO: add query for results
 
 -- @create_result_stats
 CREATE TABLE IF NOT EXISTS result_stats (

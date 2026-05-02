@@ -172,12 +172,16 @@ module Store = struct
     let m = Map.filter t.map ~f:(fun info -> String.(info.course = course)) in
     List.map (Map.data m) ~f:Info.to_participant
 
+  (** Get all rating info from store.
+
+      @return
+        List of {b incomplete} [Glicko2.Rating.Info.t] (missing [runner_club] &
+        [runner_gender]). *)
   let all_ratings t ~league_id ~event_nr ~event_date =
-    (* TODO: continue from here *)
     List.map (Map.data t.map) ~f:(fun info ->
         Glicko2.Rating.Info.Fields.create ~league_id ~event_nr ~event_date
           ~course_id:info.course ~runner_id:info.id ~runner_name:info.name
-          ~runner_club ~runner_gender ~rating:info.rating
+          ~runner_club:"" ~runner_gender:"" ~rating:info.rating
           ~rating_diff:(History.latest_rating_diff info.history)
           ~rd:info.rd ~vol:info.vol)
 
