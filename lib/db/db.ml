@@ -517,8 +517,6 @@ let all_groups (handle : Turso.conn) : string Int64.Map.t =
 let _add_age_group_for_runner (handle : Turso.conn)
     ~(event_params : EventParams.t) ~(runner_id : int64)
     ~(age_group_id : string) (groups : string Int64.Map.t) =
-  (* TODO: should this commit the runner info ? it will be a problem if its
-     used somewhere else in a get query? *)
   match Map.find groups runner_id with
   | None ->
       ignore
@@ -552,15 +550,22 @@ let all_runners (handle : Turso.conn) : RunnerInfo.t Int64.Map.t =
     NOTE: does not commit *)
 let _add_runner (handle : Turso.conn) ~(event_params : EventParams.t)
     ~(runner : Dbsportas.League.OverallResult.t)
-    (runners : RunnerInfo.t Int64.Map.t) =
-  (* TODO: should this commit the runner info ? it will be a problem if its
-     used somewhere else in a get query? *)
+    (runners : RunnerInfo.t Int64.Map.t) : unit =
   let runner_id = to_int64 runner.runner_nr in
   match Map.find runners runner_id with
   | None ->
+      let gender =
+        match String.sub ~pos:0 ~len:2 runner.group.group with
+        | "V-" -> "V"
+        | "M-" -> "M"
+        | _ ->
+            printf "WARNING: unexpected gender prefix for runner: %d %s - %s\n"
+              runner.runner_nr runner.name runner.group.group;
+            ""
+      in
       ignore
         (DB.add_runner handle ~id:runner_id ~join_date:event_params.event_date
-           ~name:runner.name ~club:runner.club ~gender:"")
+           ~name:runner.name ~club:runner.club ~gender)
   | Some _ -> ()
 
 (** NOTE: does not commit *)
@@ -578,8 +583,7 @@ let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
       _add_splits ~event_params ~course_id ~runner_id handle result.splits;
       _add_age_group_for_runner ~event_params ~runner_id ~age_group_id handle
         runner_age_groups;
-      _add_runner ~event_params ~runner:result handle runners_in_db;
-      ());
+      _add_runner ~event_params ~runner:result handle runners_in_db);
   _add_medals ~event_params ~course_id handle results.finished
 
 let all_latest_ratings (handle : Turso.conn) =
@@ -613,7 +617,10 @@ let all_latest_ratings (handle : Turso.conn) =
 (** NOTE: does not commit *)
 let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
     (event : Dbsportas.League.LeagueEvent.t) =
-  let settings = Glicko2.Settings.create () in
+  let settings =
+    Glicko2.Settings.create ~tau:0.5 ~initial_rating:1500.0 ~rd:350.0 ~vol:0.06
+      ()
+  in
   let store = Dbsportas.Rating_store.Store.create ~settings in
 
   let current_ratings = all_latest_ratings handle in
