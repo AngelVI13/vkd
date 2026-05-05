@@ -346,7 +346,7 @@ CREATE TABLE IF NOT EXISTS runners (
     join_date TEXT NOT NULL,
     name TEXT NOT NULL,
     club TEXT NOT NULL,
-    gender TEXT NOT NULL CHECK (gender IN ('M', 'V'))
+    gender TEXT NOT NULL
 );
 
 -- @add_runner

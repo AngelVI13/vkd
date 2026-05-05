@@ -605,6 +605,9 @@ module LeagueInfo = struct
   let create_main = Fields.create ~name:main_league_name
 end
 
+let gender_men = "V"
+let gender_women = "M"
+
 let leagues =
   [
     (* 2020 *)

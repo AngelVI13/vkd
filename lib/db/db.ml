@@ -557,10 +557,14 @@ let _add_runner (handle : Turso.conn) ~(event_params : EventParams.t)
   let runner_id = to_int64 runner.runner_nr in
   match Map.find runners runner_id with
   | None ->
+      let group_prefix =
+        if String.length runner.group.group < 2 then ""
+        else String.sub ~pos:0 ~len:2 runner.group.group
+      in
       let gender =
-        match String.sub ~pos:0 ~len:2 runner.group.group with
-        | "V-" -> "V"
-        | "M-" -> "M"
+        match group_prefix with
+        | "V-" -> Dbsportas.League.gender_men
+        | "M-" -> Dbsportas.League.gender_women
         | _ ->
             printf "WARNING: unexpected gender prefix for runner: %d %s - %s\n"
               runner.runner_nr runner.name runner.group.group;
