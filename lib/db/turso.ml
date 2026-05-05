@@ -423,7 +423,7 @@ type conn = {
 [@@deriving show { with_path = false }]
 
 let log_conn (c : conn) (s : string) : unit =
-  if true then ()
+  if not c.debug then ()
   else
     Out_channel.with_file ~append:true c.log_name ~f:(fun oc ->
         Out_channel.output_string oc s)
@@ -650,6 +650,21 @@ module M = struct
       make_turso_request db (`String (Libsql.Requests.to_json_string request))
     in
     log_conn db (sprintf "%s\n" resp);
+    (* TODO: gracefully handle errors like this:
+        {
+          "baton": null,
+          "base_url": null,
+          "results": [
+            {
+              "type": "error",
+              "error": {
+                "message": "SQLite error: no such column: es.event_date",
+                "code": "SQLITE_UNKNOWN"
+              }
+            }
+          ]
+        }
+    *)
     let resp = Yojson.Safe.from_string resp |> Libsql.Response.t_of_yojson in
     db.baton <- resp.baton;
 

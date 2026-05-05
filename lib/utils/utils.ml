@@ -32,6 +32,10 @@ let iso8601_to_date timestamp =
 let format_time_as_date (time : Time_ns_unix.t) =
   Time_ns_unix.format ~zone:Timezone.utc time "%Y-%m-%d"
 
+let time_of_date (date : string) : Time_ns.t =
+  date |> Date.of_string |> fun date ->
+  Time_ns.of_date_ofday ~zone:Timezone.utc date Time_ns.Ofday.start_of_day
+
 let to_base64 s = Base64.encode_exn ~pad:false s
 let of_base64 s = Base64.decode_exn ~pad:false s
 

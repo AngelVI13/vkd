@@ -75,6 +75,7 @@ let event_details_for_year (handle : Turso.conn) (year : string) :
          let map_links =
            links |> String.split ~on:',' |> List.map ~f:Utils.of_base64
          in
+         (* TODO: modify query to return the map settings and result links etc *)
          let event =
            Vilpage.Events.EventInfo.Fields.create
              ~date:(Time_ns_unix.of_string event_date)
@@ -82,7 +83,7 @@ let event_details_for_year (handle : Turso.conn) (year : string) :
              ~map_links ~map_settings:None ~result_link:None
          in
          event_details := event :: !event_details));
-  !event_details
+  List.rev !event_details
 
 (** NOTE: does not commit *)
 let _add_event_links (handle : Turso.conn) (event_date : Time_ns.t)
@@ -153,7 +154,7 @@ let leagues_aux ~f (handle : Turso.conn) =
              ~year:(of_int64 league_year) ~name
          in
          leagues := league :: !leagues));
-  !leagues
+  List.rev !leagues
 
 (** NOTE: does not commit *)
 let _add_league (handle : Turso.conn) (league : Dbsportas.League.LeagueInfo.t) =
@@ -193,6 +194,7 @@ let add_leagues_if_not_exists (handle : Turso.conn)
               ~league_id:(Int.to_string new_league.id)
               ()
           in
+          Utils.sleep ~s:1;
           ignore
             (List.map league_data.events
                ~f:(_add_league_event handle new_league.id))
@@ -226,7 +228,8 @@ let ratings_aux ~f (handle : Turso.conn) =
              ~runner_name ~runner_club ~runner_gender
          in
          ratings := rating :: !ratings));
-  !ratings
+  (* NOTE: this preserves the order from the query *)
+  List.rev !ratings
 
 let ratings_for_course (handle : Turso.conn) (course_id : string) =
   ratings_aux ~f:(DB.ratings_for_course ~course_id) handle
@@ -353,11 +356,11 @@ let unprocessed_league_events ?(year : string option = None)
          let league_id = of_int64 league_id in
          let event =
            Dbsportas.League.LeagueEvent.Fields.create ~nr:(of_int64 event_nr)
-             ~date:(Time_ns_unix.of_string event_date)
+             ~date:(Utils.time_of_date event_date)
              ~location ~results:None
          in
          events := (league_id, event) :: !events));
-  !events
+  List.rev !events
 
 (** NOTE: does not commit *)
 let _add_result_stats (handle : Turso.conn) ~(event_params : EventParams.t)
@@ -479,7 +482,7 @@ let _add_medals (handle : Turso.conn) ~(event_params : EventParams.t)
         match (r1.time, r2.time) with
         | Some t1, Some t2 -> Int.compare t1 t2
         (* here we indicate that any value is smaller than NO_VALUE to push
-           nones to the end of the list *)
+           Nones to the end of the list *)
         | Some _, None -> -1
         | None, Some _ -> 1
         | None, None -> 0)
@@ -612,7 +615,7 @@ let all_latest_ratings (handle : Turso.conn) =
           ~runner_name ~runner_club ~runner_gender
       in
       ratings := info :: !ratings);
-  !ratings
+  List.rev !ratings
 
 (** NOTE: does not commit *)
 let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
@@ -721,8 +724,8 @@ let action_refresh_events_and_results ?(year : string option = None)
     ignore (Turso.send_buffered handle)
 
 let test (handle : Turso.conn) =
-  let _ = handle in
-  printf "hello\n";
+  (* add_leagues_if_not_exists handle Dbsportas.League.leagues; *)
+  action_refresh_events_and_results handle;
   ()
 
 let%expect_test "make" =
