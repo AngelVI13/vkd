@@ -131,17 +131,50 @@ module ResultResp = struct
   [@@deriving show { with_path = false }, yojson]
 end
 
+module ErrorDetail = struct
+  type t = { message : string; code : string }
+  [@@deriving show { with_path = false }, yojson] [@@yojson.allow_extra_fields]
+end
+
 module Result = struct
-  type t = { type_ : string; [@key "type"] response : ResultResp.t }
-  [@@deriving show { with_path = false }, yojson]
+  type t = Ok of ResultResp.t | Error of ErrorDetail.t
+  [@@deriving show { with_path = false }]
+
+  let t_of_yojson json =
+    let open Yojson.Safe.Util in
+    let type_ = json |> member "type" |> to_string in
+    match type_ with
+    | "ok" -> Ok (ResultResp.t_of_yojson (member "response" json))
+    | "error" -> Error (ErrorDetail.t_of_yojson (member "error" json))
+    | _ -> failwith (sprintf "unexpected response type from Turso: %s\n" type_)
+
+  let yojson_of_t t =
+    let type_, value =
+      match t with
+      | Ok resp -> (`String "ok", ResultResp.yojson_of_t resp)
+      | Error resp -> (`String "error", ErrorDetail.yojson_of_t resp)
+    in
+    `Assoc [ ("type", type_); ("value", value) ]
+
+  let show = function
+    | Ok resp -> Printf.sprintf "Ok(%s)" (ResultResp.show resp)
+    | Error detail -> Printf.sprintf "Error(%s)" (ErrorDetail.show detail)
 end
 
 module Response = struct
   type t = { baton : string option; results : Result.t list }
   [@@deriving show { with_path = false }, yojson] [@@yojson.allow_extra_fields]
 
-  let rows (t : t) =
-    match List.nth t.results 0 with
+  let rows (t : t) : ResultRow.t list =
+    let ok_results =
+      List.filter t.results ~f:(fun r ->
+          match r with Ok _ -> true | _ -> false)
+    in
+    match List.nth ok_results 0 with
     | None -> []
-    | Some r -> r.response.result.rows
+    | Some r -> ( match r with Ok r -> r.result.rows | _ -> [])
+
+  let errors (t : t) : string list =
+    List.fold t.results ~init:[] ~f:(fun acc result ->
+        match result with Error e -> e.message :: acc | _ -> acc)
 end

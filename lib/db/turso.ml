@@ -666,6 +666,15 @@ module M = struct
         }
     *)
     let resp = Yojson.Safe.from_string resp |> Libsql.Response.t_of_yojson in
+    let errors = Libsql.Response.errors resp in
+
+    (* NOTE: raise exception if turso returns error/s *)
+    ignore
+      (if List.length errors > 0 then
+         failwith
+           (sprintf "ERROR: Turso:\n%s\n" (String.concat ~sep:"\n" errors))
+       else ());
+
     db.baton <- resp.baton;
 
     let rows = Libsql.Response.rows resp in

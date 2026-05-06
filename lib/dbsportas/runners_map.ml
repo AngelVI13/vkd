@@ -78,6 +78,8 @@ let fst_and_snd_best_splits ~time_field (t : t) =
     |> List.transpose_exn
   in
 
+  (* NOTE: this can fail if there is a course without participants.
+     it should be okay because the caller catches the exception *)
   let fst_times = List.nth_exn fst_and_snd_splits 0 in
   let snd_times = List.nth_exn fst_and_snd_splits 1 in
 
@@ -145,7 +147,10 @@ let update_runner_mistakes (t : t) : t =
   let times =
     try Some (fst_and_snd_best_splits ~time_field:Split.Fields.time t)
     with e ->
-      printf "exception while calculating fst and snd: %s\n" (Exn.to_string e);
+      printf
+        "WARNING: exception while calculating fst and snd: %s\n\
+        \ no mistakes calculated!\n"
+        (Exn.to_string e);
       None
   in
 
