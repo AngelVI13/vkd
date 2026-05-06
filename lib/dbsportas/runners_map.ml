@@ -61,16 +61,20 @@ let fst_and_snd_best_splits ~time_field (t : t) =
   let sorted_splits = all_sorted_splits ~time_field (Map.data t) in
   let fst_and_snd_splits =
     List.map sorted_splits ~f:(fun splits_for_control ->
-        let fst = List.hd_exn splits_for_control in
-        let snd =
-          match List.nth splits_for_control 1 with
-          | None -> fst
-          | Some snd -> snd
-        in
+        (* NOTE: in very rare case sit can happen that a certain control was broken 
+         so noone has any split time for that control -> here we handle that *)
+        if List.length splits_for_control = 0 then [ 0; 0 ]
+        else
+          let fst = List.hd_exn splits_for_control in
+          let snd =
+            match List.nth splits_for_control 1 with
+            | None -> fst
+            | Some snd -> snd
+          in
 
-        let _, fst = List.hd_exn fst in
-        let _, snd = List.hd_exn snd in
-        [ fst; snd ])
+          let _, fst = List.hd_exn fst in
+          let _, snd = List.hd_exn snd in
+          [ fst; snd ])
     |> List.transpose_exn
   in
 
@@ -140,16 +144,21 @@ let update_runner_mistake_splits (t : t) ~fst_times ~snd_times
 let update_runner_mistakes (t : t) : t =
   let times =
     try Some (fst_and_snd_best_splits ~time_field:Split.Fields.time t)
-    with _ -> None
+    with e ->
+      printf "exception while calculating fst and snd: %s" (Exn.to_string e);
+      None
   in
 
   match times with
   | None -> t
   | Some (fst_times, snd_times) ->
-      if
-        (* TODO: if we have just 1 runner, we don't calculate mistakes. TEST THIS !!!! *)
-        List.hd_exn fst_times = List.hd_exn snd_times
-      then t
+      let fst_sum = List.fold fst_times ~init:0 ~f:( + ) in
+      let snd_sum = List.fold snd_times ~init:0 ~f:( + ) in
+      if fst_sum = snd_sum then (
+        printf
+          "First and second best times are the same -> do not calculate \
+           mistakes";
+        t)
       else
         List.fold (Map.data t) ~init:t
           ~f:(update_runner_mistake_splits ~fst_times ~snd_times)
