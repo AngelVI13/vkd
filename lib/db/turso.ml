@@ -671,6 +671,9 @@ module M = struct
     (* NOTE: raise exception if turso returns error/s *)
     ignore
       (if List.length errors > 0 then
+         (* TODO: match the error with the request it originated from so it's
+            clear what failed (we are sending hundreds of requests everytime we
+            process and event *)
          failwith
            (sprintf "ERROR: Turso:\n%s\n" (String.concat ~sep:"\n" errors))
        else ());
