@@ -145,7 +145,7 @@ let update_runner_mistakes (t : t) : t =
   let times =
     try Some (fst_and_snd_best_splits ~time_field:Split.Fields.time t)
     with e ->
-      printf "exception while calculating fst and snd: %s" (Exn.to_string e);
+      printf "exception while calculating fst and snd: %s\n" (Exn.to_string e);
       None
   in
 
@@ -156,8 +156,7 @@ let update_runner_mistakes (t : t) : t =
       let snd_sum = List.fold snd_times ~init:0 ~f:( + ) in
       if fst_sum = snd_sum then (
         printf
-          "First and second best times are the same -> do not calculate \
-           mistakes";
+          "First and second best times are the same -> do not calculate mistakes\n";
         t)
       else
         List.fold (Map.data t) ~init:t

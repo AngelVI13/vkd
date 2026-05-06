@@ -724,6 +724,8 @@ let action_refresh_events_and_results ?(year : string option = None)
           ~f:
             (_add_full_event handle ~league_id:league.id ~is_part_of_main_league));
 
+    (* ignore (assert false); *)
+
     (* send all statements to turso *)
     ignore (Turso.send_buffered handle)
 
