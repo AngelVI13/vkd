@@ -364,6 +364,15 @@ module LeagueEvent = struct
       r.location results_url
 
   let show r = Format.asprintf "%a" pp r
+
+  let participants (t : t) : int list =
+    match t.results with
+    | None -> []
+    | Some results ->
+        List.map results.courses ~f:(fun course ->
+            List.map (course.results.finished @ course.results.dsq)
+              ~f:(fun result -> result.runner_nr))
+        |> List.concat
 end
 
 module League = struct

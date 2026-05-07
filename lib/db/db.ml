@@ -1,6 +1,8 @@
 open Core
 open Db_ops
+open Custom_db_ops
 module DB = DbOps (Turso)
+module CustomDb = CustomDbOps (Turso)
 
 type t = Turso.conn [@@deriving show { with_path = false }]
 
@@ -227,6 +229,7 @@ let ratings_aux ~f (handle : Turso.conn) =
              ~runner_id:(of_int64 runner_id) ~rating ~rating_diff ~rd ~vol
              ~runner_name ~runner_club ~runner_gender
          in
+
          ratings := rating :: !ratings));
   (* NOTE: this preserves the order from the query *)
   List.rev !ratings
@@ -594,32 +597,10 @@ let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
   _add_medals ~event_params ~course_id handle results.finished
 
 let all_latest_ratings (handle : Turso.conn) =
-  let ratings = ref [] in
-  DB.all_latest_ratings handle
-    (fun
-      ~id
-      ~league_id
-      ~event_nr
-      ~event_date
-      ~course_id
-      ~runner_id
-      ~rating
-      ~rating_diff
-      ~rd
-      ~vol
-      ~runner_name
-      ~runner_club
-      ~runner_gender
-    ->
-      let _ = id in
-      let info =
-        Glicko2.Rating.Info.Fields.create ~league_id:(of_int64 league_id)
-          ~event_nr:(of_int64 event_nr) ~event_date ~course_id
-          ~runner_id:(of_int64 runner_id) ~rating ~rating_diff ~rd ~vol
-          ~runner_name ~runner_club ~runner_gender
-      in
-      ratings := info :: !ratings);
-  List.rev !ratings
+  ratings_aux ~f:DB.all_latest_ratings handle
+
+let all_latest_relevant_ratings (handle : Turso.conn) ~participants =
+  ratings_aux ~f:(CustomDb.all_latest_relevant_ratings ~participants) handle
 
 (** NOTE: does not commit *)
 let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
@@ -631,6 +612,12 @@ let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
   let store = Dbsportas.Rating_store.Store.create ~settings in
 
   let current_ratings = all_latest_ratings handle in
+  (* TODO: test this separately to make sure it works *)
+  (* let current_ratings = *)
+  (*   all_latest_relevant_ratings *)
+  (*     ~participants:(Dbsportas.League.LeagueEvent.participants event) *)
+  (*     handle *)
+  (* in *)
   let store =
     List.fold current_ratings ~init:store ~f:(fun s rating ->
         Dbsportas.Rating_store.Store.add s ~name:rating.runner_name
