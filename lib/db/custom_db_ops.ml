@@ -20,12 +20,11 @@ module CustomDbOps (T : Sqlgg_traits.M) = struct
     in
     let participants =
       List.map participants ~f:(fun p -> sprintf "(%d)" p)
-      |> String.concat ~sep:" "
+      |> String.concat ~sep:","
     in
     T.select db
       (sprintf
-         "\n\
-          WITH participants(runner_id) AS (\n\
+         "WITH participants(runner_id) AS (\n\
           VALUES %s\n\
           )\n\
           SELECT r.*, rn.name AS runner_name, rn.club AS runner_club, \

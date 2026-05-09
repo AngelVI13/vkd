@@ -716,9 +716,34 @@ let action_refresh_events_and_results ?(year : string option = None)
     (* send all statements to turso *)
     ignore (Turso.send_buffered handle)
 
+let test_rating_fn (handle : Turso.conn) =
+  let league_id = 141 in
+  let event_nrs_to_include = [ 1 ] in
+  let league =
+    Dbsportas.League.download_league_info
+      ~include_events:(Some event_nrs_to_include)
+      ~league_id:(Int.to_string league_id) ()
+  in
+  let event = List.hd_exn league.events in
+  let participants = Dbsportas.League.LeagueEvent.participants event in
+  let all_ratings = all_latest_ratings handle in
+  (* NOTE: this currently saves 80 rows on 1210 rows - so currently negligible
+     but maybe in the future it would be more .
+     The main problem is that the RD grows pretty slowly
+     *)
+  let relevant_ratings = all_latest_relevant_ratings handle ~participants in
+  let sexp = [%sexp (all_ratings : Glicko2.Rating.Info.t list)] in
+  printf "All ratings: \n";
+  print_s sexp;
+  printf "\n\nRelevant ratings: \n";
+  let sexp = [%sexp (relevant_ratings : Glicko2.Rating.Info.t list)] in
+  print_s sexp;
+  printf "\n"
+
 let test (handle : Turso.conn) =
   (* add_leagues_if_not_exists handle Dbsportas.League.leagues; *)
-  action_refresh_events_and_results handle;
+  (* action_refresh_events_and_results handle; *)
+  test_rating_fn handle;
   ()
 
 let%expect_test "make" =

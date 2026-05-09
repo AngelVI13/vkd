@@ -16,5 +16,5 @@ module Info = struct
     rd : float;
     vol : float;
   }
-  [@@deriving show { with_path = false }, fields]
+  [@@deriving show { with_path = false }, fields, sexp]
 end
