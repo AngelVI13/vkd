@@ -2,11 +2,7 @@ open Core
 
 let handle_index request =
   let _ = request in
-  let open Dream_html in
-  let open HTML in
-  let page =
-    html [ lang "en" ] [ head [] []; body [] [ h1 [] [ txt "Hello world" ] ] ]
-  in
+  let page = Index.page () in
 
   Dream_html.respond page
 
