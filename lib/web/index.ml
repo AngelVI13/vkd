@@ -53,5 +53,11 @@ let top_header () =
       div [ class_ "site-buttons" ] [];
     ]
 
-let page () =
-  html [ lang "en" ] [ head [] (head_elems ()); body [] [ top_header () ] ]
+let page (translations : Localization.translations -> string) =
+  html
+    [ lang "en" ]
+    [
+      head [] (head_elems ());
+      body []
+        [ top_header (); h1 [] [ txt "%s" (translations Localization.Runner) ] ];
+    ]
