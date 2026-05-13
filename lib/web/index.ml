@@ -53,11 +53,15 @@ let top_header () =
       div [ class_ "site-buttons" ] [];
     ]
 
-let page (translations : Localization.translations -> string) =
+let page (module T : Localization.TRANSLATIONS) =
   html
     [ lang "en" ]
     [
       head [] (head_elems ());
       body []
-        [ top_header (); h1 [] [ txt "%s" (translations Localization.Runner) ] ];
+        [
+          top_header ();
+          h1 [] [ txt "%s" T.runner ];
+          a [ path_attr href Paths.user_w_scope T.lang ] [ txt "User" ];
+        ];
     ]

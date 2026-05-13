@@ -1,33 +1,4 @@
-open! Core
-
-type translations = Ok | Close | Runner
-
-(* Define a module signature that each "implementor" must satisfy *)
-module type TRANSLATIONS = sig
-  val ok : string
-  val close : string
-  val runner : string
-end
-
-(* Convert any TRANSLATIONS module to the variant type *)
-let to_translation (module T : TRANSLATIONS) : translations -> string = function
-  | Ok -> T.ok
-  | Close -> T.close
-  | Runner -> T.runner
-
-module English : TRANSLATIONS = struct
-  let ok = "Ok"
-  let close = "Close"
-  let runner = "Runner"
-end
-
-module Lithuanian : TRANSLATIONS = struct
-  let ok = "Ok"
-  let close = "Uždaryti"
-
-  (* TODO: how to handle different genders ??? *)
-  let runner = "Bėgikas"
-end
+open Core
 
 type language = English | Lithuanian [@@deriving show { with_path = false }]
 
@@ -38,6 +9,31 @@ let language_of_abbrev = function
 
 let language_to_abbrev = function English -> "en" | Lithuanian -> "lt"
 
-let translation_of_language = function
-  | English -> to_translation (module English)
-  | Lithuanian -> to_translation (module Lithuanian)
+(* Define a module signature that each "implementor" must satisfy *)
+module type TRANSLATIONS = sig
+  val lang : string
+  val ok : string
+  val close : string
+  val runner : string
+end
+
+module English : TRANSLATIONS = struct
+  let lang = language_to_abbrev English
+  let ok = "Ok"
+  let close = "Close"
+  let runner = "Runner"
+end
+
+module Lithuanian : TRANSLATIONS = struct
+  let lang = language_to_abbrev Lithuanian
+  let ok = "Ok"
+  let close = "Uždaryti"
+
+  (* TODO: how to handle different genders ??? *)
+  let runner = "Bėgikas"
+end
+
+let translation_of_language (lang : language) : (module TRANSLATIONS) =
+  match lang with
+  | English -> (module English : TRANSLATIONS)
+  | Lithuanian -> (module Lithuanian : TRANSLATIONS)

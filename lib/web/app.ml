@@ -1,45 +1,33 @@
 open Core
 
-let language_field =
-  Dream.new_field () ~name:"language" ~show_value:Localization.show_language
+let translations_field =
+  Dream.new_field () ~name:"translations" ~show_value:(fun _ -> "translations")
 
-let handle_index request =
-  let lang =
-    match Dream.field request language_field with
-    | None -> Localization.English
-    | Some l -> l
-  in
-  let translations = Localization.translation_of_language lang in
-  let page = Index.page translations in
+let handle_index ~translation request =
+  let _ = request in
+  let page = Index.page translation in
 
   Dream_html.respond page
 
-let handle_user request =
-  (* TODO: each link that a handler returns must have the correct language
-     preffix (how to join the lang prefix and the paths????) *)
-  let lang =
-    match Dream.field request language_field with
-    | None -> Localization.English
-    | Some l -> l
-  in
-  let translations = Localization.translation_of_language lang in
-  let open Dream_html in
-  let open HTML in
-  let page =
-    html
-      [ lang "en" ]
-      [
-        head [] [];
-        body [] [ h1 [] [ txt "Hello %s" (translations Localization.Runner) ] ];
-      ]
-  in
+let handle_user ~translation request =
+  let _ = request in
+  let page = User.page translation in
 
-  respond page
+  Dream_html.respond page
+
+let with_translations handler request =
+  let translation =
+    match Dream.field request translations_field with
+    | None -> Localization.translation_of_language Localization.English
+    | Some t -> t
+  in
+  handler ~translation request
 
 let lang_middleware inner_handler req =
   let lang = Dream.param req "lang" in
   let language = Localization.language_of_abbrev lang in
-  Dream.set_field req language_field language;
+  let translation = Localization.translation_of_language language in
+  Dream.set_field req translations_field translation;
 
   inner_handler req
 
@@ -60,8 +48,9 @@ let run ~(db : Db.t) =
             Paths.index_en (i.e. Dream_html paths) *)
          Dream.scope "/:lang" [ lang_middleware ]
            [
-             Dream_html.get Paths.index handle_index;
-             Dream_html.get Paths.user handle_user;
+             (* TODO: add endpoint to change language *)
+             Dream_html.get Paths.index (with_translations handle_index);
+             Dream_html.get Paths.user (with_translations handle_user);
            ];
          Dream_html.get Paths.index (fun req -> Dream.redirect req "/en/");
          Static.routes;
