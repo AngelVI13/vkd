@@ -9,6 +9,9 @@ let language_of_abbrev = function
 
 let language_to_abbrev = function English -> "en" | Lithuanian -> "lt"
 
+(* TODO: split this into its own folder (because these will grow like crazy)
+   i18n -> translations.mli; english.ml; lithuanian.ml; language.ml *)
+
 (* Define a module signature that each "implementor" must satisfy *)
 module type TRANSLATIONS = sig
   val lang : string
