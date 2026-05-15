@@ -1,3 +1,20 @@
+:root {
+  --mobile-font-size: 16px;
+  --txt-color: 64, 64, 64;
+  --c-bg-page: hsl(37, 10%, 8%);
+  --c-body-gradient: hsl(37, 12%, 16%);
+  --c-font: hsl(0, 0%, 37%);
+}
+
 body {
   overflow-y: scroll;
+  color: var(--c-font);
+  text-align: start;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--c-bg-page)
+    linear-gradient(to bottom, var(--c-body-gradient), var(--c-bg-page) 116px)
+    no-repeat;
 }

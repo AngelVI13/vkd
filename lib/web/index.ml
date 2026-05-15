@@ -11,7 +11,8 @@ let head_elems () =
       [
         rel "icon";
         type_ "image/png";
-        path_attr href Static.Assets.Images.logo_png;
+        (* path_attr href Static.Assets.Images.logo3_png; *)
+        path_attr href Static.Assets.Images.logo5_png;
       ];
     title [] "O-Stats";
     (* NOTE: htmx version 2.0.7 *)
@@ -46,6 +47,9 @@ let top_header () =
           a
             [ class_ "site-title"; path_attr href Paths.index ]
             [
+              div
+                [ class_ "site-icon" ]
+                [ img [ path_attr src Static.Assets.Images.logo5_png ] ];
               (* TODO: add icon here as well *)
               div [ class_ "site-name" ] [ txt "O-Stats" ];
             ];
