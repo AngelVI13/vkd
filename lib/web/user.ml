@@ -2,13 +2,25 @@ open! Core
 open Dream_html
 open HTML
 
+let head_elems () =
+  Common.head_elems
+  @ [
+      link
+        [
+          rel "stylesheet";
+          type_ "text/css";
+          path_attr href Static.Assets.Css.index_css;
+        ];
+    ]
+
 let page (module T : Localization.TRANSLATIONS) =
   html
     [ lang "en" ]
     [
-      head [] [];
+      head [] (head_elems ());
       body []
         [
+          Header.elements ();
           h1 [] [ txt "%s" T.runner ];
           a [ path_attr href Paths.index_w_scope T.lang ] [ txt "Home" ];
         ];
