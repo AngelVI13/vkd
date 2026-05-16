@@ -13,15 +13,15 @@ let head_elems () =
         ];
     ]
 
-let page (module T : Localization.TRANSLATIONS) =
+let page (t : Localization.translations) =
   html
     [ lang "en" ]
     [
       head [] (head_elems ());
       body []
         [
-          Header.elements ();
-          h1 [] [ txt "%s" T.runner ];
-          a [ path_attr href Paths.index_w_scope T.lang ] [ txt "Home" ];
+          Header.elements t;
+          h1 [] [ txt "%s" t.runner ];
+          a [ path_attr href Paths.index_w_scope t.lang ] [ txt "Home" ];
         ];
     ]

@@ -13,30 +13,39 @@ let language_to_abbrev = function English -> "en" | Lithuanian -> "lt"
    i18n -> translations.mli; english.ml; lithuanian.ml; language.ml *)
 
 (* Define a module signature that each "implementor" must satisfy *)
-module type TRANSLATIONS = sig
-  val lang : string
-  val ok : string
-  val close : string
-  val runner : string
-end
+type translations = {
+  lang : string;
+  ok : string;
+  close : string;
+  runner : string;
+  events : string;
+  leagues : string;
+  runners : string;
+}
+[@@deriving show { with_path = false }]
 
-module English : TRANSLATIONS = struct
-  let lang = language_to_abbrev English
-  let ok = "Ok"
-  let close = "Close"
-  let runner = "Runner"
-end
+let english =
+  {
+    lang = language_to_abbrev English;
+    ok = "Ok";
+    close = "Close";
+    runner = "Runner";
+    events = "Events";
+    leagues = "Leagues";
+    runners = "Runners";
+  }
 
-module Lithuanian : TRANSLATIONS = struct
-  let lang = language_to_abbrev Lithuanian
-  let ok = "Ok"
-  let close = "Uždaryti"
+let lithuanian =
+  {
+    lang = language_to_abbrev Lithuanian;
+    ok = "Ok";
+    close = "Uždaryti";
+    (* TODO: how to handle different genders ??? *)
+    runner = "Bėgikas";
+    events = "Etapai";
+    leagues = "Lygos";
+    runners = "Bėgikai";
+  }
 
-  (* TODO: how to handle different genders ??? *)
-  let runner = "Bėgikas"
-end
-
-let translation_of_language (lang : language) : (module TRANSLATIONS) =
-  match lang with
-  | English -> (module English : TRANSLATIONS)
-  | Lithuanian -> (module Lithuanian : TRANSLATIONS)
+let translation_of_language (lang : language) : translations =
+  match lang with English -> english | Lithuanian -> lithuanian

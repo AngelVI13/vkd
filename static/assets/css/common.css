@@ -5,6 +5,7 @@
   /* --c-body-gradient: hsl(37, 12%, 16%); */
   --c-body-gradient: hsl(120, 30%, 16%);
   --c-font: hsl(0, 0%, 37%);
+  --c-title-color: hsl(0, 0%, 52%);
   --c-font-page: hsl(0, 0%, 48%);
   ---nav-section: 53px;
   ---site-header-height: 60px;

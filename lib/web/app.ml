@@ -1,7 +1,8 @@
 open Core
 
 let translations_field =
-  Dream.new_field () ~name:"translations" ~show_value:(fun _ -> "translations")
+  Dream.new_field () ~name:"translations"
+    ~show_value:Localization.show_translations
 
 let handle_index ~translation request =
   let _ = request in
