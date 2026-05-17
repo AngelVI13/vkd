@@ -1,7 +1,7 @@
 open Core
 
 type language = English | Lithuanian
-[@@deriving show { with_path = false }, enumerate]
+[@@deriving show { with_path = false }, enumerate, eq]
 
 let language_of_abbrev = function
   | "en" -> English
@@ -9,6 +9,10 @@ let language_of_abbrev = function
   | s -> failwith (sprintf "unsupported language abbreviation: %s\n" s)
 
 let language_to_abbrev = function English -> "en" | Lithuanian -> "lt"
+
+let language_flag = function
+  | English -> Static.Assets.Images.flag_gbr_svg
+  | Lithuanian -> Static.Assets.Images.flag_ltu_svg
 
 (* TODO: split this into its own folder (because these will grow like crazy)
    i18n -> translations.mli; english.ml; lithuanian.ml; language.ml *)
