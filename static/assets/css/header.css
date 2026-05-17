@@ -66,3 +66,8 @@ a {
   border-inline-start: 2px solid rgba(0, 0, 0, 0);
   font-weight: bold;
 }
+
+#topnav section > a:hover {
+  color: var(--c-body-gradient);
+  background-color: var(--c-font-page_hl);
+}

@@ -31,6 +31,7 @@ depends: [
   "ppx_deriving" {="6.0.3"}
   "ppx_yojson_conv" {="v0.16.0"}
   "ppx_fields_conv" {="v0.16.0"}
+  "ppx_enumerate" {="v0.16.0"}
   "odoc" {with-doc}
 ]
 build: [

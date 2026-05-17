@@ -2,5 +2,5 @@
  (name web)
  (inline_tests)
  (preprocess
-  (pps ppx_jane ppx_inline_test ppx_expect ppx_deriving.show ppx_deriving.eq dream-html.ppx))
+  (pps ppx_jane ppx_inline_test ppx_expect ppx_deriving.show ppx_deriving.eq dream-html.ppx ppx_enumerate))
  (libraries dbsportas db utils dream core core_unix.time_ns_unix dream-html static))

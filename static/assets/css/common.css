@@ -1,14 +1,12 @@
+/* TODO: figure out how to invert all the colors */
 :root {
   --mobile-font-size: 16px;
-  --txt-color: 64, 64, 64;
-  --c-bg-page: hsl(37, 10%, 8%);
-  /* --c-body-gradient: hsl(37, 12%, 16%); */
-  --c-body-gradient: hsl(120, 30%, 16%);
-  --c-font: hsl(0, 0%, 37%);
-  --c-title-color: hsl(0, 0%, 52%);
-  --c-font-page: hsl(0, 0%, 48%);
   ---nav-section: 53px;
   ---site-header-height: 60px;
+  ---site-header-margin: 0px;
+  ---sticky-gap: 0.5vmin;
+  ---box-padding: 50px;
+  ---main-margin: 1vw;
 }
 
 body {

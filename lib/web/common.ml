@@ -21,6 +21,12 @@ let head_elems =
       [
         rel "stylesheet";
         type_ "text/css";
+        path_attr href Static.Assets.Css.colors_dark_css;
+      ];
+    link
+      [
+        rel "stylesheet";
+        type_ "text/css";
         path_attr href Static.Assets.Css.common_css;
       ];
     link

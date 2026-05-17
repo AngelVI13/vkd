@@ -1,6 +1,7 @@
 open Core
 
-type language = English | Lithuanian [@@deriving show { with_path = false }]
+type language = English | Lithuanian
+[@@deriving show { with_path = false }, enumerate]
 
 let language_of_abbrev = function
   | "en" -> English
