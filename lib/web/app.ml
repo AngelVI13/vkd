@@ -18,9 +18,19 @@ let handle_user ~translation request =
 
 let with_translations handler request =
   let translation =
-    match Dream.field request translations_field with
-    | None -> Localization.translation_of_language Localization.English
-    | Some t -> t
+    match
+      (Dream.query request "language", Dream.field request translations_field)
+    with
+    | Some query_lang, _ ->
+        (* If language is provided as query then use this one *)
+        Localization.language_of_abbrev query_lang
+        |> Localization.translation_of_language
+    | None, Some translation ->
+        (* if no language in query but translation is available then use that *)
+        translation
+    | None, None ->
+        (* by default we use english translation *)
+        Localization.translation_of_language Localization.English
   in
   handler ~translation request
 
@@ -49,7 +59,6 @@ let run ~(db : Db.t) =
             Paths.index_en (i.e. Dream_html paths) *)
          Dream.scope "/:lang" [ lang_middleware ]
            [
-             (* TODO: add endpoint to change language *)
              Dream_html.get Paths.index (with_translations handle_index);
              Dream_html.get Paths.user (with_translations handle_user);
            ];

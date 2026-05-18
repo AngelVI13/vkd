@@ -72,7 +72,6 @@ a {
   background-color: var(--c-font-page_hl);
 }
 
-/* TODO: remove if not needed */
 .site-buttons {
   display: flex;
   flex-flow: row wrap;
@@ -80,21 +79,11 @@ a {
   gap: 0.5em;
 }
 
-.language-select img {
-  max-height: 20px;
-}
-
-.language-select div a span {
-  color: var(--c-font);
-}
-
-.language-select div.flag:not(.selected) {
-  display: none;
-}
-.language-select div.flag.selected {
+.language-select {
   display: flex;
+  gap: 0.5rem;
 }
 
-.language-select:hover div.flag {
-  display: block;
+.language-select img {
+  max-height: 25px;
 }
