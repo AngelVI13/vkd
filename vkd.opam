@@ -24,6 +24,7 @@ depends: [
   "re" {="1.14.0"}
   "integers" {="0.7.0"}
   "base64" {>="3.5.2"}
+  "uri" {="4.4.0"}
   "ppx_let" {>="v0.16.0"}
   "ppx_jane" {="v0.16.0"}
   "ppx_inline_test" {="v0.16.1"}

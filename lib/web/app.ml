@@ -16,23 +16,48 @@ let handle_user ~translation request =
 
   Dream_html.respond page
 
+let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =
+  let current_url = Uri.of_string url in
+  let path = Uri.path current_url in
+  let base_url =
+    String.substr_replace_first
+      (Uri.to_string current_url)
+      ~pattern:path ~with_:""
+  in
+  let path_no_scope =
+    String.substr_replace_first path ~pattern:(sprintf "/%s" curr_lang)
+      ~with_:""
+  in
+  let new_url = sprintf "%s/%s%s" base_url new_lang path_no_scope in
+  new_url
+
 let with_translations handler request =
   let translation =
-    match
-      (Dream.query request "language", Dream.field request translations_field)
-    with
-    | Some query_lang, _ ->
-        (* If language is provided as query then use this one *)
-        Localization.language_of_abbrev query_lang
-        |> Localization.translation_of_language
-    | None, Some translation ->
-        (* if no language in query but translation is available then use that *)
-        translation
-    | None, None ->
-        (* by default we use english translation *)
-        Localization.translation_of_language Localization.English
+    match Dream.field request translations_field with
+    | None -> failwith "handler is not under the `/:lang` scope"
+    | Some t -> t
   in
-  handler ~translation request
+
+  (* NOTE: If language is provided as query parameter -> redirect to the same page but with 
+     different language scope. Otherwise (if not provided) -> just render the page 
+     with current translation settings *)
+  match Dream.query request "language" with
+  | Some query_lang ->
+      let current_url =
+        Option.value_exn @@ Dream.header request "HX-Current-URL"
+      in
+      let new_url =
+        change_url_lang current_url ~curr_lang:translation.lang
+          ~new_lang:query_lang
+      in
+      (* NOTE: In general the redirect codes are 3XX but HTMX docs say that 
+         they don't process response headers if code is set to 3XX (even though
+         it works) so here we set the code to 200 
+          https://htmx.org/headers/hx-redirect/  *)
+      Dream_html.respond ~code:200
+        ~headers:[ ("HX-Redirect", new_url) ]
+        (Dream_html.HTML.null [])
+  | None -> handler ~translation request
 
 let lang_middleware inner_handler req =
   let lang = Dream.param req "lang" in
@@ -62,6 +87,7 @@ let run ~(db : Db.t) =
              Dream_html.get Paths.index (with_translations handle_index);
              Dream_html.get Paths.user (with_translations handle_user);
            ];
+         (* TODO: add endpoint to change from light to dark mode *)
          Dream_html.get Paths.index (fun req -> Dream.redirect req "/en/");
          Static.routes;
        ]

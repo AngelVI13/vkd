@@ -33,7 +33,7 @@ let elements (t : Localization.translations) =
         [ class_ "site-title-nav" ]
         [
           a
-            [ class_ "site-title"; path_attr href Paths.index ]
+            [ class_ "site-title"; path_attr href Paths.index_w_scope t.lang ]
             [
               div
                 [ class_ "site-icon" ]
