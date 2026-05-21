@@ -25,6 +25,24 @@ let lang_select ~(selected_lang : Localization.language) =
       select [ name "language"; Hx.get ""; Hx.target "body" ] options;
     ]
 
+let color_mode_select () =
+  div
+    [ class_ "color-mode-toggle" ]
+    [
+      label [ for_ "toggle" ] [ txt "Light" ];
+      input
+        [
+          type_ "range";
+          step "1";
+          min "0";
+          max "1";
+          class_ "toggle-slider";
+          value "1";
+          id "toggle";
+        ];
+      label [ for_ "toggle" ] [ txt "Dark" ];
+    ]
+
 let elements (t : Localization.translations) =
   header
     [ id "top" ]
@@ -50,5 +68,8 @@ let elements (t : Localization.translations) =
         ];
       div
         [ class_ "site-buttons" ]
-        [ lang_select ~selected_lang:(Localization.language_of_abbrev t.lang) ];
+        [
+          color_mode_select ();
+          lang_select ~selected_lang:(Localization.language_of_abbrev t.lang);
+        ];
     ]
