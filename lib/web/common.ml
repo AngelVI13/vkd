@@ -2,7 +2,7 @@ open! Core
 open Dream_html
 open HTML
 
-let head_elems =
+let head_elems (dark_mode : string) =
   [
     meta [ http_equiv `content_type; content "text/html; charset=UTF-8" ];
     meta [ charset "UTF-8" ];
@@ -21,7 +21,9 @@ let head_elems =
       [
         rel "stylesheet";
         type_ "text/css";
-        path_attr href Static.Assets.Css.colors_dark_css;
+        path_attr href
+          (if String.(dark_mode = "1") then Static.Assets.Css.colors_dark_css
+           else Static.Assets.Css.colors_light_css);
       ];
     link
       [

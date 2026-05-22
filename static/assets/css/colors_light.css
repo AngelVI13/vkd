@@ -1,11 +1,11 @@
 :root {
-  --c-bg-page: hsl(37, 10%, 8%);
-  --c-bg-box: hsl(37, 7%, 14%);
-  --c-body-gradient: hsl(120, 30%, 16%);
-  --c-border: hsl(0, 0%, 25%);
-  --c-font: hsl(0, 0%, 73%);
-  --c-title-color: hsl(0, 0%, 52%);
-  --c-font-page: hsl(0, 0%, 48%);
-  --c-font-page_hl: hsl(0, 0%, 58%);
-  --c-bg-zebra: hsl(37, 5%, 19%);
+  --c-bg-page: hsl(37, 10%, 92%);
+  --c-bg-box: hsl(0, 0%, 100%);
+  --c-body-gradient: hsl(37, 12%, 70%);
+  --c-border: hsl(0, 0%, 85%);
+  --c-font: hsl(0, 0%, 30%);
+  --c-title-color: hsl(0, 0%, 22%);
+  --c-font-page: hsl(0, 0%, 37%);
+  --c-font-page_hl: hsl(0, 0%, 48%);
+  --c-bg-zebra: hsl(37, 12%, 96.5%);
 }

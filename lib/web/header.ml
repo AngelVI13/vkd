@@ -27,8 +27,7 @@ let lang_select ~(selected_lang : Localization.language) =
         options;
     ]
 
-let dark_mode_select () =
-  (* TODO: pass down current state of slider *)
+let dark_mode_select (dark_mode : string) =
   div
     [ class_ "dark-mode-toggle" ]
     [
@@ -40,7 +39,7 @@ let dark_mode_select () =
           max "1";
           class_ "toggle-slider op-hover";
           name "dark-mode";
-          value "0";
+          value "%s" dark_mode;
           id "toggle";
           Hx.get "";
           Hx.trigger "change";
@@ -48,7 +47,7 @@ let dark_mode_select () =
       img [ path_attr src Static.Assets.Images.night_mode_png ];
     ]
 
-let elements (t : Localization.translations) =
+let elements (t : Page_settings.t) =
   header
     [ id "top" ]
     [
@@ -56,7 +55,10 @@ let elements (t : Localization.translations) =
         [ class_ "site-title-nav" ]
         [
           a
-            [ class_ "site-title"; path_attr href Paths.index_w_scope t.lang ]
+            [
+              class_ "site-title";
+              path_attr href Paths.index_w_scope t.translations.lang;
+            ]
             [
               div
                 [ class_ "site-icon" ]
@@ -66,15 +68,16 @@ let elements (t : Localization.translations) =
           nav
             [ id "topnav"; class_ "hover" ]
             [
-              nav_section t.events Paths.index;
-              nav_section t.leagues Paths.index;
-              nav_section t.runners Paths.index;
+              nav_section t.translations.events Paths.index;
+              nav_section t.translations.leagues Paths.index;
+              nav_section t.translations.runners Paths.index;
             ];
         ];
       div
         [ class_ "site-buttons" ]
         [
-          dark_mode_select ();
-          lang_select ~selected_lang:(Localization.language_of_abbrev t.lang);
+          dark_mode_select t.dark_mode;
+          lang_select
+            ~selected_lang:(Localization.language_of_abbrev t.translations.lang);
         ];
     ]

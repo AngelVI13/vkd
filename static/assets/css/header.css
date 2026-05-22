@@ -59,7 +59,6 @@ a {
 #topnav section > a {
   color: var(--c-font-page);
   display: block;
-  height: 100%;
   line-height: var(---site-header-height);
   padding: 0 0.7rem;
   text-transform: uppercase;
@@ -90,8 +89,7 @@ a {
 }
 
 .language-select select {
-  background-color: var(--c-font);
-  border: none;
+  background-color: hsl(0, 0%, 73%);
   border-radius: 8px;
   cursor: pointer;
 }

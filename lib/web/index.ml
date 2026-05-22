@@ -2,8 +2,8 @@ open! Core
 open Dream_html
 open HTML
 
-let head_elems () =
-  Common.head_elems
+let head_elems (t : Page_settings.t) =
+  Common.head_elems t.dark_mode
   @ [
       link
         [
@@ -13,11 +13,11 @@ let head_elems () =
         ];
     ]
 
-let page (t : Localization.translations) =
+let page (t : Page_settings.t) =
   html
     [ lang "en" ]
     [
-      head [] (head_elems ());
+      head [] (head_elems t);
       body []
         [
           Header.elements t;
@@ -32,7 +32,9 @@ let page (t : Localization.translations) =
                     [
                       (* TODO: put filter buttons here *)
                       a
-                        [ path_attr href Paths.user_w_scope t.lang ]
+                        [
+                          path_attr href Paths.user_w_scope t.translations.lang;
+                        ]
                         [ txt "User" ];
                     ];
                   table
