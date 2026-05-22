@@ -54,6 +54,17 @@ let elements (t : Page_settings.t) =
       div
         [ class_ "site-title-nav" ]
         [
+          div
+            [ class_ "nav-menu-container op-hover" ]
+            [
+              img
+                [
+                  class_ "nav-menu";
+                  id "nav-menu-img";
+                  tabindex 0;
+                  path_attr src Static.Assets.Images.menu_png;
+                ];
+            ];
           a
             [
               class_ "site-title";
