@@ -22,25 +22,30 @@ let lang_select ~(selected_lang : Localization.language) =
     [ class_ "language-select" ]
     [
       img [ path_attr src flag ];
-      select [ name "language"; Hx.get ""; Hx.target "body" ] options;
+      select
+        [ class_ "op-hover"; name "language"; Hx.get ""; Hx.target "body" ]
+        options;
     ]
 
-let color_mode_select () =
+let dark_mode_select () =
+  (* TODO: pass down current state of slider *)
   div
-    [ class_ "color-mode-toggle" ]
+    [ class_ "dark-mode-toggle" ]
     [
-      label [ for_ "toggle" ] [ txt "Light" ];
       input
         [
           type_ "range";
           step "1";
           min "0";
           max "1";
-          class_ "toggle-slider";
-          value "1";
+          class_ "toggle-slider op-hover";
+          name "dark-mode";
+          value "0";
           id "toggle";
+          Hx.get "";
+          Hx.trigger "change";
         ];
-      label [ for_ "toggle" ] [ txt "Dark" ];
+      img [ path_attr src Static.Assets.Images.night_mode_png ];
     ]
 
 let elements (t : Localization.translations) =
@@ -69,7 +74,7 @@ let elements (t : Localization.translations) =
       div
         [ class_ "site-buttons" ]
         [
-          color_mode_select ();
+          dark_mode_select ();
           lang_select ~selected_lang:(Localization.language_of_abbrev t.lang);
         ];
     ]

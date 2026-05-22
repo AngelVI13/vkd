@@ -22,3 +22,13 @@ body {
     linear-gradient(to bottom, var(--c-body-gradient), var(--c-bg-page) 116px)
     no-repeat;
 }
+
+.op-hover {
+  opacity: 0.7;
+  -webkit-transition: 0.2s; /* 0.2 seconds transition on hover */
+  transition: opacity 0.2s;
+}
+
+.op-hover:hover {
+  opacity: 1; /* Fully shown on mouse-over */
+}
