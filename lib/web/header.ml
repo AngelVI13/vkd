@@ -76,6 +76,7 @@ let elements (t : Page_settings.t) =
                 [ img [ path_attr src Static.Assets.Images.logo5_png ] ];
               div [ class_ "site-name" ] [ txt "O-Stats" ];
             ];
+          div [ class_ "overlay" ] [];
           nav
             [ id "topnav"; class_ "hover" ]
             [

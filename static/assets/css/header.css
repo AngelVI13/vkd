@@ -71,6 +71,14 @@ a {
   background-color: var(--c-font-page_hl);
 }
 
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0; /* covers the entire viewport */
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 10; /* above page content */
+}
+
 .nav-menu-container {
   display: none;
   flex-flow: row nowrap;
@@ -189,5 +197,10 @@ a {
   .nav-menu-container:focus-within ~ #topnav {
     display: block;
     background-color: var(--c-font);
+  }
+
+  /* show overlay so the whole screen (apart from the menu) looks dimmer */
+  .nav-menu-container:focus-within ~ .overlay {
+    display: block;
   }
 }
