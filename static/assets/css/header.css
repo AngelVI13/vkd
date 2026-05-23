@@ -26,7 +26,8 @@ a {
   display: flex;
   flex-flow: row nowrap;
   align-items: center;
-  padding: 0 1rem;
+  /* padding: 0 1rem; */
+  padding-left: 1rem;
   gap: 0.75rem;
   font-size: 30px;
   font-weight: bold;
@@ -43,7 +44,7 @@ a {
 }
 
 .site-icon img {
-  width: 45px;
+  width: 40px;
 }
 
 #topnav {
@@ -75,7 +76,7 @@ a {
   display: none;
   position: fixed;
   inset: 0; /* covers the entire viewport */
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--c-page-mask);
   z-index: 10; /* above page content */
 }
 
@@ -89,7 +90,7 @@ a {
   height: 30px;
   width: 20px;
   display: none;
-  margin-left: 1rem;
+  padding: 0 1rem;
   padding-bottom: 10px;
   cursor: pointer;
 }
@@ -189,6 +190,10 @@ a {
     display: block;
   }
 
+  .site-title {
+    padding-left: 0.5rem;
+  }
+
   .site-icon img {
     width: 30px;
   }
@@ -196,7 +201,21 @@ a {
   /* this triggers when user focuses (clicks) the hamburger menu */
   .nav-menu-container:focus-within ~ #topnav {
     display: block;
-    background-color: var(--c-font);
+    position: fixed;
+    top: var(---site-header-height);
+    bottom: 0;
+    background: var(--c-bg-high);
+    padding-bottom: 1.2rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: 2px 5px 7px rgba(0, 0, 0, 0.5);
+    border-radius: 0 3px 0 0;
+  }
+
+  .nav-menu-container:focus-within {
+    background: var(--c-bg-high);
+    z-index: 111;
+    opacity: 1;
   }
 
   /* show overlay so the whole screen (apart from the menu) looks dimmer */
