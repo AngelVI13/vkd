@@ -1,12 +1,12 @@
 :root {
+  --c-font: hsl(0, 0%, 73%);
+  --c-title-color: hsl(0, 0%, 52%);
+  --c-font-page: hsl(0, 0%, 48%);
+  --c-font-page_hl: hsl(120, 30%, 26%);
+  --c-bg-zebra: hsl(37, 5%, 19%);
+  --c-bg-high: hsl(37, 7%, 14%);
   --c-bg-page: hsl(37, 10%, 8%);
   --c-bg-box: hsl(37, 7%, 14%);
   --c-body-gradient: hsl(120, 30%, 16%);
   --c-border: hsl(0, 0%, 25%);
-  --c-font: hsl(0, 0%, 73%);
-  --c-title-color: hsl(0, 0%, 52%);
-  --c-font-page: hsl(0, 0%, 48%);
-  --c-font-page_hl: hsl(0, 0%, 58%);
-  --c-bg-zebra: hsl(37, 5%, 19%);
-  --c-bg-high: hsl(37, 7%, 14%);
 }

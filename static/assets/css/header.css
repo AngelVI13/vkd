@@ -68,11 +68,7 @@ a {
 }
 
 #topnav section > a:hover {
-  /* color: var(--c-body-gradient); */
-  /* background-color: var(--c-font-page_hl); */
-
-  /* TODO: experiment with better highlighing stuff */
-  text-decoration: underline;
+  background-color: var(--c-font-page_hl);
 }
 
 .overlay {
@@ -183,6 +179,10 @@ a {
     left: 0;
     position: absolute;
     z-index: 111;
+  }
+
+  #topnav section > a {
+    margin: 0 1rem;
   }
 
   .nav-menu-container {
