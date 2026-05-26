@@ -26,6 +26,8 @@ type translations = {
   events : string;
   leagues : string;
   runners : string;
+  prev_event : string;
+  next_event : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -38,6 +40,8 @@ let english =
     events = "Events";
     leagues = "Leagues";
     runners = "Runners";
+    prev_event = "Past Event";
+    next_event = "Next Event";
   }
 
 let lithuanian =
@@ -50,6 +54,8 @@ let lithuanian =
     events = "Etapai";
     leagues = "Lygos";
     runners = "Bėgikai";
+    prev_event = "Praėjęs Etapas";
+    next_event = "Sekantis Etapas";
   }
 
 let translation_of_language (lang : language) : translations =

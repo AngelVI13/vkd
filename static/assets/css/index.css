@@ -56,6 +56,24 @@ main {
   gap: 1rem;
 }
 
+.event-container {
+  margin: 1rem;
+}
+
+.event-type {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.event-details {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.event-date {
+  font-style: italic;
+}
+
 .box__top {
   display: flex;
   flex-flow: row wrap;
@@ -104,4 +122,14 @@ td {
 }
 .slist td {
   padding: 1rem;
+}
+
+@media screen and (max-width: 580px) {
+  .event-details {
+    display: block;
+  }
+
+  .event-location {
+    margin-top: 5px;
+  }
 }

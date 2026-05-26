@@ -65,6 +65,20 @@ let ratings_table (t : Page_settings.t) =
         ];
     ]
 
+let event_info ~(event_type : string) (t : Page_settings.t) =
+  let _ = t in
+  div
+    [ class_ "event-container" ]
+    [
+      div [ class_ "event-type" ] [ span [] [ txt "%s" event_type ] ];
+      div
+        [ class_ "event-details" ]
+        [
+          div [ class_ "event-date" ] [ span [] [ txt "2026-05-26" ] ];
+          div [ class_ "event-location" ] [ span [] [ txt "Antakalnis" ] ];
+        ];
+    ]
+
 let prev_next_event (t : Page_settings.t) =
   let _ = t in
   div
@@ -73,8 +87,12 @@ let prev_next_event (t : Page_settings.t) =
       div
         [ class_ "page-small box" ]
         [
-          div [ class_ "prev-event" ] [ txt "Past Event" ];
-          div [ class_ "next-event" ] [ txt "Next Event" ];
+          div
+            [ class_ "prev-event" ]
+            [ event_info ~event_type:t.translations.prev_event t ];
+          div
+            [ class_ "next-event" ]
+            [ event_info ~event_type:t.translations.next_event t ];
         ];
     ]
 
