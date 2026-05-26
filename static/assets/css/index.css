@@ -1,10 +1,13 @@
 #main-wrap {
   ---main-max-width: 1300px;
   display: grid;
-  grid-template-areas: ". . main . .";
+  grid-template-areas:
+    ". . events . ."
+    ". . ratings . .";
   grid-template-columns:
     var(---main-margin) 1fr minmax(auto, var(---main-max-width))
     1fr var(---main-margin);
+  gap: 1rem;
 }
 
 @media screen and (min-height: 600px) {
@@ -17,10 +20,10 @@
 }
 
 main {
-  grid-area: main;
+  grid-area: ratings;
 }
 
-main.page-small {
+.page-small {
   max-width: 1000px;
   margin: auto;
   width: 100%;
@@ -39,6 +42,18 @@ main.page-small {
     border-radius: 7px;
     overflow: hidden;
   }
+}
+
+.prev-next-events {
+  grid-area: events;
+}
+
+.prev-next-events .page-small {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .box__top {
