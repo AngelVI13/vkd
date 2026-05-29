@@ -12,7 +12,8 @@ let head_elems (dark_mode : string) =
         rel "icon";
         type_ "image/png";
         (* path_attr href Static.Assets.Images.logo3_png; *)
-        path_attr href Static.Assets.Images.logo5_png;
+        (* path_attr href Static.Assets.Images.logo5_png; *)
+        path_attr href Static.Assets.Images.vkd_logo_png;
       ];
     title [] "O-Stats";
     (* NOTE: htmx version 2.0.7 *)

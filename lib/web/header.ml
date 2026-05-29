@@ -73,7 +73,8 @@ let elements (t : Page_settings.t) =
             [
               div
                 [ class_ "site-icon" ]
-                [ img [ path_attr src Static.Assets.Images.logo5_png ] ];
+                (* [ img [ path_attr src Static.Assets.Images.logo5_png ] ]; *)
+                [ img [ path_attr src Static.Assets.Images.vkd_logo_png ] ];
               div [ class_ "site-name" ] [ txt "O-Stats" ];
             ];
           div [ class_ "overlay" ] [];
