@@ -743,7 +743,27 @@ let test_rating_fn (handle : Turso.conn) =
 let test (handle : Turso.conn) =
   (* add_leagues_if_not_exists handle Dbsportas.League.leagues; *)
   (* action_refresh_events_and_results handle; *)
-  test_rating_fn handle;
+  (* TODO: this fails with the following exception
+      Uncaught exception:
+
+        Ppx_yojson_conv_lib__Yojson_conv.Of_yojson_error(_, _)
+
+      Raised at Ppx_yojson_conv_lib__Yojson_conv.of_yojson_error in file "yojson_conv.ml", line 57, characters 34-80
+      Called from Vilpage__Events.parse_map_settings in file "lib/vilpage/events.ml", line 129, characters 21-44
+      Called from Vilpage__Events.parse_events_page.(fun) in file "lib/vilpage/events.ml", line 155, characters 41-73
+      Called from Base__List.count_map in file "src/list.ml", line 500, characters 13-17
+      Called from Base__List.count_map in file "src/list.ml", line 507, characters 59-84
+      Called from Base__List.count_map in file "src/list.ml", line 507, characters 59-84
+      Called from Base__List.count_map in file "src/list.ml", line 507, characters 59-84
+      Called from Db.action_refresh_event_details in file "lib/db/db.ml", line 137, characters 19-55
+      Called from Db.test in file "lib/db/db.ml", line 748, characters 2-57
+      Called from Dune__exe__Main.command_test.(fun) in file "bin/main.ml", line 17, characters 7-17
+      Called from Command.For_unix.run.(fun) in file "command/src/command.ml", lines 3270-3281, characters 8-31
+      Called from Base__Exn.handle_uncaught_aux in file "src/exn.ml", line 126, characters 6-10
+
+     *)
+  action_refresh_event_details ~year:(Some "2021") handle;
+  (* test_rating_fn handle; *)
   ()
 
 let%expect_test "make" =

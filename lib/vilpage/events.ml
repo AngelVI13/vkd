@@ -135,6 +135,7 @@ let parse_events_page page_html =
   let events =
     soup $ ".PAGE__body" $$ ".stage" |> to_list
     |> List.map ~f:(fun stage ->
+           Utils.sleep ~s:1;
            let event_date =
              stage $ ".map" $ ".title" $ ".date" |> R.leaf_text |> parse_date
            in
