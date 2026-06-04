@@ -24,6 +24,7 @@ let google_maps_url lat lng =
 let download_map ~event_url =
   let timestamp = now_ms () in
   let full_url = sprintf "%s/settings.json?v=%d" event_url timestamp in
+  printf "Downloading map: %s\n" full_url;
   let page = fetch_page full_url in
   let json = Yojson.Safe.from_string page in
   Trails.Settings.t_of_yojson json
@@ -46,18 +47,32 @@ module MapSettings = struct
   [@@deriving show]
 
   let t_of_Settings ~event_url (settings : Trails.Settings.t) =
-    let default_map_src = sprintf "%s/%s" event_url settings.maps.default.url in
+    let map_basename =
+      match settings.maps with
+      | Some m -> m.default.url
+      | None -> settings.map_settings.url
+    in
+    let default_map_src = sprintf "%s/%s" event_url map_basename in
     let default_map = download_and_encode_img ~url:default_map_src in
     let bike_map_src, bike_map =
-      match settings.maps.d with
+      match settings.maps with
       | None -> (None, None)
-      | Some m ->
-          let map_src = sprintf "%s/%s" event_url m.url in
-          let map = download_and_encode_img ~url:map_src in
-          (Some map_src, Some map)
+      | Some maps -> (
+          match maps.d with
+          | None -> (None, None)
+          | Some m ->
+              let map_src = sprintf "%s/%s" event_url m.url in
+              let map = download_and_encode_img ~url:map_src in
+              (Some map_src, Some map))
+    in
+    let location =
+      match settings.map_settings.controls.finish_loc with
+      (* NOTE: Is it possible that both start and finish are missing ? *)
+      | None -> Option.value_exn settings.map_settings.controls.start_loc
+      | Some loc -> loc
     in
     let location_lat, location_lon =
-      match settings.map_settings.controls.finish_loc with
+      match location with
       | [ lat; lon ] -> (lat, lon)
       | _ ->
           failwith
@@ -143,6 +158,7 @@ let parse_events_page page_html =
              stage $ ".stage-place" $ "a" |> fun n ->
              (R.leaf_text n, R.attribute "href" n)
            in
+           printf "Processing event %s %s\n" location event_link;
            let img_src = stage $ ".map" $ "img" |> R.attribute "src" in
            let img_data = download_and_encode_img ~url:img_src in
            let map_info = stage $ ".map-info" $ ".stage-info" |> R.leaf_text in
@@ -152,6 +168,7 @@ let parse_events_page page_html =
              | Some n -> n $$ "a" |> to_list |> List.map ~f:(R.attribute "href")
            in
            let result_link = parse_results details_links in
+           Utils.sleep ~s:1;
            let map_links, map_settings = parse_map_settings details_links in
            EventInfo.Fields.create ~date:event_date ~thumbnail_src:img_src
              ~thumbnail:img_data ~location ~event_link ~map_info ~map_links
@@ -208,4 +225,4 @@ let%expect_test "parse_map_settings" =
 
   [%expect
     {|
-    {"success":true,"key":"vk-antakalnis-2026","title":"VK Antakalnis 2026","map_settings":{"controls":{"F":[54.722195,25.315314]}},"maps":{"D":{"url":"vk-antakalnis-2026-d.gif"},"default":{"url":"vk-antakalnis-2026-default.gif"}}} |}]
+    {"success":true,"key":"vk-antakalnis-2026","title":"VK Antakalnis 2026","map_settings":{"controls":{"F":[54.722195,25.315314],"S":[54.721908,25.315532]},"url":"vk-antakalnis-2026-default.gif"},"maps":{"D":{"url":"vk-antakalnis-2026-d.gif"},"default":{"url":"vk-antakalnis-2026-default.gif"}}} |}]

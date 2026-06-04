@@ -8,8 +8,8 @@ let translations_field =
   Dream.new_field () ~name:"translations"
     ~show_value:Localization.show_translations
 
-let handle_index ~settings request =
-  let _ = request in
+let handle_index ~(db : Db.t) ~settings request =
+  let _ = (request, db) in
   let page = Index.page settings in
 
   Dream_html.respond page
@@ -117,7 +117,7 @@ let run ~(db : Db.t) =
             Paths.index_en (i.e. Dream_html paths) *)
          Dream.scope "/:lang" [ lang_middleware ]
            [
-             Dream_html.get Paths.index (with_settings handle_index);
+             Dream_html.get Paths.index (with_settings (handle_index ~db));
              Dream_html.get Paths.user (with_settings handle_user);
            ];
          (* TODO: add endpoint to change from light to dark mode *)

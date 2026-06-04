@@ -182,6 +182,55 @@ let _add_league_event (handle : Turso.conn) (league_id : int)
     ~event_date:(Utils.format_time_as_date event.date)
     ~location:event.location
 
+module EventInfoExtra = struct
+  type t = {
+    event_id : int;
+    league_id : int;
+    league_name : string;
+    event_nr : int;
+    event_date : Time_ns.t;
+    location : string;
+    event_link : string;
+    thumbnail : string;
+    map_info : string;
+    links : string list;
+  }
+
+  let t_of_db_row row : t =
+    let ( league_event_id,
+          league_id,
+          event_nr,
+          event_date,
+          location,
+          league_name,
+          event_link,
+          thumbnail,
+          map_info,
+          links ) =
+      row
+    in
+    let _ = links in
+    {
+      event_id = Int64.to_int_exn league_event_id;
+      league_id = Int64.to_int_exn league_id;
+      league_name;
+      event_nr = Int64.to_int_exn event_nr;
+      event_date = Utils.time_of_date event_date;
+      location;
+      event_link;
+      (* TODO: decode from base64 *)
+      thumbnail;
+      map_info;
+      (* TODO: split by , and decode from base64 *)
+      links = [];
+    }
+end
+
+(* TODO: test this *)
+let league_event_before (handle : Turso.conn) (date : string) =
+  let result = DB.league_event_before handle ~input_date:date in
+  Option.map result ~f:EventInfoExtra.t_of_db_row
+
 (* TODO: make sure to add leagues first and then start processing events *)
 (* NOTE: use this when a new league is available *)
 let add_leagues_if_not_exists (handle : Turso.conn)
@@ -743,27 +792,9 @@ let test_rating_fn (handle : Turso.conn) =
 let test (handle : Turso.conn) =
   (* add_leagues_if_not_exists handle Dbsportas.League.leagues; *)
   (* action_refresh_events_and_results handle; *)
-  (* TODO: this fails with the following exception
-      Uncaught exception:
-
-        Ppx_yojson_conv_lib__Yojson_conv.Of_yojson_error(_, _)
-
-      Raised at Ppx_yojson_conv_lib__Yojson_conv.of_yojson_error in file "yojson_conv.ml", line 57, characters 34-80
-      Called from Vilpage__Events.parse_map_settings in file "lib/vilpage/events.ml", line 129, characters 21-44
-      Called from Vilpage__Events.parse_events_page.(fun) in file "lib/vilpage/events.ml", line 155, characters 41-73
-      Called from Base__List.count_map in file "src/list.ml", line 500, characters 13-17
-      Called from Base__List.count_map in file "src/list.ml", line 507, characters 59-84
-      Called from Base__List.count_map in file "src/list.ml", line 507, characters 59-84
-      Called from Base__List.count_map in file "src/list.ml", line 507, characters 59-84
-      Called from Db.action_refresh_event_details in file "lib/db/db.ml", line 137, characters 19-55
-      Called from Db.test in file "lib/db/db.ml", line 748, characters 2-57
-      Called from Dune__exe__Main.command_test.(fun) in file "bin/main.ml", line 17, characters 7-17
-      Called from Command.For_unix.run.(fun) in file "command/src/command.ml", lines 3270-3281, characters 8-31
-      Called from Base__Exn.handle_uncaught_aux in file "src/exn.ml", line 126, characters 6-10
-
-     *)
-  action_refresh_event_details ~year:(Some "2021") handle;
+  (* action_refresh_event_details ~year:(Some "2026") handle; *)
   (* test_rating_fn handle; *)
+  let _ = handle in
   ()
 
 let%expect_test "make" =

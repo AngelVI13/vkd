@@ -11,12 +11,15 @@ module Maps = struct
 end
 
 module Controls = struct
-  type t = { finish_loc : float list [@key "F"] }
+  type t = {
+    finish_loc : float list option; [@key "F"] [@yojson.option]
+    start_loc : float list option; [@key "S"] [@yojson.option]
+  }
   [@@deriving yojson] [@@yojson.allow_extra_fields]
 end
 
 module MapSettings = struct
-  type t = { controls : Controls.t }
+  type t = { controls : Controls.t; url : string }
   [@@deriving yojson] [@@yojson.allow_extra_fields]
 end
 
@@ -26,7 +29,7 @@ module Settings = struct
     key : string;
     title : string;
     map_settings : MapSettings.t;
-    maps : Maps.t;
+    maps : Maps.t option; [@yojson.option]
   }
   [@@deriving yojson] [@@yojson.allow_extra_fields]
 end
