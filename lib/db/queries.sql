@@ -63,8 +63,14 @@ CREATE TABLE IF NOT EXISTS event_map_links (
 -- @add_event_map_link
 INSERT INTO event_map_links VALUES;
 
+-- TODO: add indexes to speed up these queries
+-- CREATE INDEX IF NOT EXISTS idx_league_events_date ON league_events(event_date DESC);
+-- CREATE INDEX IF NOT EXISTS idx_event_details_date ON event_details(event_date);
+-- CREATE INDEX IF NOT EXISTS idx_event_map_links_date ON event_map_links(event_date);
+
 -- @league_event_before
-SELECT le.*, l.name AS league_name, ed.event_link, ed.thumbnail, ed.map_info, ls.links
+SELECT le.league_id, le.event_nr, le.event_date, le.location, l.name AS league_name, 
+    ed.event_link, ed.thumbnail, ed.map_info --, ls.links
 FROM league_events le
 JOIN leagues l ON le.league_id = l.id
 LEFT JOIN event_details ed ON le.event_date = ed.event_date
@@ -74,7 +80,8 @@ ORDER BY le.event_date DESC
 LIMIT 1;
 
 -- @league_event_after_or_eq
-SELECT le.*, l.name AS league_name, ed.event_link, ed.thumbnail, ed.map_info, ls.links
+SELECT le.league_id, le.event_nr, le.event_date, le.location, l.name AS league_name, 
+    ed.event_link, ed.thumbnail, ed.map_info, ls.links
 FROM league_events le
 JOIN leagues l ON le.league_id = l.id
 LEFT JOIN event_details ed ON le.event_date = ed.event_date

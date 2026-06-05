@@ -42,6 +42,10 @@ let of_base64 s = Base64.decode_exn ~pad:false s
 let sleep ~(s : int) =
   Time_ns_unix.pause (Time_ns.Span.create ~ms:(s * 1000) ())
 
+let today_string () =
+  let now = Time_ns_unix.now () in
+  format_time_as_date now
+
 let%expect_test "time_of_string" =
   let time = time_of_string "1:02:03" in
   printf "%d" (Option.value_exn time);

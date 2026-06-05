@@ -138,6 +138,7 @@ let action_refresh_event_details ?(year : string option = None)
 
   List.iter new_events ~f:(fun ev ->
       match List.find existing ~f:(fun v -> Time_ns.(ev.date = v.date)) with
+      (* TODO: what if we already have link? why are we not adding them here ? *)
       | None -> _add_event_details handle ev
       | Some v ->
           if List.length v.map_links = 0 && List.length ev.map_links > 0 then (
@@ -184,49 +185,47 @@ let _add_league_event (handle : Turso.conn) (league_id : int)
 
 module EventInfoExtra = struct
   type t = {
-    event_id : int;
     league_id : int;
     league_name : string;
     event_nr : int;
-    event_date : Time_ns.t;
+    event_date : Time_ns_unix.t;
     location : string;
     event_link : string;
     thumbnail : string;
     map_info : string;
     links : string list;
   }
+  [@@deriving show]
 
   let t_of_db_row row : t =
-    let ( league_event_id,
-          league_id,
+    let ( league_id,
           event_nr,
           event_date,
           location,
           league_name,
           event_link,
           thumbnail,
-          map_info,
-          links ) =
+          map_info
+          (*,*)
+          (* links  *) ) =
       row
     in
-    let _ = links in
+    (* TODO: whenever the links are missing then this query crashes because for some reason it expects text but gets NULL *)
+    (* TODO: uncomment the links from the queries.sql *)
+    (* let links = links |> String.split ~on:',' |> List.map ~f:Utils.of_base64 in *)
     {
-      event_id = Int64.to_int_exn league_event_id;
       league_id = Int64.to_int_exn league_id;
       league_name;
       event_nr = Int64.to_int_exn event_nr;
       event_date = Utils.time_of_date event_date;
       location;
       event_link;
-      (* TODO: decode from base64 *)
       thumbnail;
       map_info;
-      (* TODO: split by , and decode from base64 *)
       links = [];
     }
 end
 
-(* TODO: test this *)
 let league_event_before (handle : Turso.conn) (date : string) =
   let result = DB.league_event_before handle ~input_date:date in
   Option.map result ~f:EventInfoExtra.t_of_db_row

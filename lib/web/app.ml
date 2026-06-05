@@ -12,6 +12,15 @@ let handle_index ~(db : Db.t) ~settings request =
   let _ = (request, db) in
   let page = Index.page settings in
 
+  let today = Utils.today_string () in
+
+  let event = Db.league_event_before db today in
+  let event_str =
+    Option.value_map event ~default:"None" ~f:(fun e ->
+        Db.EventInfoExtra.show e)
+  in
+  Dream.log "Event before: %s\n" event_str;
+
   Dream_html.respond page
 
 let handle_user ~settings request =
