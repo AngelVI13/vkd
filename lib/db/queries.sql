@@ -69,15 +69,17 @@ INSERT INTO event_map_links VALUES;
 -- CREATE INDEX IF NOT EXISTS idx_event_map_links_date ON event_map_links(event_date);
 
 -- @league_event_before
-SELECT le.league_id, le.event_nr, le.event_date, le.location, l.name AS league_name, 
-    ed.event_link, ed.thumbnail, ed.map_info --, ls.links
+SELECT 
+    le.*,
+    l.name AS league_name, 
+    ed.event_link, ed.thumbnail, ed.map_info,
+    ls.links
 FROM league_events le
 JOIN leagues l ON le.league_id = l.id
 LEFT JOIN event_details ed ON le.event_date = ed.event_date
 LEFT JOIN event_map_links ls ON le.event_date = ls.event_date
 WHERE le.event_date < @input_date
-ORDER BY le.event_date DESC
-LIMIT 1;
+ORDER BY le.event_date DESC;
 
 -- @league_event_after_or_eq
 SELECT le.league_id, le.event_nr, le.event_date, le.location, l.name AS league_name, 

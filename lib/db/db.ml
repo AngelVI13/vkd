@@ -185,6 +185,7 @@ let _add_league_event (handle : Turso.conn) (league_id : int)
 
 module EventInfoExtra = struct
   type t = {
+    event_id : int;
     league_id : int;
     league_name : string;
     event_nr : int;
@@ -198,22 +199,23 @@ module EventInfoExtra = struct
   [@@deriving show]
 
   let t_of_db_row row : t =
-    let ( league_id,
+    let ( event_id,
+          league_id,
           event_nr,
           event_date,
           location,
           league_name,
           event_link,
           thumbnail,
-          map_info
-          (*,*)
-          (* links  *) ) =
+          map_info,
+          links ) =
       row
     in
     (* TODO: whenever the links are missing then this query crashes because for some reason it expects text but gets NULL *)
     (* TODO: uncomment the links from the queries.sql *)
-    (* let links = links |> String.split ~on:',' |> List.map ~f:Utils.of_base64 in *)
+    let links = links |> String.split ~on:',' |> List.map ~f:Utils.of_base64 in
     {
+      event_id = Int64.to_int_exn event_id;
       league_id = Int64.to_int_exn league_id;
       league_name;
       event_nr = Int64.to_int_exn event_nr;
@@ -222,13 +224,40 @@ module EventInfoExtra = struct
       event_link;
       thumbnail;
       map_info;
-      links = [];
+      links;
     }
 end
 
 let league_event_before (handle : Turso.conn) (date : string) =
-  let result = DB.league_event_before handle ~input_date:date in
-  Option.map result ~f:EventInfoExtra.t_of_db_row
+  let results = ref [] in
+  (* TODO: this didn't help but i link that values are returned by name -> define custom db parsing of results ? *)
+  DB.league_event_before handle ~input_date:date
+    (fun
+      ~id
+      ~league_id
+      ~event_nr
+      ~event_date
+      ~location
+      ~league_name
+      ~event_link
+      ~thumbnail
+      ~map_info
+      ~links
+    ->
+      results :=
+        EventInfoExtra.t_of_db_row
+          ( id,
+            league_id,
+            event_nr,
+            event_date,
+            location,
+            league_name,
+            event_link,
+            thumbnail,
+            map_info,
+            links )
+        :: !results);
+  List.hd !results
 
 (* TODO: make sure to add leagues first and then start processing events *)
 (* NOTE: use this when a new league is available *)
