@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS league_events (
     location TEXT NOT NULL
 );
 
+-- @create_league_events_date_idx
+CREATE INDEX IF NOT EXISTS idx_league_events_date ON league_events(event_date DESC);
+
 -- @add_league_event
 INSERT INTO league_events VALUES;
 
@@ -48,6 +51,9 @@ CREATE TABLE IF NOT EXISTS event_details (
     map_info TEXT NOT NULL
 );
 
+-- @create_event_details_date_idx
+CREATE INDEX IF NOT EXISTS idx_event_details_date ON event_details(event_date);
+
 -- @add_event_details
 INSERT INTO event_details VALUES;
 
@@ -59,14 +65,12 @@ CREATE TABLE IF NOT EXISTS event_map_links (
     -- NOTE: this is a comma separated base64 encoded urls
     links TEXT NOT NULL
 );
+-- @create_event_map_links_date_idx
+CREATE INDEX IF NOT EXISTS idx_event_map_links_date ON event_map_links(event_date);
 
 -- @add_event_map_link
 INSERT INTO event_map_links VALUES;
 
--- TODO: add indexes to speed up these queries
--- CREATE INDEX IF NOT EXISTS idx_league_events_date ON league_events(event_date DESC);
--- CREATE INDEX IF NOT EXISTS idx_event_details_date ON event_details(event_date);
--- CREATE INDEX IF NOT EXISTS idx_event_map_links_date ON event_map_links(event_date);
 
 -- @league_event_before
 SELECT 
@@ -79,7 +83,8 @@ JOIN leagues l ON le.league_id = l.id
 LEFT JOIN event_details ed ON le.event_date = ed.event_date
 LEFT JOIN event_map_links ls ON le.event_date = ls.event_date
 WHERE le.event_date < @input_date
-ORDER BY le.event_date DESC;
+ORDER BY le.event_date DESC
+LIMIT 1;
 
 -- @league_event_after_or_eq
 SELECT le.league_id, le.event_nr, le.event_date, le.location, l.name AS league_name, 
@@ -127,6 +132,11 @@ CREATE TABLE IF NOT EXISTS event_maps (
     lat FLOAT NOT NULL,
     lon FLOAT NOT NULL
 );
+
+-- @create_event_maps_date_idx
+CREATE INDEX IF NOT EXISTS idx_event_maps_date ON event_maps(event_date DESC);
+
+-- TODO: create indexes to all other tables below that might benefit from it
 
 -- @add_event_map
 INSERT INTO event_maps VALUES;

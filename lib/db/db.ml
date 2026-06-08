@@ -60,6 +60,12 @@ let create_tables (handle : Turso.conn) =
   let _ = DB.create_runners handle in
   let _ = DB.create_ratings handle in
   let _ = DB.create_medals handle in
+
+  (* indexes *)
+  let _ = DB.create_league_events_date_idx handle in
+  let _ = DB.create_event_details_date_idx handle in
+  let _ = DB.create_event_map_links_date_idx handle in
+  let _ = DB.create_event_maps_date_idx handle in
   ignore (Turso.send_buffered handle)
 
 (* NOTE: this is not needed for turso connection *)
@@ -83,7 +89,7 @@ let event_details_for_year (handle : Turso.conn) (year : string) :
          (* TODO: modify query to return the map settings and result links etc *)
          let event =
            Vilpage.Events.EventInfo.Fields.create
-             ~date:(Time_ns_unix.of_string event_date)
+             ~date:(Utils.time_of_date event_date)
              ~thumbnail ~thumbnail_src:"" ~event_link ~location ~map_info
              ~map_links ~map_settings:None ~result_link:None
          in
@@ -141,10 +147,10 @@ let action_refresh_event_details ?(year : string option = None)
 
   List.iter new_events ~f:(fun ev ->
       match List.find existing ~f:(fun v -> Time_ns.(ev.date = v.date)) with
-      (* TODO: what if we already have link? why are we not adding them here ? *)
       | None -> _add_event_details handle ev
       | Some v ->
           if List.length v.map_links = 0 && List.length ev.map_links > 0 then (
+            (* TODO: this doesn't add links for some reason - check it *)
             _add_event_links handle ev.date ev.map_links;
             _add_event_map handle ev.map_settings
               ~event_date:(Utils.format_time_as_date ev.date))
@@ -220,6 +226,7 @@ module EventInfoExtra = struct
       | Some links ->
           links |> String.split ~on:',' |> List.map ~f:Utils.of_base64
     in
+    let event_link = Option.map event_link ~f:Utils.of_base64 in
     {
       event_id = Int64.to_int_exn event_id;
       league_id = Int64.to_int_exn league_id;
@@ -235,46 +242,8 @@ module EventInfoExtra = struct
 end
 
 let league_event_before (handle : Turso.conn) (date : string) =
-  (* TODO: this is the event i get when i run the query. This looks very incorrect 
-08.06.26 13:33:03.757                       REQ 1 Event before: { Db.EventInfoExtra.event_id = 1; league_id = 141;
-  league_name = "Vilniaus ketvirtadieniai"; event_nr = 1;
-  event_date = 2020-05-07 03:00:00.000000000+03:00;
-  location = "Pilait\196\151";
-  event_link =
-  (Some "aHR0cHM6Ly92aWxuaWF1c2tldHZpcnRhZGllbmlhaS5sdC8yMDIwL3Nlbm9qaS1waWxhaXRlLw");
-  thumbnail = <opaque>;
-  map_info =
-  (Some "\197\189em\196\151lapis:\nSkirmantas Ramo\197\161ka\n2020 m.\nM 1:6000, H 2.5");
-  links = [] }
-  *)
-  let results = ref [] in
-  DB.league_event_before handle ~input_date:date
-    (fun
-      ~id
-      ~league_id
-      ~event_nr
-      ~event_date
-      ~location
-      ~league_name
-      ~event_link
-      ~thumbnail
-      ~map_info
-      ~links
-    ->
-      results :=
-        EventInfoExtra.t_of_db_row
-          ( id,
-            league_id,
-            event_nr,
-            event_date,
-            location,
-            league_name,
-            event_link,
-            thumbnail,
-            map_info,
-            links )
-        :: !results);
-  List.hd !results
+  let row = DB.league_event_before handle ~input_date:date in
+  Option.map row ~f:(fun r -> EventInfoExtra.t_of_db_row r)
 
 (* TODO: make sure to add leagues first and then start processing events *)
 (* NOTE: use this when a new league is available *)
