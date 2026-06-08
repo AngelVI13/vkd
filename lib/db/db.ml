@@ -75,7 +75,10 @@ let event_details_for_year (handle : Turso.conn) (year : string) :
        (fun ~id ~event_link ~event_date ~location ~thumbnail ~map_info ~links ->
          let _ = id in
          let map_links =
-           links |> String.split ~on:',' |> List.map ~f:Utils.of_base64
+           match links with
+           | None -> []
+           | Some links ->
+               links |> String.split ~on:',' |> List.map ~f:Utils.of_base64
          in
          (* TODO: modify query to return the map settings and result links etc *)
          let event =
@@ -191,9 +194,9 @@ module EventInfoExtra = struct
     event_nr : int;
     event_date : Time_ns_unix.t;
     location : string;
-    event_link : string;
-    thumbnail : string;
-    map_info : string;
+    event_link : string option;
+    thumbnail : string option; [@opaque]
+    map_info : string option;
     links : string list;
   }
   [@@deriving show]
@@ -211,9 +214,12 @@ module EventInfoExtra = struct
           links ) =
       row
     in
-    (* TODO: whenever the links are missing then this query crashes because for some reason it expects text but gets NULL *)
-    (* TODO: uncomment the links from the queries.sql *)
-    let links = links |> String.split ~on:',' |> List.map ~f:Utils.of_base64 in
+    let links =
+      match links with
+      | None -> []
+      | Some links ->
+          links |> String.split ~on:',' |> List.map ~f:Utils.of_base64
+    in
     {
       event_id = Int64.to_int_exn event_id;
       league_id = Int64.to_int_exn league_id;
@@ -229,8 +235,19 @@ module EventInfoExtra = struct
 end
 
 let league_event_before (handle : Turso.conn) (date : string) =
+  (* TODO: this is the event i get when i run the query. This looks very incorrect 
+08.06.26 13:33:03.757                       REQ 1 Event before: { Db.EventInfoExtra.event_id = 1; league_id = 141;
+  league_name = "Vilniaus ketvirtadieniai"; event_nr = 1;
+  event_date = 2020-05-07 03:00:00.000000000+03:00;
+  location = "Pilait\196\151";
+  event_link =
+  (Some "aHR0cHM6Ly92aWxuaWF1c2tldHZpcnRhZGllbmlhaS5sdC8yMDIwL3Nlbm9qaS1waWxhaXRlLw");
+  thumbnail = <opaque>;
+  map_info =
+  (Some "\197\189em\196\151lapis:\nSkirmantas Ramo\197\161ka\n2020 m.\nM 1:6000, H 2.5");
+  links = [] }
+  *)
   let results = ref [] in
-  (* TODO: this didn't help but i link that values are returned by name -> define custom db parsing of results ? *)
   DB.league_event_before handle ~input_date:date
     (fun
       ~id
