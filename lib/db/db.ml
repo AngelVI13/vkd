@@ -150,7 +150,6 @@ let action_refresh_event_details ?(year : string option = None)
       | None -> _add_event_details handle ev
       | Some v ->
           if List.length v.map_links = 0 && List.length ev.map_links > 0 then (
-            (* TODO: this doesn't add links for some reason - check it *)
             _add_event_links handle ev.date ev.map_links;
             _add_event_map handle ev.map_settings
               ~event_date:(Utils.format_time_as_date ev.date))
