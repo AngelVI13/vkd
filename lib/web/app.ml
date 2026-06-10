@@ -9,18 +9,12 @@ let translations_field =
     ~show_value:Localization.show_translations
 
 let handle_index ~(db : Db.t) ~settings request =
-  let _ = (request, db) in
-  let page = Index.page settings in
-
+  let _ = request in
   let today = Utils.today_string () in
+  (* TODO: cache this result somehow cause it's expensive to compute *)
+  let events = Db.league_event_before_and_after db today in
 
-  let event = Db.league_event_before db today in
-  let event_str =
-    Option.value_map event ~default:"None" ~f:(fun e ->
-        Db.EventInfoExtra.show e)
-  in
-  Dream.log "Event before: %s\n" event_str;
-
+  let page = Index.page settings events in
   Dream_html.respond page
 
 let handle_user ~settings request =

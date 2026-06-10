@@ -65,8 +65,20 @@ let ratings_table (t : Page_settings.t) =
         ];
     ]
 
-let event_info ~(event_type : string) (t : Page_settings.t) =
+let event_info ~(event_type : string) (event : Db.EventInfoExtra.t option)
+    (t : Page_settings.t) =
   let _ = t in
+  let event_date, event_location =
+    match event with
+    | None -> ("-", "-")
+    | Some e ->
+        let date = Utils.format_time_as_date e.event_date in
+        let location =
+          match e.official_location with None -> e.location | Some l -> l
+        in
+        (date, location)
+  in
+  (* TODO: links to event page & more info to event (atleast for bigger screens) *)
   div
     [ class_ "event-container" ]
     [
@@ -74,13 +86,16 @@ let event_info ~(event_type : string) (t : Page_settings.t) =
       div
         [ class_ "event-details" ]
         [
-          div [ class_ "event-date" ] [ span [] [ txt "2026-05-26" ] ];
-          div [ class_ "event-location" ] [ span [] [ txt "Antakalnis" ] ];
+          div [ class_ "event-date" ] [ span [] [ txt "%s" event_date ] ];
+          div
+            [ class_ "event-location" ]
+            [ span [] [ txt "%s" event_location ] ];
         ];
     ]
 
-let prev_next_event (t : Page_settings.t) =
-  let _ = t in
+let prev_next_event (t : Page_settings.t)
+    (events : Db.EventInfoExtra.t option * Db.EventInfoExtra.t option) =
+  let event_before, event_after = events in
   div
     [ class_ "prev-next-events" ]
     [
@@ -89,14 +104,15 @@ let prev_next_event (t : Page_settings.t) =
         [
           div
             [ class_ "prev-event" ]
-            [ event_info ~event_type:t.translations.prev_event t ];
+            [ event_info ~event_type:t.translations.prev_event event_before t ];
           div
             [ class_ "next-event" ]
-            [ event_info ~event_type:t.translations.next_event t ];
+            [ event_info ~event_type:t.translations.next_event event_after t ];
         ];
     ]
 
-let page (t : Page_settings.t) =
+let page (t : Page_settings.t)
+    (events : Db.EventInfoExtra.t option * Db.EventInfoExtra.t option) =
   html
     [ lang "en" ]
     [
@@ -107,7 +123,7 @@ let page (t : Page_settings.t) =
           div
             [ id "main-wrap" ]
             [
-              prev_next_event t;
+              prev_next_event t events;
               main [ class_ "page-small box" ] [ ratings_table t ];
             ];
         ];

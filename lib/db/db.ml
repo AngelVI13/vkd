@@ -198,27 +198,19 @@ module EventInfoExtra = struct
     league_name : string;
     event_nr : int;
     event_date : Time_ns_unix.t;
+    (* This is the preiliminary location name *)
     location : string;
     event_link : string option;
     thumbnail : string option; [@opaque]
     map_info : string option;
+    (* This is the real location displayed in the results *)
+    official_location : string option;
     links : string list;
   }
   [@@deriving show]
 
-  let t_of_db_row row : t =
-    let ( event_id,
-          league_id,
-          event_nr,
-          event_date,
-          location,
-          league_name,
-          event_link,
-          thumbnail,
-          map_info,
-          links ) =
-      row
-    in
+  let t_of_db_row ~id ~league_id ~event_nr ~event_date ~location ~league_name
+      ~event_link ~thumbnail ~map_info ~official_location ~links : t =
     let links =
       match links with
       | None -> []
@@ -227,7 +219,7 @@ module EventInfoExtra = struct
     in
     let event_link = Option.map event_link ~f:Utils.of_base64 in
     {
-      event_id = Int64.to_int_exn event_id;
+      event_id = Int64.to_int_exn id;
       league_id = Int64.to_int_exn league_id;
       league_name;
       event_nr = Int64.to_int_exn event_nr;
@@ -236,13 +228,41 @@ module EventInfoExtra = struct
       event_link;
       thumbnail;
       map_info;
+      official_location;
       links;
     }
 end
 
-let league_event_before (handle : Turso.conn) (date : string) =
-  let row = DB.league_event_before handle ~input_date:date in
-  Option.map row ~f:(fun r -> EventInfoExtra.t_of_db_row r)
+let league_event_before_and_after (handle : Turso.conn) (date : string) =
+  let results = ref [] in
+  DB.league_event_neighbors handle ~input_date:date
+    (fun
+      ~id
+      ~league_id
+      ~event_nr
+      ~event_date
+      ~location
+      ~league_name
+      ~event_link
+      ~thumbnail
+      ~map_info
+      ~official_location
+      ~links
+    ->
+      results :=
+        EventInfoExtra.t_of_db_row ~id ~league_id ~event_nr ~event_date
+          ~location ~league_name ~event_link ~thumbnail ~map_info
+          ~official_location ~links
+        :: !results);
+  let results = List.rev !results in
+  match List.length results with
+  | 2 -> (Some (List.nth_exn results 0), Some (List.nth_exn results 1))
+  | 1 ->
+      let event = List.hd_exn results in
+      if String.(date > Utils.format_time_as_date event.event_date) then
+        (Some event, None)
+      else (None, Some event)
+  | _ -> (None, None)
 
 (* TODO: make sure to add leagues first and then start processing events *)
 (* NOTE: use this when a new league is available *)
