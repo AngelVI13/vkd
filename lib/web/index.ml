@@ -65,32 +65,44 @@ let ratings_table (t : Page_settings.t) =
         ];
     ]
 
+let event_details (event : Db.EventInfoExtra.t option) =
+  match event with
+  | None -> []
+  | Some ev ->
+      let date = Utils.format_time_as_date ev.event_date in
+      let location =
+        match ev.official_location with None -> ev.location | Some l -> l
+      in
+      [
+        div [ class_ "event-date" ] [ span [] [ txt "%s" date ] ];
+        div [ class_ "event-location" ] [ span [] [ txt "%s" location ] ];
+        (if Option.is_some ev.thumbnail then
+           div
+             [ class_ "event-img" ]
+             [
+               img
+                 [
+                   src "data:image/jpg;base64,%s"
+                     (Option.value_exn ev.thumbnail);
+                 ];
+             ]
+         else null []);
+        (if Option.is_some ev.map_info then
+           div
+             [ class_ "event-map-info" ]
+             [ span [] [ txt "%s" (Option.value_exn ev.map_info) ] ]
+         else null []);
+      ]
+
 let event_info ~(event_type : string) (event : Db.EventInfoExtra.t option)
     (t : Page_settings.t) =
   let _ = t in
-  let event_date, event_location =
-    match event with
-    | None -> ("-", "-")
-    | Some e ->
-        let date = Utils.format_time_as_date e.event_date in
-        let location =
-          match e.official_location with None -> e.location | Some l -> l
-        in
-        (date, location)
-  in
   (* TODO: links to event page & more info to event (atleast for bigger screens) *)
   div
     [ class_ "event-container" ]
     [
       div [ class_ "event-type" ] [ span [] [ txt "%s" event_type ] ];
-      div
-        [ class_ "event-details" ]
-        [
-          div [ class_ "event-date" ] [ span [] [ txt "%s" event_date ] ];
-          div
-            [ class_ "event-location" ]
-            [ span [] [ txt "%s" event_location ] ];
-        ];
+      div [ class_ "event-details" ] (event_details event);
     ]
 
 let prev_next_event (t : Page_settings.t)

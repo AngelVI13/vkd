@@ -51,9 +51,13 @@ main {
 .prev-next-events .page-small {
   display: flex;
   flex-flow: row wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.prev-next-events .page-small > div {
+  flex: 1;
 }
 
 .event-container {
@@ -67,11 +71,21 @@ main {
 
 .event-details {
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 0.5rem;
+}
+
+.event-details > div {
+  flex: 1 1 calc(50% - 0.25rem); /* 50% width minus half the gap */
 }
 
 .event-date {
   font-style: italic;
+}
+
+.event-img img {
+  width: 200px;
 }
 
 .box__top {
