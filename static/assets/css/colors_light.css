@@ -9,4 +9,9 @@
   --c-font-page: hsl(0, 0%, 37%);
   --c-font-page_hl: hsl(37, 12%, 85%);
   --c-title-color: hsl(0, 0%, 22%);
+  --c-ublog-post-card-over-image: #333;
+  --c-font-dimmer: hsl(0, 0%, 70%);
+  --c-font-dim: hsl(0, 0%, 47%);
+  --c-evt-over-img: hsla(0, 0%, 100%, 0.65);
+  --c-evt-over-img-sdw: #fff;
 }
