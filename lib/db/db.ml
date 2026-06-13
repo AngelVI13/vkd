@@ -254,7 +254,9 @@ let latest_league_events (handle : Turso.conn) (date : string) =
           ~location ~league_name ~event_link ~thumbnail ~map_info
           ~official_location ~links
         :: !results);
-  List.rev !results
+  List.sort
+    ~compare:(fun e1 e2 -> String.compare e1.event_date e2.event_date)
+    !results
 
 (* TODO: make sure to add leagues first and then start processing events *)
 (* NOTE: use this when a new league is available *)
