@@ -233,7 +233,7 @@ module EventInfoExtra = struct
     }
 end
 
-let league_event_before_and_after (handle : Turso.conn) (date : string) =
+let latest_league_events (handle : Turso.conn) (date : string) =
   let results = ref [] in
   DB.league_event_neighbors handle ~input_date:date
     (fun
@@ -254,14 +254,7 @@ let league_event_before_and_after (handle : Turso.conn) (date : string) =
           ~location ~league_name ~event_link ~thumbnail ~map_info
           ~official_location ~links
         :: !results);
-  let results = List.rev !results in
-  match List.length results with
-  | 2 -> (Some (List.nth_exn results 0), Some (List.nth_exn results 1))
-  | 1 ->
-      let event = List.hd_exn results in
-      if String.(date > event.event_date) then (Some event, None)
-      else (None, Some event)
-  | _ -> (None, None)
+  List.rev !results
 
 (* TODO: make sure to add leagues first and then start processing events *)
 (* NOTE: use this when a new league is available *)

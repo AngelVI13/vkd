@@ -50,11 +50,11 @@ main {
   flex-flow: row nowrap;
   width: fit-content;
   align-items: stretch;
+  gap: 10px;
 }
 
 .event-card {
   width: 200px;
-  margin-right: 15px;
   background: var(--c-bg-box);
   /**/
   transition: box-shadow 150ms ease;

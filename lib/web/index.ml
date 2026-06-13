@@ -95,8 +95,9 @@ let details_with_img (ev : Db.EventInfoExtra.t) (date : string)
       ];
   ]
 
-let details_for_existing_event (t : Page_settings.t) (ev : Db.EventInfoExtra.t)
-    =
+(* TODO: maybe show the past event cards a bit grayed out or sth so its clear
+   what is older and what is newer *)
+let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t) =
   let date = ev.event_date in
   let location =
     match ev.official_location with None -> ev.location | Some l -> l
@@ -111,28 +112,21 @@ let details_for_existing_event (t : Page_settings.t) (ev : Db.EventInfoExtra.t)
       (details_with_img ev date location);
   ]
 
-let event_card (event : Db.EventInfoExtra.t option) (t : Page_settings.t) =
+let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
   let default =
     (* TODO: whats the lithuanian equivalent of TBA (to be announced) *)
     Db.EventInfoExtra.Fields.create ~event_id:0 ~league_id:0 ~league_name:""
       ~event_nr:0 ~event_date:"TBA" ~location:"TBA" ~event_link:None
       ~thumbnail:None ~map_info:(Some "TBA") ~official_location:None ~links:[]
   in
-  let ev = Option.value event ~default in
-  details_for_existing_event t ev
-
-let event_carousel (t : Page_settings.t)
-    (events : Db.EventInfoExtra.t option * Db.EventInfoExtra.t option) =
-  let event_before, event_after = events in
+  let events =
+    if List.length events < 5 then events @ [ default ] else events
+  in
   div
     [ class_ "carousel__track page-small" ]
-    (event_card event_before t @ event_card event_after t
-   @
-   (* TODO: remove this after testing *)
-   event_card None t)
+    (List.map events ~f:(fun e -> null (event_card t e)))
 
-let page (t : Page_settings.t)
-    (events : Db.EventInfoExtra.t option * Db.EventInfoExtra.t option) =
+let page (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
   html
     [ lang "en" ]
     [

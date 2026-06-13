@@ -91,7 +91,7 @@ before AS (
     FROM base
     WHERE event_date < @input_date
     ORDER BY event_date DESC
-    LIMIT 1
+    LIMIT 4
 ),
 after_or_eq AS (
     SELECT *

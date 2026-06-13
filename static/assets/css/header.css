@@ -1,7 +1,9 @@
 #top {
   display: flex;
   justify-content: space-between;
-  position: relative;
+  position: fixed;
+  top: 0;
+  width: 100%;
   z-index: 106;
   max-width: 1800px;
   margin: 0 auto;

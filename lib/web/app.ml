@@ -12,7 +12,7 @@ let handle_index ~(db : Db.t) ~settings request =
   let _ = request in
   let today = Utils.today_string () in
   (* TODO: cache this result somehow cause it's expensive to compute *)
-  let events = Db.league_event_before_and_after db today in
+  let events = Db.latest_league_events db today in
 
   let page = Index.page settings events in
   Dream_html.respond page
