@@ -197,7 +197,7 @@ module EventInfoExtra = struct
     league_id : int;
     league_name : string;
     event_nr : int;
-    event_date : Time_ns_unix.t;
+    event_date : string;
     (* This is the preiliminary location name *)
     location : string;
     event_link : string option;
@@ -207,7 +207,7 @@ module EventInfoExtra = struct
     official_location : string option;
     links : string list;
   }
-  [@@deriving show]
+  [@@deriving show, fields]
 
   let t_of_db_row ~id ~league_id ~event_nr ~event_date ~location ~league_name
       ~event_link ~thumbnail ~map_info ~official_location ~links : t =
@@ -223,7 +223,7 @@ module EventInfoExtra = struct
       league_id = Int64.to_int_exn league_id;
       league_name;
       event_nr = Int64.to_int_exn event_nr;
-      event_date = Utils.time_of_date event_date;
+      event_date;
       location;
       event_link;
       thumbnail;
@@ -259,8 +259,7 @@ let league_event_before_and_after (handle : Turso.conn) (date : string) =
   | 2 -> (Some (List.nth_exn results 0), Some (List.nth_exn results 1))
   | 1 ->
       let event = List.hd_exn results in
-      if String.(date > Utils.format_time_as_date event.event_date) then
-        (Some event, None)
+      if String.(date > event.event_date) then (Some event, None)
       else (None, Some event)
   | _ -> (None, None)
 
