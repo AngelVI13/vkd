@@ -95,22 +95,38 @@ let details_with_img (ev : Db.EventInfoExtra.t) (date : string)
       ];
   ]
 
-(* TODO: maybe show the past event cards a bit grayed out or sth so its clear
-   what is older and what is newer *)
-let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t) =
+let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t)
+    (opacity : float) =
+  let today_date = Utils.today_string () in
   let date = ev.event_date in
   let location =
     match ev.official_location with None -> ev.location | Some l -> l
   in
-  [
+  let is_past_event =
+    (* TODO: don't hardcode the TBA here *)
+    String.(ev.event_date = "TBA") || String.(ev.event_date < today_date)
+  in
+  let past_event_class = if is_past_event then "past-event" else "" in
+  let card =
     a
       [
-        class_ "event-card event-details-lnk";
+        class_ "event-card event-details-lnk %s" past_event_class;
+        style_ "--opacity: %.2f" opacity;
         (* TODO: this should be the link to the event / event results *)
         path_attr href Paths.index_w_scope t.translations.lang;
       ]
-      (details_with_img ev date location);
-  ]
+      (details_with_img ev date location)
+  in
+  card
+
+let card_opacities num_cards =
+  match num_cards with
+  | 5 -> [ 0.25; 0.40; 0.55; 0.7; 1. ]
+  | 4 -> [ 0.25; 0.50; 0.7; 1. ]
+  | 3 -> [ 0.25; 0.7; 1. ]
+  | 2 -> [ 0.7; 1. ]
+  | 1 -> [ 1. ]
+  | _ -> []
 
 let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
   let default =
@@ -122,9 +138,14 @@ let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
   let events =
     if List.length events < 5 then events @ [ default ] else events
   in
+  let opacities = card_opacities (List.length events) in
   div
     [ class_ "carousel__track page-small" ]
-    (List.map events ~f:(fun e -> null (event_card t e)))
+    (List.mapi events ~f:(fun idx e ->
+         let card_opacity =
+           List.nth opacities idx |> Option.value ~default:1.0
+         in
+         event_card t e card_opacity))
 
 let page (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
   html

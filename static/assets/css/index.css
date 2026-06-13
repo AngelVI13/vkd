@@ -53,12 +53,17 @@ main {
   gap: 10px;
 }
 
+.past-event:hover {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
 .event-card {
+  opacity: var(--opacity, 1);
   width: 200px;
   background: var(--c-bg-box);
   /**/
   transition: box-shadow 150ms ease;
-  /* background: var(--c-bg-zebra); */
   color: var(--c-font);
   position: relative;
   direction: ltr;
