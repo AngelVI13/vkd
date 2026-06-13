@@ -54,12 +54,14 @@ main {
 }
 
 .past-event:hover {
-  opacity: 1;
-  transition: opacity 0.2s ease;
+  /* TODO: make the whole card stand out somehow:
+   * maybe add more box shadow and zoom in the map img a
+   * bit with a transition */
+  /* opacity: 1; */
+  /* transition: opacity 0.2s ease; */
 }
 
 .event-card {
-  opacity: var(--opacity, 1);
   width: 200px;
   background: var(--c-bg-box);
   /**/
@@ -90,9 +92,16 @@ main {
   display: block;
   position: relative;
   line-height: 0;
+  border-bottom: solid var(--c-font);
+}
+
+.event-img:hover {
+  opacity: 1;
+  transition: opacity 0.2s ease;
 }
 
 .event-img {
+  opacity: var(--opacity, 1);
   width: 200px;
   height: 100%;
   background: var(--c-font-dimmer);
@@ -125,6 +134,7 @@ time {
 
 .event-map-info {
   margin: 5px;
+  font-size: 12px;
 }
 
 .over-img {

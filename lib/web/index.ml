@@ -66,7 +66,7 @@ let ratings_table (t : Page_settings.t) =
     ]
 
 let details_with_img (ev : Db.EventInfoExtra.t) (date : string)
-    (location : string) =
+    (location : string) (opacity : float) =
   [
     span
       [ class_ "event-top" ]
@@ -74,6 +74,7 @@ let details_with_img (ev : Db.EventInfoExtra.t) (date : string)
         img
           [
             class_ "event-img";
+            style_ "--opacity: %.2f" opacity;
             (if Option.is_some ev.thumbnail then
                src "data:image/jpg;base64,%s" (Option.value_exn ev.thumbnail)
              else path_attr src Static.Assets.Images.map_placeholder_jpg);
@@ -95,8 +96,7 @@ let details_with_img (ev : Db.EventInfoExtra.t) (date : string)
       ];
   ]
 
-let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t)
-    (opacity : float) =
+let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t) =
   let today_date = Utils.today_string () in
   let date = ev.event_date in
   let location =
@@ -107,26 +107,17 @@ let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t)
     String.(ev.event_date = "TBA") || String.(ev.event_date < today_date)
   in
   let past_event_class = if is_past_event then "past-event" else "" in
+  let opacity = if is_past_event then 0.4 else 1.0 in
   let card =
     a
       [
         class_ "event-card event-details-lnk %s" past_event_class;
-        style_ "--opacity: %.2f" opacity;
         (* TODO: this should be the link to the event / event results *)
         path_attr href Paths.index_w_scope t.translations.lang;
       ]
-      (details_with_img ev date location)
+      (details_with_img ev date location opacity)
   in
   card
-
-let card_opacities num_cards =
-  match num_cards with
-  | 5 -> [ 0.25; 0.40; 0.55; 0.7; 1. ]
-  | 4 -> [ 0.25; 0.50; 0.7; 1. ]
-  | 3 -> [ 0.25; 0.7; 1. ]
-  | 2 -> [ 0.7; 1. ]
-  | 1 -> [ 1. ]
-  | _ -> []
 
 let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
   let default =
@@ -138,14 +129,9 @@ let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
   let events =
     if List.length events < 5 then events @ [ default ] else events
   in
-  let opacities = card_opacities (List.length events) in
   div
     [ class_ "carousel__track page-small" ]
-    (List.mapi events ~f:(fun idx e ->
-         let card_opacity =
-           List.nth opacities idx |> Option.value ~default:1.0
-         in
-         event_card t e card_opacity))
+    (List.map events ~f:(fun e -> event_card t e))
 
 let page (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
   html
