@@ -96,6 +96,9 @@ let details_with_img (ev : Db.EventInfoExtra.t) (date : string)
       ];
   ]
 
+(* TODO: whats the lithuanian equivalent of TBA (to be announced) *)
+let event_details_placeholder = "TBA"
+
 let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t) =
   let today_date = Utils.today_string () in
   let date = ev.event_date in
@@ -103,15 +106,17 @@ let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t) =
     match ev.official_location with None -> ev.location | Some l -> l
   in
   let is_past_event =
-    (* TODO: don't hardcode the TBA here *)
-    String.(ev.event_date = "TBA") || String.(ev.event_date < today_date)
+    String.(ev.event_date = event_details_placeholder)
+    || String.(ev.event_date < today_date)
   in
-  let past_event_class = if is_past_event then "past-event" else "" in
-  let opacity = if is_past_event then 0.4 else 1.0 in
+  let conditional_class =
+    if is_past_event then "past-event" else "border-highlight"
+  in
+  let opacity = if is_past_event then 0.3 else 1.0 in
   let card =
     a
       [
-        class_ "event-card event-details-lnk %s" past_event_class;
+        class_ "event-card event-details-lnk %s" conditional_class;
         (* TODO: this should be the link to the event / event results *)
         path_attr href Paths.index_w_scope t.translations.lang;
       ]
@@ -121,13 +126,22 @@ let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t) =
 
 let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
   let default =
-    (* TODO: whats the lithuanian equivalent of TBA (to be announced) *)
     Db.EventInfoExtra.Fields.create ~event_id:0 ~league_id:0 ~league_name:""
-      ~event_nr:0 ~event_date:"TBA" ~location:"TBA" ~event_link:None
-      ~thumbnail:None ~map_info:(Some "TBA") ~official_location:None ~links:[]
+      ~event_nr:0 ~event_date:event_details_placeholder
+      ~location:event_details_placeholder ~event_link:None ~thumbnail:None
+      ~map_info:(Some event_details_placeholder) ~official_location:None
+      ~links:[]
+  in
+
+  (* TODO: remove after testing *)
+  (* let events = List.take events 3 in *)
+  let today_date = Utils.today_string () in
+  let future_events =
+    List.filter events ~f:(fun e -> String.(e.event_date > today_date))
   in
   let events =
-    if List.length events < 5 then events @ [ default ] else events
+    (* Add default empty event if we don't have any future events *)
+    if List.length future_events = 0 then default :: events else events
   in
   div
     [ class_ "carousel__track page-small" ]

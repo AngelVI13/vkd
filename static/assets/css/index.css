@@ -24,12 +24,14 @@ main {
 }
 
 .page-small {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: auto;
   width: 100%;
 }
 
 .box {
+  border-radius: 7px;
+  overflow: hidden;
   background: var(--c-bg-box);
   box-shadow:
     0 2px 2px 0 rgba(0, 0, 0, 0.08),
@@ -37,50 +39,61 @@ main {
     0 1px 5px 0 rgba(0, 0, 0, 0.1);
 }
 
-@media (min-width: 799.3px) {
-  .box {
-    border-radius: 7px;
-    overflow: hidden;
-  }
-}
+/* @media (min-width: 799.3px) { */
+/*   .box { */
+/*     border-radius: 7px; */
+/*     overflow: hidden; */
+/*   } */
+/* } */
 
 .carousel__track {
   grid-area: events;
   display: flex;
   flex-flow: row nowrap;
-  width: fit-content;
+  width: 100%;
   align-items: stretch;
   gap: 10px;
+  overflow-x: auto;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-.past-event:hover {
-  /* TODO: make the whole card stand out somehow:
-   * maybe add more box shadow and zoom in the map img a
-   * bit with a transition */
-  /* opacity: 1; */
-  /* transition: opacity 0.2s ease; */
+.carousel__track .event-card {
+  flex-shrink: 0;
+}
+
+.past-event:hover .event-img {
+  opacity: 1;
 }
 
 .event-card {
-  width: 200px;
+  --event-card-width: 200px;
+  width: var(--event-card-width);
   background: var(--c-bg-box);
-  /**/
-  transition: box-shadow 150ms ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   color: var(--c-font);
   position: relative;
   direction: ltr;
   text-align: left;
-  /**/
   box-shadow:
     0 2px 2px 0 rgba(0, 0, 0, 0.08),
     0 3px 1px -2px rgba(0, 0, 0, 0.18),
     0 1px 5px 0 rgba(0, 0, 0, 0.1);
-  /**/
   overflow: hidden;
-  /**/
   border-radius: 7px;
-  /**/
   cursor: pointer;
+}
+
+.event-card:hover {
+  transform: scale(1.05) translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 10; /* in case neighbors get covered */
+}
+
+.border-highlight {
+  border: 1px solid orange;
 }
 
 .event-details-lnk {
@@ -95,23 +108,20 @@ main {
   border-bottom: solid var(--c-font);
 }
 
-.event-img:hover {
-  opacity: 1;
-  transition: opacity 0.2s ease;
-}
-
 .event-img {
+  --event-img-height: 100%;
   opacity: var(--opacity, 1);
   width: 200px;
-  height: 100%;
+  height: var(--event-img-height);
+  object-fit: cover;
   background: var(--c-font-dimmer);
   color: var(--c-font-dim);
 
-  /* -- */
   display: flex;
   flex-flow: row wrap;
   align-items: center;
   justify-content: center;
+  transition: opacity 0.2s ease;
 }
 
 time {
@@ -138,8 +148,9 @@ time {
 }
 
 .over-img {
+  --over-img-font-size: 20px;
   padding: 5px 5px;
-  font-size: 20px;
+  font-size: var(--over-img-font-size);
   opacity: 1;
   background: var(--c-evt-over-img);
   color: var(--c-ublog-post-card-over-image);
@@ -211,5 +222,36 @@ td {
   padding: 1rem;
 }
 
+@media screen and (max-width: 1150px) {
+  .event-card {
+    --event-card-width: 192px;
+  }
+}
+
+@media screen and (max-width: 950px) {
+  .event-card {
+    --event-card-width: 184px;
+  }
+
+  .event-img {
+    --event-img-height: 160px;
+  }
+}
+
 @media screen and (max-width: 580px) {
+  .event-card {
+    --event-card-width: 135px;
+  }
+
+  .event-map-info {
+    display: none;
+  }
+
+  .over-img {
+    --over-img-font-size: 16px;
+  }
+
+  .event-img {
+    --event-img-height: 130px;
+  }
 }
