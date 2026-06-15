@@ -1,4 +1,5 @@
 open Core
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 (* session fields *)
 let dark_mode_field = "dark_mode"
@@ -7,6 +8,35 @@ let dark_mode_field = "dark_mode"
 let translations_field =
   Dream.new_field () ~name:"translations"
     ~show_value:Localization.show_translations
+
+module State = struct
+  type t = {
+    filename : string;
+    mutable latest_league_events : Db.EventInfoExtra.t list;
+  }
+  [@@deriving yojson]
+
+  let save (t : t) = Yojson.Safe.to_file t.filename (yojson_of_t t)
+
+  let load (filename : string) =
+    match Yojson.Safe.from_file filename with
+    | t -> t_of_yojson t
+    | exception exc ->
+        printf
+          "Failed to load cache from file (%s): %s . Initializing an empty \
+           cache..."
+          filename (Exn.to_string exc);
+        { filename; latest_league_events = [] }
+
+  let latest_league_events (t : t) (db : Db.t) =
+    if List.length t.latest_league_events > 0 then t.latest_league_events
+    else
+      let today = Utils.today_string () in
+      let events = Db.latest_league_events db today in
+      t.latest_league_events <- events;
+      save t;
+      events
+end
 
 let handle_index ~(db : Db.t) ~settings request =
   let _ = request in
@@ -104,7 +134,9 @@ let lang_middleware inner_handler req =
   inner_handler req
 
 let run ~(db : Db.t) =
-  let _ = db in
+  let state = State.load "state.json" in
+  (* TODO: test this *)
+  let _ = state in
   (* NOTE: rotate cookie secret about once per year, you can use the code bellow to generate it  *)
   (* let secret = Dream.to_base64url (Dream.random 32) in *)
   let secret = "9RV8f8QqR6foKzdX51ZMXB68C9apHx8VNkbEmJ17nWE" in
@@ -123,7 +155,6 @@ let run ~(db : Db.t) =
              Dream_html.get Paths.index (with_settings (handle_index ~db));
              Dream_html.get Paths.user (with_settings handle_user);
            ];
-         (* TODO: add endpoint to change from light to dark mode *)
          Dream_html.get Paths.index (fun req -> Dream.redirect req "/en/");
          Static.routes;
        ]

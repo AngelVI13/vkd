@@ -1,3 +1,4 @@
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 open Core
 open Db_ops
 open Custom_db_ops
@@ -207,7 +208,7 @@ module EventInfoExtra = struct
     official_location : string option;
     links : string list;
   }
-  [@@deriving show, fields]
+  [@@deriving show, fields, yojson]
 
   let t_of_db_row ~id ~league_id ~event_nr ~event_date ~location ~league_name
       ~event_link ~thumbnail ~map_info ~official_location ~links : t =
