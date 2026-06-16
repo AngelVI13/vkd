@@ -31,6 +31,14 @@ CREATE TABLE IF NOT EXISTS league_events (
     location TEXT NOT NULL
 );
 
+-- @all_league_events
+SELECT le.*
+FROM league_events AS le
+JOIN leagues AS l
+    ON le.league_id = l.id
+WHERE l.name = @league_name
+ORDER BY le.event_date ASC;
+
 -- @create_league_events_date_idx
 CREATE INDEX IF NOT EXISTS idx_league_events_date ON league_events(event_date DESC);
 
@@ -380,6 +388,9 @@ INSERT INTO runners VALUES;
 
 -- @all_runners
 SELECT * FROM runners;
+
+-- TODO: do not insert rows only for rd changes 
+-- TODO: clean up all the course_id versions
 
 -- NOTE: ratings are only ever created for VKD
 -- @create_ratings

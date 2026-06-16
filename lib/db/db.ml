@@ -259,6 +259,30 @@ let latest_league_events (handle : Turso.conn) (date : string) =
     ~compare:(fun e1 e2 -> String.compare e2.event_date e1.event_date)
     !results
 
+module LeagueEvent = struct
+  type t = {
+    league_id : int;
+    event_nr : int;
+    event_date : string;
+    location : string;
+  }
+  [@@deriving fields]
+end
+
+let all_league_events (handle : Turso.conn) =
+  let results = ref [] in
+  DB.all_league_events handle
+    ~league_name:Dbsportas.League.LeagueInfo.main_league_name
+    (fun ~id ~league_id ~event_nr ~event_date ~location ->
+      let _ = id in
+      results :=
+        LeagueEvent.Fields.create
+          ~league_id:(Int.of_int64_exn league_id)
+          ~event_nr:(Int.of_int64_exn event_nr)
+          ~event_date ~location
+        :: !results);
+  List.rev !results
+
 (* TODO: make sure to add leagues first and then start processing events *)
 (* NOTE: use this when a new league is available *)
 let add_leagues_if_not_exists (handle : Turso.conn)
