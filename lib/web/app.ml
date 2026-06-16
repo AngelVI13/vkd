@@ -9,6 +9,15 @@ let translations_field =
   Dream.new_field () ~name:"translations"
     ~show_value:Localization.show_translations
 
+(* TODO: when to trigger the updates of db ? 
+         - add_leagues_if_not_exists handle Dbsportas.League.leagues;
+         - action_refresh_events_and_results handle; 
+         - action_refresh_event_details ~year:(Some "2026") handle;-
+       *)
+
+(* TODO: when to invalidate the cache ? Not every db update will have data to update 
+   so maybe we can check if we actually sent any data to the DB and if thats the case 
+   we can invalidate the cache *)
 module State = struct
   type t = {
     filename : string;
@@ -30,19 +39,18 @@ module State = struct
 
   let latest_league_events (t : t) (db : Db.t) =
     if List.length t.latest_league_events > 0 then t.latest_league_events
-    else
+    else (
+      Dream.log "Fetching event data from DB";
       let today = Utils.today_string () in
       let events = Db.latest_league_events db today in
       t.latest_league_events <- events;
       save t;
-      events
+      events)
 end
 
-let handle_index ~(db : Db.t) ~settings request =
+let handle_index ~(db : Db.t) ~(state : State.t) ~settings request =
   let _ = request in
-  let today = Utils.today_string () in
-  (* TODO: cache this result somehow cause it's expensive to compute *)
-  let events = Db.latest_league_events db today in
+  let events = State.latest_league_events state db in
 
   let page = Index.page settings events in
   Dream_html.respond page
@@ -135,8 +143,6 @@ let lang_middleware inner_handler req =
 
 let run ~(db : Db.t) =
   let state = State.load "state.json" in
-  (* TODO: test this *)
-  let _ = state in
   (* NOTE: rotate cookie secret about once per year, you can use the code bellow to generate it  *)
   (* let secret = Dream.to_base64url (Dream.random 32) in *)
   let secret = "9RV8f8QqR6foKzdX51ZMXB68C9apHx8VNkbEmJ17nWE" in
@@ -152,7 +158,8 @@ let run ~(db : Db.t) =
             Paths.index_en (i.e. Dream_html paths) *)
          Dream.scope "/:lang" [ lang_middleware ]
            [
-             Dream_html.get Paths.index (with_settings (handle_index ~db));
+             Dream_html.get Paths.index
+               (with_settings (handle_index ~db ~state));
              Dream_html.get Paths.user (with_settings handle_user);
            ];
          Dream_html.get Paths.index (fun req -> Dream.redirect req "/en/");
