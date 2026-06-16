@@ -4,7 +4,8 @@ let init_db ~debug =
   let db_hostname = Sys.getenv_exn "TURSO_DB_HOSTNAME" in
   let db_token = Sys.getenv_exn "TURSO_DB_TOKEN" in
   let db = Db.make ~debug ~hostname:db_hostname ~token:db_token () in
-  Db.create_tables db;
+  (* NOTE: this is only needed when tables change -> otherwise don't run it cause it costs *)
+  (* Db.create_tables db; *)
   db
 
 let command_test () =

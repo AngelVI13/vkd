@@ -13,57 +13,67 @@ let head_elems (t : Page_settings.t) =
         ];
     ]
 
-let ratings_table (t : Page_settings.t) =
-  let _ = t in
-  null
+let rating_row (rating : Glicko2.Rating.Info.t) =
+  tr []
     [
-      div
-        [ class_ "box__top" ]
+      td []
         [
-          (* TODO: put filter buttons here *)
-          a
-            [ path_attr href Paths.user_w_scope t.translations.lang ]
-            [ txt "User" ];
-        ];
-      table
-        [ class_ "slist slist-pad slist-invert slist-leaderboard" ]
-        [
-          tbody
-            [ class_ "infinite-scroll" ]
+          span
             [
-              tr []
+              class_ "trophy perf top1 lb__trophy trophy--small";
+              title_ "Blitz Chamption!";
+            ]
+            [
+              img
                 [
-                  td []
-                    [
-                      span
-                        [
-                          class_ "trophy perf top1 lb__trophy trophy--small";
-                          title_ "Blitz Chamption!";
-                        ]
-                        [
-                          img
-                            [
-                              src
-                                "https://lichess1.org/assets/hashed/gold-cup-2.e1e2ac3f.png";
-                              style_ "height: 40px;";
-                            ];
-                        ];
-                    ];
-                  td []
-                    [
-                      a
-                        [
-                          class_ "offline user-link ulpt";
-                          path_attr href Paths.index;
-                        ]
-                        [ txt "asdert9" ];
-                    ];
-                  td [] [ txt "3043" ];
-                  td [] [ txt "10" ];
+                  src
+                    "https://lichess1.org/assets/hashed/gold-cup-2.e1e2ac3f.png";
+                  style_ "height: 40px;";
                 ];
             ];
         ];
+      td []
+        [
+          a
+            [ class_ "offline user-link ulpt"; path_attr href Paths.index ]
+            [ txt "%s" rating.runner_name ];
+        ];
+      td [] [ txt "%.2f" rating.rating ];
+      td [] [ txt "%.2f" rating.rating_diff ];
+      td [] [ txt "%.0f" rating.rd ];
     ]
+
+let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
+  (* TODO: remove this after testing *)
+  let ratings =
+    List.sort ratings ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
+  in
+  (* TODO: somehow it looks like everyone lost rating in their latest event
+     which shouldnt be possible *)
+  let ratings =
+    List.filter ratings ~f:(fun rating ->
+        Float.(rating.rating_diff > 0.1 || rating.rating_diff < -0.1))
+  in
+  (* let ratings = List.take ratings 20 in *)
+  (* --- *)
+
+  let rows = List.map ratings ~f:rating_row in
+  let _ = t in
+  table
+    [ class_ "slist slist-pad slist-invert slist-leaderboard" ]
+    [ tbody [ class_ "infinite-scroll" ] rows ]
+
+let ratings_header (t : Page_settings.t) =
+  div
+    [ class_ "box__top" ]
+    [
+      (* TODO: put filter buttons here *)
+      a [ path_attr href Paths.user_w_scope t.translations.lang ] [ txt "User" ];
+    ]
+
+let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
+    =
+  main [ class_ "page-small box" ] [ ratings_header t; ratings_table t ratings ]
 
 let details_with_img (ev : Db.EventInfoExtra.t) (date : string)
     (location : string) (opacity : float) =
@@ -147,7 +157,8 @@ let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
     [ class_ "carousel__track page-small" ]
     (List.map events ~f:(fun e -> event_card t e))
 
-let page (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
+let page (t : Page_settings.t) (events : Db.EventInfoExtra.t list)
+    (ratings : Glicko2.Rating.Info.t list) =
   html
     [ lang "en" ]
     [
@@ -157,9 +168,6 @@ let page (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
           Header.elements t;
           div
             [ id "main-wrap" ]
-            [
-              event_carousel t events;
-              main [ class_ "page-small box" ] [ ratings_table t ];
-            ];
+            [ event_carousel t events; ratings_section t ratings ];
         ];
     ]

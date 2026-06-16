@@ -21,7 +21,8 @@ let translations_field =
 module State = struct
   type t = {
     filename : string;
-    mutable latest_league_events : Db.EventInfoExtra.t list;
+    mutable latest_league_events : Db.EventInfoExtra.t list; [@default []]
+    mutable all_latest_ratings : Glicko2.Rating.Info.t list; [@default []]
   }
   [@@deriving yojson]
 
@@ -35,7 +36,7 @@ module State = struct
           "Failed to load cache from file (%s): %s . Initializing an empty \
            cache..."
           filename (Exn.to_string exc);
-        { filename; latest_league_events = [] }
+        { filename; latest_league_events = []; all_latest_ratings = [] }
 
   let latest_league_events (t : t) (db : Db.t) =
     if List.length t.latest_league_events > 0 then t.latest_league_events
@@ -46,13 +47,23 @@ module State = struct
       t.latest_league_events <- events;
       save t;
       events)
+
+  let all_latest_ratings (t : t) (db : Db.t) =
+    if List.length t.all_latest_ratings > 0 then t.all_latest_ratings
+    else (
+      Dream.log "Fetching all latest ratings data from DB";
+      let ratings = Db.all_latest_ratings db in
+      t.all_latest_ratings <- ratings;
+      save t;
+      ratings)
 end
 
 let handle_index ~(db : Db.t) ~(state : State.t) ~settings request =
   let _ = request in
   let events = State.latest_league_events state db in
+  let ratings = State.all_latest_ratings state db in
 
-  let page = Index.page settings events in
+  let page = Index.page settings events ratings in
   Dream_html.respond page
 
 let handle_user ~settings request =

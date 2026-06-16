@@ -1,3 +1,4 @@
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 open Core
 
 (** This is the model that is stored & read from db *)
@@ -16,5 +17,5 @@ module Info = struct
     rd : float;
     vol : float;
   }
-  [@@deriving show { with_path = false }, fields, sexp]
+  [@@deriving show { with_path = false }, fields, sexp, yojson]
 end
