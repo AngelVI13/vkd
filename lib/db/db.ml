@@ -703,16 +703,43 @@ let all_latest_ratings (handle : Turso.conn) =
 let all_latest_relevant_ratings (handle : Turso.conn) ~participants =
   ratings_aux ~f:(CustomDb.all_latest_relevant_ratings ~participants) handle
 
+let glicko2_settings =
+  Glicko2.Settings.create ~tau:0.5 ~initial_rating:1500.0 ~rd:350.0 ~vol:0.06 ()
+
+let ratings_for_participants (event : Dbsportas.League.LeagueEvent.t)
+    (ratings : Glicko2.Rating.Info.t list) =
+  match event.results with
+  | None -> []
+  | Some results ->
+      List.fold results.courses ~init:[] ~f:(fun filtered_ratings course ->
+          let all_participants = course.results.finished @ course.results.dsq in
+          let map = Int.Map.empty in
+          let map =
+            List.fold all_participants ~init:map ~f:(fun m participant ->
+                Map.set m ~key:participant.runner_nr ~data:true)
+          in
+          filtered_ratings
+          @ List.filter ratings ~f:(fun rating ->
+                String.(rating.course_id = course.id)
+                && Option.is_some (Map.find map rating.runner_id)))
+
+let adjust_rating_deviation (ratings : Glicko2.Rating.Info.t list)
+    (event_date : string) (all_event_dates : string list) =
+  let _ = (event_date, all_event_dates) in
+  ratings
+
 (** NOTE: does not commit *)
 let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
     (event : Dbsportas.League.LeagueEvent.t) =
-  let settings =
-    Glicko2.Settings.create ~tau:0.5 ~initial_rating:1500.0 ~rd:350.0 ~vol:0.06
-      ()
-  in
-  let store = Dbsportas.Rating_store.Store.create ~settings in
+  let store = Dbsportas.Rating_store.Store.create ~settings:glicko2_settings in
 
-  let current_ratings = all_latest_ratings handle in
+  (* TODO: add logs to each function so we can debug it! *)
+  let current_ratings =
+    all_latest_ratings handle |> ratings_for_participants event
+  in
+
+  (* TODO: call adjust_rating_deviation *)
+
   (* TODO: test this separately to make sure it works *)
   (* let current_ratings = *)
   (*   all_latest_relevant_ratings *)
@@ -727,7 +754,8 @@ let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
   in
 
   let store =
-    Dbsportas.Rating_store.calculate_ratings_for_event ~settings ~store
+    Dbsportas.Rating_store.calculate_ratings_for_event
+      ~settings:glicko2_settings ~store
       ~league_id:(Int64.to_string event_params.league_id)
       event
   in

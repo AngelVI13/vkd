@@ -446,6 +446,31 @@ let parse_course page_html =
   in
   List.rev results
 
+let dw_regexp = Re.Perl.re {|^(\d)(\w)|} |> Re.compile
+let wd_regexp = Re.Perl.re {|^(\w)(\d)|} |> Re.compile
+
+(** Format course id so that it maps nicely for rating calculations:
+
+    - 1 -> 1
+    - 1A -> 1
+    - 1B -> 1B (we ignore these results for rating calculations)
+    - 2A -> 2
+    - 2B -> 2B
+    - D1 -> D
+    - D2 -> D2 *)
+let format_course_id (id : string) : string =
+  match Re.all dw_regexp id with
+  | g :: [] ->
+      (* NOTE: Group values start from 1 because 0 will give you the whole match instead *)
+      let digit, word = (Re.Group.get g 1, Re.Group.get g 2) in
+      if String.(word = "A") then digit else id
+  | _ -> (
+      match Re.all wd_regexp id with
+      | g :: [] ->
+          let word, digit = (Re.Group.get g 1, Re.Group.get g 2) in
+          if String.(digit = "1") then word else id
+      | _ -> id)
+
 let parse_event ~league_id ~event_nr page_html =
   let open Soup in
   let soup = parse page_html in
@@ -479,7 +504,11 @@ let parse_event ~league_id ~event_nr page_html =
                  String.(course_id = course_result.course_name))
            in
 
-           let ids = String.split course_id ~on:',' |> List.map ~f:strip in
+           let ids =
+             String.split course_id ~on:','
+             |> List.map ~f:strip
+             |> List.map ~f:format_course_id
+           in
 
            let course_parameters =
              tr $$ "td" |> to_list |> List.tl_exn |> List.map ~f:R.leaf_text
@@ -778,6 +807,18 @@ let%expect_test "parse_event grouped courses" =
     hello
            |}]
 (* |}]; *)
+
+let%expect_test "format_course_id" =
+  let data = [ "1"; "1A"; "1B"; "2A"; "2B"; "D1"; "D2" ] in
+  List.iter data ~f:(fun input -> printf "%s\n" (format_course_id input));
+  [%expect {|
+    1
+    1
+    1B
+    2
+    2B
+    D
+    D2 |}]
 
 (* printf "%s" (Yojson.Safe.to_string @@ EventResults.yojson_of_t event_results); *)
 (* [%expect *)
