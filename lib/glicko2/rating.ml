@@ -18,4 +18,9 @@ module Info = struct
     vol : float;
   }
   [@@deriving show { with_path = false }, fields, sexp, yojson]
+
+  let update_rd (t : t) (change_by : float) : t =
+    let rd = t.rd +. change_by in
+    let rd = if Float.(rd > 350.) then 350. else rd in
+    { t with rd }
 end

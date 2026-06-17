@@ -748,11 +748,13 @@ let adjust_rating_deviation (event_date : string)
             event_date current_i last_i last_d;
           let diff = current_i - last_i - 1 in
           if diff > 0 then (
+            let change_rd = Float.of_int diff *. 5. in
             (* NOTE: here the RD adjustment for missing an event is hardcoded.
                I dont know if this is a good value or not *)
-            printf "Adjusting rd (%d) for rating: %s %d %s\n\n" (diff * 5)
-              rating.course_id rating.runner_id rating.runner_name;
-            { rating with rd = rating.rd +. (Float.of_int diff *. 5.) })
+            printf "Adjusting rd (%.1f -> %.1f) for rating: %s %d %s\n\n"
+              rating.rd change_rd rating.course_id rating.runner_id
+              rating.runner_name;
+            Glicko2.Rating.Info.update_rd rating change_rd)
           else (
             printf
               "User participated in the last event -> NOT adjusting RD: %s %d %s\n"
@@ -917,7 +919,10 @@ let test_rating_fn (handle : Turso.conn) =
 let test (handle : Turso.conn) =
   (* add_leagues_if_not_exists handle Dbsportas.League.leagues; *)
   (* action_refresh_events_and_results handle; *)
+
+  (* TODO: this should only download the new stuff and not everything all the time *)
   (* action_refresh_event_details ~year:(Some "2026") handle; *)
+
   (* test_rating_fn handle; *)
   let _ = handle in
   ()

@@ -39,6 +39,7 @@ let rating_row (rating : Glicko2.Rating.Info.t) =
             [ txt "%s" rating.runner_name ];
         ];
       td [] [ txt "%.2f" rating.rating ];
+      td [] [ txt "%s" rating.event_date ];
       td [] [ txt "%.2f" rating.rating_diff ];
       td [] [ txt "%.0f" rating.rd ];
     ]
@@ -51,10 +52,10 @@ let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
   (* TODO: filter out all inactive players i.e. those that haven't been to a race in 1 year *)
   (* TODO: somehow it looks like everyone lost rating in their latest event
      which shouldnt be possible *)
-  let ratings =
-    List.filter ratings ~f:(fun rating ->
-        Float.(rating.rating_diff > 0.1 || rating.rating_diff < -0.1))
-  in
+  (* let ratings = *)
+  (*   List.filter ratings ~f:(fun rating -> *)
+  (*       Float.(rating.rating_diff > 0.1 || rating.rating_diff < -0.1)) *)
+  (* in *)
   (* let ratings = List.take ratings 20 in *)
   (* --- *)
 
