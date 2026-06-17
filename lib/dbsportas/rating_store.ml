@@ -137,6 +137,7 @@ module Store = struct
     let map =
       match Map.find t.map hash with
       | None ->
+          printf "Adding new runner to store: %s %d %s\n" course id name;
           let runner_info =
             Info.Fields.create ~id ~name ~course
               ~rating:t.settings.initial_rating ~rd:t.settings.rd

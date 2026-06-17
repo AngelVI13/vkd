@@ -48,6 +48,7 @@ let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
   let ratings =
     List.sort ratings ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
   in
+  (* TODO: filter out all inactive players i.e. those that haven't been to a race in 1 year *)
   (* TODO: somehow it looks like everyone lost rating in their latest event
      which shouldnt be possible *)
   let ratings =

@@ -706,8 +706,11 @@ let all_latest_relevant_ratings (handle : Turso.conn) ~participants =
 let glicko2_settings =
   Glicko2.Settings.create ~tau:0.5 ~initial_rating:1500.0 ~rd:350.0 ~vol:0.06 ()
 
+(* TODO: test this locally first with loaded json league files *)
+(* TODO: remove all the logging *)
 let ratings_for_participants (event : Dbsportas.League.LeagueEvent.t)
     (ratings : Glicko2.Rating.Info.t list) =
+  printf "All existing ratings: %d\n" (List.length ratings);
   match event.results with
   | None -> []
   | Some results ->
@@ -723,22 +726,62 @@ let ratings_for_participants (event : Dbsportas.League.LeagueEvent.t)
                 String.(rating.course_id = course.id)
                 && Option.is_some (Map.find map rating.runner_id)))
 
-let adjust_rating_deviation (ratings : Glicko2.Rating.Info.t list)
-    (event_date : string) (all_event_dates : string list) =
-  let _ = (event_date, all_event_dates) in
-  ratings
+let adjust_rating_deviation (event_date : string)
+    (all_event_dates : string list) (ratings : Glicko2.Rating.Info.t list) =
+  printf "All existing ratings for participants: %d\n" (List.length ratings);
+  printf "Adjusting RD for event: %s\n" event_date;
+  List.map ratings ~f:(fun rating ->
+      let last_participation =
+        List.findi all_event_dates ~f:(fun i date ->
+            let _ = i in
+            String.(rating.event_date = date))
+      in
+      let current_event =
+        List.findi all_event_dates ~f:(fun i date ->
+            let _ = i in
+            String.(event_date = date))
+      in
+      match (last_participation, current_event) with
+      | Some (last_i, last_d), Some (current_i, _) ->
+          assert (current_i > last_i);
+          printf "Event=%s; event_i=%d last_participated=%d last_date=%s\n"
+            event_date current_i last_i last_d;
+          let diff = current_i - last_i - 1 in
+          if diff > 0 then (
+            (* NOTE: here the RD adjustment for missing an event is hardcoded.
+               I dont know if this is a good value or not *)
+            printf "Adjusting rd (%d) for rating: %s %d %s\n\n" (diff * 5)
+              rating.course_id rating.runner_id rating.runner_name;
+            { rating with rd = rating.rd +. (Float.of_int diff *. 5.) })
+          else (
+            printf
+              "User participated in the last event -> NOT adjusting RD: %s %d %s\n"
+              rating.course_id rating.runner_id rating.runner_name;
+            rating)
+      | _ ->
+          printf "failed to find last participation or current event date: \n";
+          let s = [%sexp (last_participation : (int * string) option)] in
+          print_s s;
+          let s = [%sexp (current_event : (int * string) option)] in
+          print_s s;
+          printf "-----";
+          rating)
 
 (** NOTE: does not commit *)
 let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
     (event : Dbsportas.League.LeagueEvent.t) =
   let store = Dbsportas.Rating_store.Store.create ~settings:glicko2_settings in
 
-  (* TODO: add logs to each function so we can debug it! *)
-  let current_ratings =
-    all_latest_ratings handle |> ratings_for_participants event
+  let all_event_dates =
+    all_league_events handle |> List.map ~f:(fun event -> event.event_date)
   in
 
-  (* TODO: call adjust_rating_deviation *)
+  (* TODO: redo all these tests AND figure out how to calculate rd correctly *)
+  let current_ratings =
+    all_latest_ratings handle
+    |> ratings_for_participants event
+    |> adjust_rating_deviation event_params.event_date all_event_dates
+  in
 
   (* TODO: test this separately to make sure it works *)
   (* let current_ratings = *)
@@ -766,6 +809,8 @@ let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
       ~event_nr:(of_int64 event_params.event_nr)
       ~event_date:event_params.event_date
   in
+  printf "New ratings after calculations: %d (+%d)\n" (List.length new_ratings)
+    (List.length new_ratings - List.length current_ratings);
   List.iter new_ratings ~f:(_add_rating handle)
 
 (** Add full event info (including results, stats, ratings, medals, etc.)
