@@ -142,7 +142,14 @@ let action_refresh_event_details ?(year : string option = None)
     (handle : Turso.conn) =
   let year = year_from_opt year in
   let existing = event_details_for_year handle year in
-  let new_events = Vilpage.Events.download_events ~year in
+
+  let excludes =
+    (* Exclude any event that already has map links to it -> its indication
+       that we have processed it *)
+    List.filter existing ~f:(fun ev -> List.length ev.map_links > 0)
+    |> List.map ~f:(fun ev -> ev.date)
+  in
+  let new_events = Vilpage.Events.download_events ~year ~excludes () in
 
   List.iter new_events ~f:(fun ev ->
       match List.find existing ~f:(fun v -> Time_ns.(ev.date = v.date)) with
@@ -884,8 +891,6 @@ let test_rating_fn (handle : Turso.conn) =
 let test (handle : Turso.conn) =
   (* add_leagues_if_not_exists handle Dbsportas.League.leagues; *)
   (* action_refresh_events_and_results handle; *)
-
-  (* TODO: this should only download the new stuff and not everything all the time *)
   (* action_refresh_event_details ~year:(Some "2026") handle; *)
 
   (* test_rating_fn handle; *)

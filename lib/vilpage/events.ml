@@ -144,43 +144,59 @@ let parse_map_settings (links : string list) =
       let settings = download_map ~event_url in
       (map_links, Some (MapSettings.t_of_Settings ~event_url settings))
 
-let parse_events_page page_html =
+let parse_events_page ?(excludes : Time_ns_unix.t list = []) page_html =
   let open Soup in
   let soup = parse page_html in
   let events =
     soup $ ".PAGE__body" $$ ".stage" |> to_list
-    |> List.map ~f:(fun stage ->
-           Utils.sleep ~s:1;
+    |> List.fold ~init:[] ~f:(fun events stage ->
            let event_date =
              stage $ ".map" $ ".title" $ ".date" |> R.leaf_text |> parse_date
            in
-           let location, event_link =
-             stage $ ".stage-place" $ "a" |> fun n ->
-             (R.leaf_text n, R.attribute "href" n)
-           in
-           printf "Processing event %s %s\n" location event_link;
-           let img_src = stage $ ".map" $ "img" |> R.attribute "src" in
-           let img_data = download_and_encode_img ~url:img_src in
-           let map_info = stage $ ".map-info" $ ".stage-info" |> R.leaf_text in
-           let details_links =
-             match stage $? ".stage-details" with
-             | None -> []
-             | Some n -> n $$ "a" |> to_list |> List.map ~f:(R.attribute "href")
-           in
-           let result_link = parse_results details_links in
-           Utils.sleep ~s:1;
-           let map_links, map_settings = parse_map_settings details_links in
-           EventInfo.Fields.create ~date:event_date ~thumbnail_src:img_src
-             ~thumbnail:img_data ~location ~event_link ~map_info ~map_links
-             ~result_link ~map_settings)
+           match
+             List.find excludes ~f:(fun exclude ->
+                 Time_ns_unix.(event_date = exclude))
+           with
+           | Some _ ->
+               printf "Skipping event (excludes) %s\n"
+                 (Utils.format_time_as_date event_date);
+               events
+           | None ->
+               printf "Processing event %s\n"
+                 (Utils.format_time_as_date event_date);
+               let location, event_link =
+                 stage $ ".stage-place" $ "a" |> fun n ->
+                 (R.leaf_text n, R.attribute "href" n)
+               in
+               printf "Processing event %s %s\n" location event_link;
+               let img_src = stage $ ".map" $ "img" |> R.attribute "src" in
+               let img_data = download_and_encode_img ~url:img_src in
+               let map_info =
+                 stage $ ".map-info" $ ".stage-info" |> R.leaf_text
+               in
+               let details_links =
+                 match stage $? ".stage-details" with
+                 | None -> []
+                 | Some n ->
+                     n $$ "a" |> to_list |> List.map ~f:(R.attribute "href")
+               in
+               let result_link = parse_results details_links in
+               Utils.sleep ~s:1;
+               let map_links, map_settings = parse_map_settings details_links in
+               events
+               @ [
+                   EventInfo.Fields.create ~date:event_date
+                     ~thumbnail_src:img_src ~thumbnail:img_data ~location
+                     ~event_link ~map_info ~map_links ~result_link ~map_settings;
+                 ])
   in
   events
 
 (** year is in format `2013` *)
-let download_events ~(year : string) =
+let download_events ?(excludes : Time_ns_unix.t list = []) ~(year : string) () =
   let url = sprintf "%s/%s" base_url year in
   let page = fetch_page url in
-  parse_events_page page
+  parse_events_page page ~excludes
 
 (* let%expect_test "download_events" = *)
 (*   let events = download_events ~year:2026 in *)
