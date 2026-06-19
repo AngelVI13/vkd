@@ -31,6 +31,15 @@ module History = struct
       vol_diff = [];
     }
 
+  let from_existing_data ~rating ~rd ~vol =
+    let t = empty () in
+    {
+      t with
+      rating = [ rating ] @ t.rating;
+      rd = [ rd ] @ t.rd;
+      vol = [ vol ] @ t.vol;
+    }
+
   let latest_rating_diff t =
     match List.last t.rating_diff with None -> 0. | Some diff -> diff
 
@@ -153,7 +162,7 @@ module Store = struct
     let hash = runner_hash ~id ~course in
     let runner_info =
       Info.Fields.create ~id ~name ~course ~rating ~rd ~vol
-        ~history:(History.empty ())
+        ~history:(History.from_existing_data ~rating ~rd ~vol)
     in
     let map = Map.add_exn t.map ~key:hash ~data:runner_info in
 

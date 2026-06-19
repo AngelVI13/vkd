@@ -436,6 +436,20 @@ INNER JOIN (
     GROUP BY runner_id
 ) latest ON r.runner_id = latest.runner_id AND r.event_date = latest.max_date;
 
+-- @all_latest_ratings_since_date
+SELECT r.*, rn.name AS runner_name, rn.club AS runner_club, rn.gender AS runner_gender
+FROM ratings r
+JOIN runners rn ON r.runner_id = rn.id
+INNER JOIN (
+    -- NOTE: inner join is needed to find the latest rating based on event_date
+    -- for a runner
+    SELECT runner_id, MAX(event_date) AS max_date
+    FROM ratings
+    GROUP BY runner_id
+) latest ON r.runner_id = latest.runner_id AND r.event_date = latest.max_date
+WHERE r.event_date >= @cutoff_date
+    AND r.course_id IN ('1', '2', '3', 'D');
+
 -- @ratings_for_course_by_gender
 SELECT r.*, rn.name AS runner_name, rn.club AS runner_club, rn.gender AS runner_gender
 FROM ratings r

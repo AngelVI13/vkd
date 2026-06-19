@@ -52,7 +52,7 @@ module State = struct
     if List.length t.all_latest_ratings > 0 then t.all_latest_ratings
     else (
       Dream.log "Fetching all latest ratings data from DB";
-      let ratings = Db.all_latest_ratings db in
+      let ratings = Db.all_latest_ratings_for_last_year db in
       t.all_latest_ratings <- ratings;
       save t;
       ratings)

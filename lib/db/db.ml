@@ -1,9 +1,7 @@
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 open Core
 open Db_ops
-open Custom_db_ops
 module DB = DbOps (Turso)
-module CustomDb = CustomDbOps (Turso)
 
 type t = Turso.conn [@@deriving show { with_path = false }]
 
@@ -700,17 +698,22 @@ let _add_results (handle : Turso.conn) ~(event_params : EventParams.t)
 let all_latest_ratings (handle : Turso.conn) =
   ratings_aux ~f:DB.all_latest_ratings handle
 
-let all_latest_relevant_ratings (handle : Turso.conn) ~participants =
-  ratings_aux ~f:(CustomDb.all_latest_relevant_ratings ~participants) handle
+(** NOTE: this returns only ratings for courses 1,2,3,D *)
+let all_latest_ratings_for_last_year (handle : Turso.conn) =
+  let now = Time_ns_unix.now () in
+  let last_year =
+    Time_ns_unix.sub now
+      (* TODO: reset to -365 after testing *)
+      (Time_ns_unix.Span.create ~day:(-7 * 365) ~sign:Sign.Neg ())
+  in
+  let cutoff_date = Utils.format_time_as_date last_year in
+  ratings_aux ~f:(DB.all_latest_ratings_since_date ~cutoff_date) handle
 
 let glicko2_settings =
   Glicko2.Settings.create ~tau:0.5 ~initial_rating:1500.0 ~rd:350.0 ~vol:0.06 ()
 
-(* TODO: test this locally first with loaded json league files *)
-(* TODO: remove all the logging *)
 let ratings_for_participants (event : Dbsportas.League.LeagueEvent.t)
     (ratings : Glicko2.Rating.Info.t list) =
-  printf "All existing ratings: %d\n" (List.length ratings);
   match event.results with
   | None -> []
   | Some results ->
@@ -728,8 +731,6 @@ let ratings_for_participants (event : Dbsportas.League.LeagueEvent.t)
 
 let adjust_rating_deviation (event_date : string)
     (all_event_dates : string list) (ratings : Glicko2.Rating.Info.t list) =
-  printf "All existing ratings for participants: %d\n" (List.length ratings);
-  printf "Adjusting RD for event: %s\n" event_date;
   List.map ratings ~f:(fun rating ->
       let last_participation =
         List.findi all_event_dates ~f:(fun i date ->
@@ -742,24 +743,15 @@ let adjust_rating_deviation (event_date : string)
             String.(event_date = date))
       in
       match (last_participation, current_event) with
-      | Some (last_i, last_d), Some (current_i, _) ->
+      | Some (last_i, _), Some (current_i, _) ->
           assert (current_i > last_i);
-          printf "Event=%s; event_i=%d last_participated=%d last_date=%s\n"
-            event_date current_i last_i last_d;
           let diff = current_i - last_i - 1 in
-          if diff > 0 then (
-            let change_rd = Float.of_int diff *. 5. in
+          if diff > 0 then
+            let change_rd = Float.of_int diff *. 3.5 in
             (* NOTE: here the RD adjustment for missing an event is hardcoded.
                I dont know if this is a good value or not *)
-            printf "Adjusting rd (%.1f -> %.1f) for rating: %s %d %s\n\n"
-              rating.rd change_rd rating.course_id rating.runner_id
-              rating.runner_name;
-            Glicko2.Rating.Info.update_rd rating change_rd)
-          else (
-            printf
-              "User participated in the last event -> NOT adjusting RD: %s %d %s\n"
-              rating.course_id rating.runner_id rating.runner_name;
-            rating)
+            Glicko2.Rating.Info.update_rd rating change_rd
+          else rating
       | _ ->
           printf "failed to find last participation or current event date: \n";
           let s = [%sexp (last_participation : (int * string) option)] in
@@ -778,19 +770,12 @@ let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
     all_league_events handle |> List.map ~f:(fun event -> event.event_date)
   in
 
-  (* TODO: redo all these tests AND figure out how to calculate rd correctly *)
   let current_ratings =
     all_latest_ratings handle
     |> ratings_for_participants event
     |> adjust_rating_deviation event_params.event_date all_event_dates
   in
 
-  (* TODO: test this separately to make sure it works *)
-  (* let current_ratings = *)
-  (*   all_latest_relevant_ratings *)
-  (*     ~participants:(Dbsportas.League.LeagueEvent.participants event) *)
-  (*     handle *)
-  (* in *)
   let store =
     List.fold current_ratings ~init:store ~f:(fun s rating ->
         Dbsportas.Rating_store.Store.add s ~name:rating.runner_name
@@ -893,27 +878,7 @@ let action_refresh_events_and_results ?(year : string option = None)
     ignore (Turso.send_buffered handle)
 
 let test_rating_fn (handle : Turso.conn) =
-  let league_id = 141 in
-  let event_nrs_to_include = [ 1 ] in
-  let league =
-    Dbsportas.League.download_league_info
-      ~include_events:(Some event_nrs_to_include)
-      ~league_id:(Int.to_string league_id) ()
-  in
-  let event = List.hd_exn league.events in
-  let participants = Dbsportas.League.LeagueEvent.participants event in
-  let all_ratings = all_latest_ratings handle in
-  (* NOTE: this currently saves 80 rows on 1210 rows - so currently negligible
-     but maybe in the future it would be more .
-     The main problem is that the RD grows pretty slowly
-     *)
-  let relevant_ratings = all_latest_relevant_ratings handle ~participants in
-  let sexp = [%sexp (all_ratings : Glicko2.Rating.Info.t list)] in
-  printf "All ratings: \n";
-  print_s sexp;
-  printf "\n\nRelevant ratings: \n";
-  let sexp = [%sexp (relevant_ratings : Glicko2.Rating.Info.t list)] in
-  print_s sexp;
+  let _ = handle in
   printf "\n"
 
 let test (handle : Turso.conn) =
@@ -926,7 +891,3 @@ let test (handle : Turso.conn) =
   (* test_rating_fn handle; *)
   let _ = handle in
   ()
-
-let%expect_test "make" =
-  printf "hello";
-  [%expect {| hello |}]
