@@ -35,12 +35,23 @@ let rating_row (rating : Glicko2.Rating.Info.t) =
       td []
         [
           a
-            [ class_ "offline user-link ulpt"; path_attr href Paths.index ]
+            [ class_ "runner-name"; path_attr href Paths.index ]
             [ txt "%s" rating.runner_name ];
         ];
-      td [] [ txt "%.2f" rating.rating ];
+      (* TODO: if RD > 100, put a questionmark after the rating *)
+      td [] [ txt "%.0f" rating.rating ];
+      td
+        [ class_ "rating-diff" ]
+        [
+          span
+            [
+              (if Float.(rating.rating_diff > 0.0) then class_ "icon good"
+               else if Float.(rating.rating_diff < 0.0) then class_ "icon bad"
+               else class_ "icon line");
+            ]
+            [ txt "%.0f" rating.rating_diff ];
+        ];
       td [] [ txt "%s" rating.event_date ];
-      td [] [ txt "%.2f" rating.rating_diff ];
       td [] [ txt "%.0f" rating.rd ];
     ]
 

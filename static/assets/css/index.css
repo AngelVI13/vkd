@@ -222,6 +222,46 @@ td {
   padding: 1rem;
 }
 
+td .runner-name {
+  color: var(--c-font);
+  font-weight: bold;
+}
+
+.rating-diff span {
+  position: relative;
+  top: -3px;
+}
+
+.rating-diff .icon:before {
+  display: inline-block;
+  font-weight: 1000;
+  font-size: 22px;
+  text-shadow:
+    0px 0,
+    0 -1px;
+  margin-right: 0.2em;
+  position: relative;
+}
+
+.rating-diff .good:before {
+  color: green;
+  content: "\2335";
+  transform: rotateX(180deg);
+  top: 6px;
+}
+
+.rating-diff .bad:before {
+  color: red;
+  content: "\2335";
+  top: -1px;
+}
+
+.rating-diff .line:before {
+  color: var(--c-font);
+  content: "\2212";
+  top: 2px;
+}
+
 @media screen and (max-width: 1150px) {
   .event-card {
     --event-card-width: 192px;
