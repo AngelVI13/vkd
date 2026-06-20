@@ -219,17 +219,38 @@ td {
   vertical-align: middle;
 }
 .slist td {
-  padding: 1rem;
+  padding: 0.8rem;
+}
+
+.position {
+  text-align: center;
+}
+
+.rating {
+  font-weight: bold;
+}
+
+.rating .uncertain {
+  margin-left: 0.1em;
 }
 
 td .runner-name {
   color: var(--c-font);
   font-weight: bold;
+  margin-right: 0.4em;
+}
+
+td .runner-club {
+  font-style: italic;
+  font-size: 12px;
+  margin-bottom: 0;
+  margin-top: 4px;
 }
 
 .rating-diff span {
   position: relative;
   top: -3px;
+  white-space: nowrap;
 }
 
 .rating-diff .icon:before {

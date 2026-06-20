@@ -13,33 +13,42 @@ let head_elems (t : Page_settings.t) =
         ];
     ]
 
-let rating_row (rating : Glicko2.Rating.Info.t) =
+let rating_row (t : Page_settings.t) (position : int)
+    (rating : Glicko2.Rating.Info.t) =
+  (* TODO: revert to 100 after testing *)
+  (* let is_uncertain = Float.(rating.rd >= 100.) in *)
+  let is_uncertain = Float.(rating.rd >= 80.) in
   tr []
     [
+      td [ class_ "position" ] [ txt "%d" (position + 1) ];
       td []
         [
           span
+            [ class_ "runner-info" ]
             [
-              class_ "trophy perf top1 lb__trophy trophy--small";
-              title_ "Blitz Chamption!";
-            ]
-            [
-              img
-                [
-                  src
-                    "https://lichess1.org/assets/hashed/gold-cup-2.e1e2ac3f.png";
-                  style_ "height: 40px;";
-                ];
+              a
+                [ class_ "runner-name"; path_attr href Paths.index ]
+                [ txt "%s" rating.runner_name ];
+              p
+                [ class_ "runner-club" ]
+                [ txt "%s" (String.strip rating.runner_club) ];
             ];
         ];
-      td []
+      td
         [
-          a
-            [ class_ "runner-name"; path_attr href Paths.index ]
-            [ txt "%s" rating.runner_name ];
+          class_ "rating";
+          (if is_uncertain then title_ "%s" t.translations.rating_uncertainty
+           else null_);
+          (if is_uncertain then
+             style_
+               "text-decoration: underline dashed; text-underline-offset: 3px;"
+           else null_);
+        ]
+        [
+          txt "%.0f" rating.rating;
+          (if is_uncertain then span [ class_ "uncertain" ] [ txt "?" ]
+           else null []);
         ];
-      (* TODO: if RD > 100, put a questionmark after the rating *)
-      td [] [ txt "%.0f" rating.rating ];
       td
         [ class_ "rating-diff" ]
         [
@@ -52,7 +61,6 @@ let rating_row (rating : Glicko2.Rating.Info.t) =
             [ txt "%.0f" rating.rating_diff ];
         ];
       td [] [ txt "%s" rating.event_date ];
-      td [] [ txt "%.0f" rating.rd ];
     ]
 
 let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
@@ -70,7 +78,11 @@ let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
   (* let ratings = List.take ratings 20 in *)
   (* --- *)
 
-  let rows = List.map ratings ~f:rating_row in
+  (* TODO: add table header with column titles *)
+  (* TODO: make table look good on small screens *)
+  (* TODO: fix sticky header *)
+
+  let rows = List.mapi ratings ~f:(rating_row t) in
   let _ = t in
   table
     [ class_ "slist slist-pad slist-invert slist-leaderboard" ]

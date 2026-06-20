@@ -28,6 +28,7 @@ type translations = {
   runners : string;
   prev_event : string;
   next_event : string;
+  rating_uncertainty : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -42,6 +43,10 @@ let english =
     runners = "Runners";
     prev_event = "Past Event";
     next_event = "Next Event";
+    rating_uncertainty =
+      "Runner has not participated in enough „Vilniaus Ketvirtadieniai“ events \
+       to establish a reliable rating or has missed too many events so his/her \
+       rating is considered unreliable.";
   }
 
 let lithuanian =
@@ -56,6 +61,10 @@ let lithuanian =
     runners = "Bėgikai";
     prev_event = "Praėjęs Etapas";
     next_event = "Sekantis Etapas";
+    rating_uncertainty =
+      "Bėgikas/ė nedalyvavo pakankamai „Vilniaus ketvirtadienio“ renginiuose, \
+       kad būtų galima nustatyti patikimą įvertinimą, arba praleido per daug \
+       renginių, todėl jo/jos įvertinimas laikomas nepatikimu.";
   }
 
 let translation_of_language (lang : language) : translations =
