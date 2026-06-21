@@ -23,6 +23,7 @@ module State = struct
     filename : string;
     mutable latest_league_events : Db.EventInfoExtra.t list; [@default []]
     mutable all_latest_ratings : Glicko2.Rating.Info.t list; [@default []]
+    mutable all_league_events : Db.LeagueEvent.t list; [@default []]
   }
   [@@deriving yojson]
 
@@ -36,7 +37,12 @@ module State = struct
           "Failed to load cache from file (%s): %s . Initializing an empty \
            cache..."
           filename (Exn.to_string exc);
-        { filename; latest_league_events = []; all_latest_ratings = [] }
+        {
+          filename;
+          latest_league_events = [];
+          all_latest_ratings = [];
+          all_league_events = [];
+        }
 
   let latest_league_events (t : t) (db : Db.t) =
     if List.length t.latest_league_events > 0 then t.latest_league_events
@@ -48,11 +54,53 @@ module State = struct
       save t;
       events)
 
+  let all_league_events (t : t) (db : Db.t) =
+    if List.length t.all_league_events > 0 then t.all_league_events
+    else (
+      Dream.log "Fetching all league events data from DB";
+      let events = Db.all_league_events db in
+      t.all_league_events <- events;
+      save t;
+      events)
+
+  let _update_ratings_rd (t : t) (db : Db.t)
+      (ratings : Glicko2.Rating.Info.t list) =
+    let all_event_dates =
+      all_league_events t db |> List.map ~f:(fun event -> event.event_date)
+    in
+    let latest_event_date =
+      List.fold ratings ~init:"" ~f:(fun latest_date r ->
+          if String.(r.event_date > latest_date) then r.event_date
+          else latest_date)
+    in
+    let latest_event_idx =
+      List.findi all_event_dates ~f:(fun _ date ->
+          String.equal latest_event_date date)
+    in
+
+    List.map ratings ~f:(fun r ->
+        match latest_event_idx with
+        | None -> r
+        | Some (latest_i, _) ->
+            let rating_date_idx, _ =
+              List.findi_exn all_event_dates ~f:(fun _ date ->
+                  String.equal r.event_date date)
+            in
+            let diff = latest_i - rating_date_idx in
+            let rd_increase =
+              if diff > 0 then Float.of_int diff *. Db.rd_increase_per_event
+              else 0.
+            in
+            { r with rd = r.rd +. rd_increase })
+
   let all_latest_ratings (t : t) (db : Db.t) =
     if List.length t.all_latest_ratings > 0 then t.all_latest_ratings
     else (
       Dream.log "Fetching all latest ratings data from DB";
-      let ratings = Db.all_latest_ratings_for_last_year db in
+      let ratings =
+        Db.all_latest_ratings_for_last_year db |> _update_ratings_rd t db
+      in
+
       t.all_latest_ratings <- ratings;
       save t;
       ratings)

@@ -271,7 +271,7 @@ module LeagueEvent = struct
     event_date : string;
     location : string;
   }
-  [@@deriving fields]
+  [@@deriving fields, yojson]
 end
 
 let all_league_events (handle : Turso.conn) =
@@ -736,6 +736,8 @@ let ratings_for_participants (event : Dbsportas.League.LeagueEvent.t)
                 String.(rating.course_id = course.id)
                 && Option.is_some (Map.find map rating.runner_id)))
 
+let rd_increase_per_event = 3.5
+
 let adjust_rating_deviation (event_date : string)
     (all_event_dates : string list) (ratings : Glicko2.Rating.Info.t list) =
   List.map ratings ~f:(fun rating ->
@@ -754,7 +756,7 @@ let adjust_rating_deviation (event_date : string)
           assert (current_i > last_i);
           let diff = current_i - last_i - 1 in
           if diff > 0 then
-            let change_rd = Float.of_int diff *. 3.5 in
+            let change_rd = Float.of_int diff *. rd_increase_per_event in
             (* NOTE: here the RD adjustment for missing an event is hardcoded.
                I dont know if this is a good value or not *)
             Glicko2.Rating.Info.update_rd rating change_rd
