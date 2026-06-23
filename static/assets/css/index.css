@@ -199,11 +199,17 @@ td {
   background: var(--c-bg-zebra);
 }
 
-.slist td {
+.slist td,
+th {
   vertical-align: middle;
 }
-.slist td {
+.slist td,
+th {
   padding: 0.8rem;
+}
+
+th {
+  font-weight: bold;
 }
 
 .position {
@@ -313,6 +319,10 @@ td .runner-club {
     font-size: 14px;
   }
 
+  th {
+    font-size: 12px;
+  }
+
   td {
     font-size: 12px;
   }
@@ -320,8 +330,9 @@ td .runner-club {
     font-size: 11px;
   }
 
-  .slist td {
-    padding: 0.6rem;
+  .slist td,
+  th {
+    padding: 0.4rem;
   }
 
   .slist td .position {

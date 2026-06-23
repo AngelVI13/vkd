@@ -56,7 +56,7 @@ a {
 }
 
 #topnav section > a {
-  color: var(--c-font-page);
+  color: var(--c-font);
   display: block;
   line-height: var(---site-header-height);
   padding: 0 0.7rem;

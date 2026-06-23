@@ -78,15 +78,24 @@ let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
   (* let ratings = List.take ratings 20 in *)
   (* --- *)
 
-  (* TODO: add table header with column titles *)
-  (* TODO: make table look good on small screens *)
-  (* TODO: fix sticky header *)
-
   let rows = List.mapi ratings ~f:(rating_row t) in
   let _ = t in
   table
     [ class_ "slist slist-pad slist-invert slist-leaderboard" ]
-    [ tbody [ class_ "infinite-scroll" ] rows ]
+    [
+      thead []
+        [
+          tr []
+            [
+              th [ class_ "position" ] [ txt "#" ];
+              th [] [ txt "%s" t.translations.name ];
+              th [] [ txt "%s" t.translations.rating ];
+              th [] [ txt "%s" t.translations.change ];
+              th [] [ txt "%s" t.translations.last_event ];
+            ];
+        ];
+      tbody [ class_ "infinite-scroll" ] rows;
+    ]
 
 let ratings_header (t : Page_settings.t) =
   div
