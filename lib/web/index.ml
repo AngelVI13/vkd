@@ -68,6 +68,7 @@ let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
   let ratings =
     List.sort ratings ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
   in
+
   (* TODO: filter out all inactive players i.e. those that haven't been to a race in 1 year *)
   (* TODO: somehow it looks like everyone lost rating in their latest event
      which shouldnt be possible *)
@@ -78,15 +79,18 @@ let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
   (* let ratings = List.take ratings 20 in *)
   (* --- *)
 
+  (* TODO: add lazy loading or infinite scroll to table rows *)
   let rows = List.mapi ratings ~f:(rating_row t) in
-  let _ = t in
   table
-    [ class_ "slist slist-pad slist-invert slist-leaderboard" ]
+    [
+      class_ "slist slist-pad slist-invert slist-leaderboard"; id "rating-table";
+    ]
     [
       thead []
         [
           tr []
             [
+              (* TODO: add titles to the headers explaining what information is in that column *)
               th [ class_ "position" ] [ txt "#" ];
               th [] [ txt "%s" t.translations.name ];
               th [] [ txt "%s" t.translations.rating ];
@@ -97,13 +101,57 @@ let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
       tbody [ class_ "infinite-scroll" ] rows;
     ]
 
-let ratings_header (t : Page_settings.t) =
-  div
-    [ class_ "box__top" ]
-    [
-      (* TODO: put filter buttons here *)
-      a [ path_attr href Paths.user_w_scope t.translations.lang ] [ txt "User" ];
-    ]
+type ratingClass = Class1 | Class2 | Class3 | ClassD
+[@@deriving enumerate, eq]
+
+let show_ratingClass = function
+  | Class1 -> "1"
+  | Class2 -> "2"
+  | Class3 -> "3"
+  | ClassD -> "D"
+
+let ratingClass_of_string = function
+  | "1" -> Class1
+  | "2" -> Class2
+  | "3" -> Class3
+  | "D" -> ClassD
+  | _ -> assert false
+
+type ratingGender = All | Men | Women
+[@@deriving show { with_path = false }, enumerate, eq]
+
+(* TODO: add translations *)
+let ratings_header ?(selected_class : ratingClass = Class1)
+    ?(selected_gender : ratingGender = All) (t : Page_settings.t) =
+  let _ = t in
+  let class_options =
+    List.map all_of_ratingClass ~f:(fun c ->
+        let class_string = show_ratingClass c in
+        let selected_node =
+          if equal_ratingClass c selected_class then selected else null_
+        in
+        option [ value "%s" class_string; selected_node ] "%s" class_string)
+  in
+  let gender_options =
+    List.map all_of_ratingGender ~f:(fun g ->
+        let gender_string = show_ratingGender g in
+        let selected_node =
+          if equal_ratingGender g selected_gender then selected else null_
+        in
+        option [ value "%s" gender_string; selected_node ] "%s" gender_string)
+  in
+  (* TODO: implement HTMX logic for filtering:
+https://chatgpt.com/share/6a3bc24b-e690-83eb-9d3f-9e829d3e7f63 *)
+  let select_form =
+    form []
+      [
+        label [] [ txt "Class" ];
+        select [ class_ "op-hover"; name "class-select" ] class_options;
+        label [] [ txt "Gender" ];
+        select [ class_ "op-hover"; name "gender-select" ] gender_options;
+      ]
+  in
+  div [ class_ "box__top" ] [ select_form ]
 
 let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     =
