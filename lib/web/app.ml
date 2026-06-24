@@ -114,6 +114,26 @@ let handle_index ~(db : Db.t) ~(state : State.t) ~settings request =
   let page = Index.page settings events ratings in
   Dream_html.respond page
 
+let handle_rating_table ~(db : Db.t) ~(state : State.t) ~settings request =
+  let course_select =
+    Dream.query request "course-select"
+    |> Option.value_exn |> Index.ratingCourse_of_string
+  in
+  let group_select =
+    Dream.query request "group-select"
+    |> Option.value_exn |> Index.ratingGroup_of_string
+  in
+
+  let ratings =
+    State.all_latest_ratings state db
+    |> List.filter ~f:(fun r ->
+           Index.ratingCourse_eq course_select r.course_id
+           && Index.ratingGroup_eq group_select r.runner_gender)
+  in
+
+  let page = Index.ratings_table settings ratings in
+  Dream_html.respond page
+
 let handle_user ~settings request =
   let _ = request in
   let page = User.page settings in
@@ -220,6 +240,8 @@ let run ~(db : Db.t) =
              Dream_html.get Paths.index
                (with_settings (handle_index ~db ~state));
              Dream_html.get Paths.user (with_settings handle_user);
+             Dream_html.get Paths.rating_table
+               (with_settings (handle_rating_table ~db ~state));
            ];
          Dream_html.get Paths.index (fun req -> Dream.redirect req "/en/");
          Static.routes;

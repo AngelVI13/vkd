@@ -33,6 +33,11 @@ type translations = {
   rating : string;
   change : string;
   last_event : string;
+  course : string;
+  group : string;
+  all : string;
+  men : string;
+  women : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -55,6 +60,11 @@ let english =
     rating = "Rating";
     change = "Change";
     last_event = "Last Event";
+    course = "Course";
+    group = "Group";
+    all = "All";
+    men = "Men";
+    women = "Women";
   }
 
 let lithuanian =
@@ -77,6 +87,11 @@ let lithuanian =
     rating = "Reitingas";
     change = "Pokytis";
     last_event = "Paskutinis Ivykis";
+    course = "Trasa";
+    group = "Grupė";
+    all = "Visi";
+    men = "Vyrai";
+    women = "Moterys";
   }
 
 let translation_of_language (lang : language) : translations =

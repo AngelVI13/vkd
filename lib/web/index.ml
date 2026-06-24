@@ -64,18 +64,12 @@ let rating_row (t : Page_settings.t) (position : int)
     ]
 
 let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
-  (* TODO: remove this after testing *)
   let ratings =
     List.sort ratings ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
   in
 
   (* TODO: filter out all inactive players i.e. those that haven't been to a race in 1 year *)
-  (* TODO: somehow it looks like everyone lost rating in their latest event
-     which shouldnt be possible *)
-  (* let ratings = *)
-  (*   List.filter ratings ~f:(fun rating -> *)
-  (*       Float.(rating.rating_diff > 0.1 || rating.rating_diff < -0.1)) *)
-  (* in *)
+  (* TODO: remove this after testing *)
   (* let ratings = List.take ratings 20 in *)
   (* --- *)
 
@@ -101,54 +95,77 @@ let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
       tbody [ class_ "infinite-scroll" ] rows;
     ]
 
-type ratingClass = Class1 | Class2 | Class3 | ClassD
+type ratingCourse = Course1 | Course2 | Course3 | CourseD
 [@@deriving enumerate, eq]
 
-let show_ratingClass = function
-  | Class1 -> "1"
-  | Class2 -> "2"
-  | Class3 -> "3"
-  | ClassD -> "D"
+let show_ratingCourse = function
+  | Course1 -> "1"
+  | Course2 -> "2"
+  | Course3 -> "3"
+  | CourseD -> "D"
 
-let ratingClass_of_string = function
-  | "1" -> Class1
-  | "2" -> Class2
-  | "3" -> Class3
-  | "D" -> ClassD
+let ratingCourse_of_string = function
+  | "1" -> Course1
+  | "2" -> Course2
+  | "3" -> Course3
+  | "D" -> CourseD
   | _ -> assert false
 
-type ratingGender = All | Men | Women
+let ratingCourse_eq (rating_course : ratingCourse) (course_id : string) : bool =
+  String.equal (show_ratingCourse rating_course) course_id
+
+type ratingGroup = All | Men | Women
 [@@deriving show { with_path = false }, enumerate, eq]
 
-(* TODO: add translations *)
-let ratings_header ?(selected_class : ratingClass = Class1)
-    ?(selected_gender : ratingGender = All) (t : Page_settings.t) =
-  let _ = t in
-  let class_options =
-    List.map all_of_ratingClass ~f:(fun c ->
-        let class_string = show_ratingClass c in
+let ratingGroup_of_string = function
+  | "All" -> All
+  | "Women" -> Women
+  | "Men" -> Men
+  | _ -> assert false
+
+let ratingGroup_eq (group : ratingGroup) (runner_gender : string) : bool =
+  match group with
+  | All -> true
+  | Women -> String.equal runner_gender "M"
+  | Men -> String.equal runner_gender "V"
+
+let ratings_header ?(selected_course : ratingCourse = Course1)
+    ?(selected_group : ratingGroup = All) (t : Page_settings.t) =
+  let course_options =
+    List.map all_of_ratingCourse ~f:(fun c ->
+        let course_string = show_ratingCourse c in
         let selected_node =
-          if equal_ratingClass c selected_class then selected else null_
+          if equal_ratingCourse c selected_course then selected else null_
         in
-        option [ value "%s" class_string; selected_node ] "%s" class_string)
+        option [ value "%s" course_string; selected_node ] "%s" course_string)
   in
-  let gender_options =
-    List.map all_of_ratingGender ~f:(fun g ->
-        let gender_string = show_ratingGender g in
+  let group_options =
+    List.map all_of_ratingGroup ~f:(fun g ->
         let selected_node =
-          if equal_ratingGender g selected_gender then selected else null_
+          if equal_ratingGroup g selected_group then selected else null_
         in
-        option [ value "%s" gender_string; selected_node ] "%s" gender_string)
+        let option_txt =
+          match g with
+          | All -> t.translations.all
+          | Men -> t.translations.men
+          | Women -> t.translations.women
+        in
+        option
+          [ value "%s" (show_ratingGroup g); selected_node ]
+          "%s" option_txt)
   in
-  (* TODO: implement HTMX logic for filtering:
-https://chatgpt.com/share/6a3bc24b-e690-83eb-9d3f-9e829d3e7f63 *)
   let select_form =
-    form []
+    form
       [
-        label [] [ txt "Class" ];
-        select [ class_ "op-hover"; name "class-select" ] class_options;
-        label [] [ txt "Gender" ];
-        select [ class_ "op-hover"; name "gender-select" ] gender_options;
+        path_attr Hx.get Paths.rating_table_w_scope t.translations.lang;
+        Hx.target "#rating-table";
+        Hx.trigger "change";
+      ]
+      [
+        label [] [ txt "%s" t.translations.course ];
+        select [ class_ "op-hover"; name "course-select" ] course_options;
+        label [] [ txt "%s" t.translations.group ];
+        select [ class_ "op-hover"; name "group-select" ] group_options;
       ]
   in
   div [ class_ "box__top" ] [ select_form ]
