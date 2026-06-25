@@ -71,19 +71,21 @@ let rating_rows ?(page_num : int = 1) (t : Page_settings.t)
     (ratings : Glicko2.Rating.Info.t list) =
   let rows = List.mapi ratings ~f:(rating_row ~t ~page_num) in
   let rows =
-    match List.last rows with
-    | None -> rows
-    | Some tl ->
-        let rows = List.drop_last_exn rows in
-        let last = tl +@ Hx.trigger "intersect once" in
-        let last = last +@ Hx.swap "afterend" in
-        let last =
-          last
-          +@ path_attr Hx.get Paths.rating_table_w_scope_w_page
-               t.translations.lang (page_num + 1)
-          +@ Hx.include_ "#filter-form"
-        in
-        rows @ [ last ]
+    if List.length ratings < Settings.ratings_page_size then rows
+    else
+      match List.last rows with
+      | None -> rows
+      | Some tl ->
+          let rows = List.drop_last_exn rows in
+          let last = tl +@ Hx.trigger "intersect once" in
+          let last = last +@ Hx.swap "afterend" in
+          let last =
+            last
+            +@ path_attr Hx.get Paths.rating_table_w_scope_w_page
+                 t.translations.lang (page_num + 1)
+            +@ Hx.include_ "#filter-form"
+          in
+          rows @ [ last ]
   in
   rows
 
@@ -182,6 +184,7 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         Hx.target "#rating-rows";
         Hx.swap "innerHTML";
         Hx.trigger "change";
+        Hx.indicator ".rating-filter-indicator";
       ]
       [
         label [] [ txt "%s" t.translations.course ];
@@ -190,7 +193,32 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         select [ class_ "op-hover"; name "group-select" ] group_options;
       ]
   in
-  div [ class_ "box__top" ] [ select_form ]
+  let search_input =
+    input
+      [
+        class_ "form-control";
+        type_ "search";
+        name "rating-search";
+        (* TODO: put translations here *)
+        placeholder "Type to search for a runner";
+        Hx.target "#rating-rows";
+        Hx.swap "innerHTML";
+        Hx.include_ "#filter-form";
+        path_attr Hx.post Paths.rating_table_w_scope t.translations.lang;
+        Hx.trigger "input changed delay:500ms, load";
+        (* TODO: make the indicator work *)
+        Hx.indicator ".rating-filter-indicator";
+      ]
+  in
+  let indicator =
+    img
+      [
+        class_ "rating-filter-indicator";
+        id "rating-filter-indicator";
+        path_attr src Static.Assets.Images.refresh_png;
+      ]
+  in
+  div [ class_ "box__top" ] [ select_form; search_input; indicator ]
 
 let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     =
