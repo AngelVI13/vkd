@@ -110,6 +110,10 @@ let handle_index ~(db : Db.t) ~(state : State.t) ~settings request =
   let _ = request in
   let events = State.latest_league_events state db in
   let ratings = State.all_latest_ratings state db in
+  let ratings =
+    List.sort ratings ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
+  in
+  let ratings = List.take ratings Settings.ratings_page_size in
 
   let page = Index.page settings events ratings in
   Dream_html.respond page
@@ -123,16 +127,26 @@ let handle_rating_table ~(db : Db.t) ~(state : State.t) ~settings request =
     Dream.query request "group-select"
     |> Option.value_exn |> Index.ratingGroup_of_string
   in
+  let page = Dream.query request "page" in
+  let page_num = match page with None -> 1 | Some p -> Int.of_string p in
 
   let ratings =
     State.all_latest_ratings state db
     |> List.filter ~f:(fun r ->
            Index.ratingCourse_eq course_select r.course_id
            && Index.ratingGroup_eq group_select r.runner_gender)
+    |> List.sort ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
+  in
+  let ratings =
+    if page_num > 1 then
+      List.drop ratings ((page_num - 1) * Settings.ratings_page_size)
+    else ratings
   in
 
-  let page = Index.ratings_table settings ratings in
-  Dream_html.respond page
+  let ratings = List.take ratings Settings.ratings_page_size in
+
+  let page = Index.rating_rows ~page_num settings ratings in
+  Dream_html.respond (Dream_html.HTML.null page)
 
 let handle_user ~settings request =
   let _ = request in

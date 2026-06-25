@@ -13,14 +13,18 @@ let head_elems (t : Page_settings.t) =
         ];
     ]
 
-let rating_row (t : Page_settings.t) (position : int)
+let rating_row ~(t : Page_settings.t) ~(page_num : int) (position : int)
     (rating : Glicko2.Rating.Info.t) =
   (* TODO: revert to 100 after testing *)
   (* let is_uncertain = Float.(rating.rd >= 100.) in *)
   let is_uncertain = Float.(rating.rd >= 80.) in
   tr []
     [
-      td [ class_ "position" ] [ txt "%d" (position + 1) ];
+      td
+        [ class_ "position" ]
+        [
+          txt "%d" (((page_num - 1) * Settings.ratings_page_size) + position + 1);
+        ];
       td []
         [
           span
@@ -63,36 +67,52 @@ let rating_row (t : Page_settings.t) (position : int)
       td [] [ txt "%s" rating.event_date ];
     ]
 
-let ratings_table (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
-  let ratings =
-    List.sort ratings ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
+let rating_rows ?(page_num : int = 1) (t : Page_settings.t)
+    (ratings : Glicko2.Rating.Info.t list) =
+  let rows = List.mapi ratings ~f:(rating_row ~t ~page_num) in
+  let rows =
+    match List.last rows with
+    | None -> rows
+    | Some tl ->
+        let rows = List.drop_last_exn rows in
+        let last = tl +@ Hx.trigger "intersect once" in
+        let last = last +@ Hx.swap "afterend" in
+        let last =
+          last
+          +@ path_attr Hx.get Paths.rating_table_w_scope_w_page
+               t.translations.lang (page_num + 1)
+          +@ Hx.include_ "#filter-form"
+        in
+        rows @ [ last ]
   in
+  rows
 
-  (* TODO: filter out all inactive players i.e. those that haven't been to a race in 1 year *)
-  (* TODO: remove this after testing *)
-  (* let ratings = List.take ratings 20 in *)
-  (* --- *)
-
-  (* TODO: add lazy loading or infinite scroll to table rows *)
-  let rows = List.mapi ratings ~f:(rating_row t) in
-  table
+let ratings_table ?(page_num : int = 1) (t : Page_settings.t)
+    (ratings : Glicko2.Rating.Info.t list) =
+  let rows = rating_rows ~page_num t ratings in
+  div
+    [ class_ "rating-table-container" ]
     [
-      class_ "slist slist-pad slist-invert slist-leaderboard"; id "rating-table";
-    ]
-    [
-      thead []
+      table
         [
-          tr []
+          class_ "slist slist-pad slist-invert slist-leaderboard";
+          id "rating-table";
+        ]
+        [
+          thead []
             [
-              (* TODO: add titles to the headers explaining what information is in that column *)
-              th [ class_ "position" ] [ txt "#" ];
-              th [] [ txt "%s" t.translations.name ];
-              th [] [ txt "%s" t.translations.rating ];
-              th [] [ txt "%s" t.translations.change ];
-              th [] [ txt "%s" t.translations.last_event ];
+              tr []
+                [
+                  (* TODO: add titles to the headers explaining what information is in that column *)
+                  th [ class_ "position" ] [ txt "#" ];
+                  th [] [ txt "%s" t.translations.name ];
+                  th [] [ txt "%s" t.translations.rating ];
+                  th [] [ txt "%s" t.translations.change ];
+                  th [] [ txt "%s" t.translations.last_event ];
+                ];
             ];
+          tbody [ id "rating-rows"; class_ "infinite-scroll" ] rows;
         ];
-      tbody [ class_ "infinite-scroll" ] rows;
     ]
 
 type ratingCourse = Course1 | Course2 | Course3 | CourseD
@@ -157,8 +177,10 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
   let select_form =
     form
       [
+        id "filter-form";
         path_attr Hx.get Paths.rating_table_w_scope t.translations.lang;
-        Hx.target "#rating-table";
+        Hx.target "#rating-rows";
+        Hx.swap "innerHTML";
         Hx.trigger "change";
       ]
       [

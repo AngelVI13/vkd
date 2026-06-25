@@ -195,6 +195,23 @@ td {
   text-align: inherit;
 }
 
+thead th {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.rating-table-container {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+#rating-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
 .slist-invert tbody tr:nth-child(2n + 1) {
   background: var(--c-bg-zebra);
 }
