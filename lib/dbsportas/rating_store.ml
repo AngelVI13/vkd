@@ -189,9 +189,10 @@ module Store = struct
         [runner_gender]). *)
   let all_ratings t ~league_id ~event_nr ~event_date =
     List.map (Map.data t.map) ~f:(fun info ->
-        Glicko2.Rating.Info.Fields.create ~league_id ~event_nr ~event_date
-          ~course_id:info.course ~runner_id:info.id ~runner_name:info.name
-          ~runner_club:"" ~runner_gender:"" ~rating:info.rating
+        Glicko2.Rating.Info.make ~league_id ~event_nr ~event_date
+          ~course_id:info.course ~runner_id:(Int64.of_int info.id)
+          ~runner_name:info.name ~runner_club:"" ~runner_gender:""
+          ~rating:info.rating
           ~rating_diff:(History.latest_rating_diff info.history)
           ~rd:info.rd ~vol:info.vol)
 

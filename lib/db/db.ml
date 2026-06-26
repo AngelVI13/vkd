@@ -330,10 +330,9 @@ let ratings_aux ~f (handle : Turso.conn) =
        ->
          let _ = id in
          let rating =
-           Glicko2.Rating.Info.Fields.create ~league_id:(of_int64 league_id)
-             ~event_nr:(of_int64 event_nr) ~event_date ~course_id
-             ~runner_id:(of_int64 runner_id) ~rating ~rating_diff ~rd ~vol
-             ~runner_name ~runner_club ~runner_gender
+           Glicko2.Rating.Info.make ~league_id ~event_nr ~event_date ~course_id
+             ~runner_id ~rating ~rating_diff ~rd ~vol ~runner_name ~runner_club
+             ~runner_gender
          in
 
          ratings := rating :: !ratings));
@@ -801,8 +800,7 @@ let _update_ratings (handle : Turso.conn) ~(event_params : EventParams.t)
 
   let new_ratings =
     Dbsportas.Rating_store.Store.all_ratings store
-      ~league_id:(of_int64 event_params.league_id)
-      ~event_nr:(of_int64 event_params.event_nr)
+      ~league_id:event_params.league_id ~event_nr:event_params.event_nr
       ~event_date:event_params.event_date
   in
   printf "New ratings after calculations: %d (+%d)\n" (List.length new_ratings)

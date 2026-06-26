@@ -106,18 +106,6 @@ module State = struct
       ratings)
 end
 
-let handle_index ~(db : Db.t) ~(state : State.t) ~settings request =
-  let _ = request in
-  let events = State.latest_league_events state db in
-  let ratings = State.all_latest_ratings state db in
-  let ratings =
-    List.sort ratings ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
-  in
-  let ratings = List.take ratings Settings.ratings_page_size in
-
-  let page = Index.page settings events ratings in
-  Dream_html.respond page
-
 let filtered_ratings ~(db : Db.t) ~(state : State.t) ~(page_num : int)
     ~(course : Index.ratingCourse) ~(group : Index.ratingGroup)
     ?(search : string = "") () =
@@ -127,18 +115,18 @@ let filtered_ratings ~(db : Db.t) ~(state : State.t) ~(page_num : int)
   let ratings =
     State.all_latest_ratings state db
     |> List.filter ~f:(fun r ->
+           Index.ratingCourse_eq course r.course_id
+           && Index.ratingGroup_eq group r.runner_gender)
+    |> List.sort ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
+    |> List.mapi ~f:(fun i r ->
+           (* NOTE: set position based on filters & rating comparison *)
+           Field.fset Glicko2.Rating.Info.Fields.position r (Some (i + 1)))
+    |> List.filter ~f:(fun r ->
            if not should_search then true
            else
              String.is_substring
                (String.lowercase r.runner_name)
                ~substring:search)
-    |> List.filter ~f:(fun r ->
-           Index.ratingCourse_eq course r.course_id
-           && Index.ratingGroup_eq group r.runner_gender)
-    (* TODO: only sort after we have taken the needed ratings for the page ->
-      it will be faster cause sorting on smaller number. Apply this change to
-      the index handle as well *)
-    |> List.sort ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
   in
   let ratings =
     if page_num > 1 then
@@ -147,6 +135,17 @@ let filtered_ratings ~(db : Db.t) ~(state : State.t) ~(page_num : int)
   in
 
   List.take ratings Settings.ratings_page_size
+
+let handle_index ~(db : Db.t) ~(state : State.t) ~settings request =
+  let _ = request in
+  let events = State.latest_league_events state db in
+  let ratings =
+    filtered_ratings ~db ~state ~page_num:1 ~course:Index.Course1
+      ~group:GroupAll ()
+  in
+
+  let page = Index.page settings events ratings in
+  Dream_html.respond page
 
 let handle_rating_table ~(db : Db.t) ~(state : State.t) ~settings request =
   let course_select =
@@ -157,12 +156,13 @@ let handle_rating_table ~(db : Db.t) ~(state : State.t) ~settings request =
     Dream.query request "group-select"
     |> Option.value_exn |> Index.ratingGroup_of_string
   in
+  let search = Dream.query request "rating-search" |> Option.value_exn in
   let page = Dream.query request "page" in
   let page_num = match page with None -> 1 | Some p -> Int.of_string p in
 
   let ratings =
     filtered_ratings ~db ~state ~page_num ~course:course_select
-      ~group:group_select ()
+      ~group:group_select ~search ()
   in
 
   let page = Index.rating_rows ~page_num settings ratings in
@@ -176,8 +176,6 @@ let handle_rating_table_search ~(db : Db.t) ~(state : State.t) ~settings request
     =
   let%lwt body = Dream.body request in
   let query = Uri.query_of_encoded body in
-  let s = [%sexp (query : (string * string list) list)] in
-  Dream.log "%s" (Sexp.to_string_hum s);
 
   let course_select =
     get_query_param_exn query "course-select" |> Index.ratingCourse_of_string
@@ -188,9 +186,6 @@ let handle_rating_table_search ~(db : Db.t) ~(state : State.t) ~settings request
   let search = get_query_param_exn query "rating-search" in
   let page_num = 1 in
 
-  (* TODO: preserve the positions for the runners in the filter:
-    for example if i search for rimkus and i get 2 people then show their true 
-    positions and not just 1 & 2 as positions *)
   let ratings =
     filtered_ratings ~db ~state ~page_num ~course:course_select
       ~group:group_select ~search ()

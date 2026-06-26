@@ -13,18 +13,16 @@ let head_elems (t : Page_settings.t) =
         ];
     ]
 
-let rating_row ~(t : Page_settings.t) ~(page_num : int) (position : int)
-    (rating : Glicko2.Rating.Info.t) =
+let rating_row ~(t : Page_settings.t) (rating : Glicko2.Rating.Info.t) =
   (* TODO: revert to 100 after testing *)
   (* let is_uncertain = Float.(rating.rd >= 100.) in *)
   let is_uncertain = Float.(rating.rd >= 80.) in
+  let position =
+    match rating.position with None -> "" | Some p -> Int.to_string p
+  in
   tr []
     [
-      td
-        [ class_ "position" ]
-        [
-          txt "%d" (((page_num - 1) * Settings.ratings_page_size) + position + 1);
-        ];
+      td [ class_ "position" ] [ txt "%s" position ];
       td []
         [
           span
@@ -69,7 +67,7 @@ let rating_row ~(t : Page_settings.t) ~(page_num : int) (position : int)
 
 let rating_rows ?(page_num : int = 1) (t : Page_settings.t)
     (ratings : Glicko2.Rating.Info.t list) =
-  let rows = List.mapi ratings ~f:(rating_row ~t ~page_num) in
+  let rows = List.map ratings ~f:(rating_row ~t) in
   let rows =
     if List.length ratings < Settings.ratings_page_size then rows
     else
@@ -83,7 +81,7 @@ let rating_rows ?(page_num : int = 1) (t : Page_settings.t)
             last
             +@ path_attr Hx.get Paths.rating_table_w_scope_w_page
                  t.translations.lang (page_num + 1)
-            +@ Hx.include_ "#filter-form"
+            +@ Hx.include_ "#filter-form,#rating-search"
           in
           rows @ [ last ]
   in
@@ -136,23 +134,27 @@ let ratingCourse_of_string = function
 let ratingCourse_eq (rating_course : ratingCourse) (course_id : string) : bool =
   String.equal (show_ratingCourse rating_course) course_id
 
-type ratingGroup = All | Men | Women
-[@@deriving show { with_path = false }, enumerate, eq]
+type ratingGroup = GroupAll | GroupMen | GroupWomen [@@deriving enumerate, eq]
+
+let show_ratingGroup = function
+  | GroupAll -> "All"
+  | GroupMen -> "Men"
+  | GroupWomen -> "Women"
 
 let ratingGroup_of_string = function
-  | "All" -> All
-  | "Women" -> Women
-  | "Men" -> Men
+  | "All" -> GroupAll
+  | "Women" -> GroupWomen
+  | "Men" -> GroupMen
   | _ -> assert false
 
 let ratingGroup_eq (group : ratingGroup) (runner_gender : string) : bool =
   match group with
-  | All -> true
-  | Women -> String.equal runner_gender "M"
-  | Men -> String.equal runner_gender "V"
+  | GroupAll -> true
+  | GroupWomen -> String.equal runner_gender "M"
+  | GroupMen -> String.equal runner_gender "V"
 
 let ratings_header ?(selected_course : ratingCourse = Course1)
-    ?(selected_group : ratingGroup = All) (t : Page_settings.t) =
+    ?(selected_group : ratingGroup = GroupAll) (t : Page_settings.t) =
   let course_options =
     List.map all_of_ratingCourse ~f:(fun c ->
         let course_string = show_ratingCourse c in
@@ -168,9 +170,9 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         in
         let option_txt =
           match g with
-          | All -> t.translations.all
-          | Men -> t.translations.men
-          | Women -> t.translations.women
+          | GroupAll -> t.translations.all
+          | GroupMen -> t.translations.men
+          | GroupWomen -> t.translations.women
         in
         option
           [ value "%s" (show_ratingGroup g); selected_node ]
@@ -183,6 +185,7 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         path_attr Hx.get Paths.rating_table_w_scope t.translations.lang;
         Hx.target "#rating-rows";
         Hx.swap "innerHTML";
+        Hx.include_ "#rating-search";
         Hx.trigger "change";
         Hx.indicator ".rating-filter-indicator";
       ]
@@ -199,13 +202,14 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         class_ "form-control";
         type_ "search";
         name "rating-search";
+        id "rating-search";
         (* TODO: put translations here *)
         placeholder "Type to search for a runner";
         Hx.target "#rating-rows";
         Hx.swap "innerHTML";
         Hx.include_ "#filter-form";
         path_attr Hx.post Paths.rating_table_w_scope t.translations.lang;
-        Hx.trigger "input changed delay:500ms, load";
+        Hx.trigger "input changed delay:500ms";
         (* TODO: make the indicator work *)
         Hx.indicator ".rating-filter-indicator";
       ]
