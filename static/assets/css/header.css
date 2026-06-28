@@ -112,8 +112,9 @@ a {
 
 .language-select select {
   background-color: hsl(0, 0%, 73%);
-  border-radius: 8px;
   cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid var(--c-font);
 }
 
 .dark-mode-toggle {

@@ -181,6 +181,7 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
   let select_form =
     form
       [
+        class_ "rating-select-filters";
         id "filter-form";
         path_attr Hx.get Paths.rating_table_w_scope t.translations.lang;
         Hx.target "#rating-rows";
@@ -210,7 +211,6 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         Hx.include_ "#filter-form";
         path_attr Hx.post Paths.rating_table_w_scope t.translations.lang;
         Hx.trigger "input changed delay:500ms";
-        (* TODO: make the indicator work *)
         Hx.indicator ".rating-filter-indicator";
       ]
   in
@@ -222,7 +222,26 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         path_attr src Static.Assets.Images.refresh_png;
       ]
   in
-  div [ class_ "box__top" ] [ select_form; search_input; indicator ]
+  div
+    [ class_ "box__top" ]
+    [
+      div
+        [ class_ "rating-table-title" ]
+        [
+          span []
+            [
+              (* TODO: add title explaining what this rating is and how its calculated *)
+              (* TODO: add translations *)
+              div [ class_ "rating-table-txt" ] [ txt "Performance Ratings" ];
+              div
+                [ class_ "rating-table-desc" ]
+                [ txt "%s" Dbsportas.League.LeagueInfo.main_league_name ];
+            ];
+        ];
+      div
+        [ class_ "rating-table-filters" ]
+        [ select_form; search_input; indicator ];
+    ]
 
 let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     =

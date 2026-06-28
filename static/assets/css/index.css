@@ -198,7 +198,6 @@ td {
 thead th {
   position: sticky;
   top: 0;
-  background: white;
   z-index: 1;
 }
 
@@ -288,6 +287,56 @@ td .runner-club {
   color: var(--c-font);
   content: "\2212";
   top: 2px;
+}
+
+.rating-table-txt {
+  font-size: 24px;
+  font-weight: bold;
+  padding-bottom: 4px;
+}
+
+.rating-table-desc {
+  font-size: 14px;
+  font-style: italic;
+}
+
+.rating-select-filters {
+  padding-right: 10px;
+}
+
+.rating-select-filters select,
+#rating-search {
+  border-radius: 8px;
+  height: 28px;
+  border: 1px solid var(--c-font);
+}
+
+/* TODO: add hover to this element & add search icon image
+ * before it so it's clear that its a search bar */
+#rating-search {
+  width: 180px;
+  background: var(--c-search-bg);
+}
+
+.rating-table-filters {
+  display: flex;
+  justify-content: right;
+}
+
+.rating-filter-indicator {
+  visibility: hidden;
+  width: 20px;
+}
+
+.htmx-request.rating-filter-indicator {
+  visibility: visible;
+  animation: spin 4s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @media screen and (max-width: 1150px) {
