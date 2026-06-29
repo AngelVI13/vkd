@@ -240,7 +240,10 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         ];
       div
         [ class_ "rating-table-filters" ]
-        [ select_form; search_input; indicator ];
+        [
+          select_form;
+          div [ class_ "search-container" ] [ search_input; indicator ];
+        ];
     ]
 
 let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)

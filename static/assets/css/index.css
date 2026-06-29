@@ -316,6 +316,11 @@ td .runner-club {
 #rating-search {
   width: 180px;
   background: var(--c-search-bg);
+  opacity: 0.8;
+}
+
+#rating-search:hover {
+  opacity: 1;
 }
 
 .rating-table-filters {
@@ -352,6 +357,27 @@ td .runner-club {
 
   .event-img {
     --event-img-height: 160px;
+  }
+}
+
+@media screen and (max-width: 880px) {
+  /* TODO: make this all work for smallest screens */
+  .rating-table-title {
+    flex: 1 100%;
+    justify-content: center;
+    display: flex;
+    text-align: center;
+    padding-bottom: 1rem;
+  }
+
+  .rating-table-filters {
+    display: flex;
+    justify-content: space-around;
+    flex: 1 100%;
+  }
+
+  .box__top {
+    padding: 2rem 0;
   }
 }
 
