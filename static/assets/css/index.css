@@ -199,6 +199,7 @@ thead th {
   position: sticky;
   top: 0;
   z-index: 1;
+  background: var(--c-bg-box);
 }
 
 .rating-table-container {
@@ -323,14 +324,29 @@ td .runner-club {
   opacity: 1;
 }
 
+.search-container:before {
+  color: var(--c-font);
+  top: 9px;
+  content: "\26B2";
+  transform: rotate(-45deg);
+  display: inline-block;
+  font-size: 36px;
+  position: relative;
+  line-height: 0;
+}
+
 .rating-table-filters {
   display: flex;
   justify-content: right;
 }
 
+/* TODO: the animation doesn't work now - fix this */
 .rating-filter-indicator {
   visibility: hidden;
   width: 20px;
+  height: 20px;
+  position: relative;
+  transform: translate(5px, 5px);
 }
 
 .htmx-request.rating-filter-indicator {
@@ -360,8 +376,7 @@ td .runner-club {
   }
 }
 
-@media screen and (max-width: 880px) {
-  /* TODO: make this all work for smallest screens */
+@media screen and (max-width: 900px) {
   .rating-table-title {
     flex: 1 100%;
     justify-content: center;
@@ -382,13 +397,13 @@ td .runner-club {
 }
 
 @media screen and (max-width: 580px) {
-  /* TODO: convert those to setting vars instead */
   #main-wrap {
     gap: 0.2rem;
   }
 
   .carousel__track {
     gap: 5px;
+    padding: 10px;
   }
 
   .event-card {
@@ -411,6 +426,18 @@ td .runner-club {
     font-size: 14px;
   }
 
+  .box__top {
+    padding: 1rem 0;
+  }
+
+  .rating-table-title {
+    padding-bottom: 0.5rem;
+  }
+
+  .rating-table-txt {
+    font-size: 20px;
+  }
+
   th {
     font-size: 12px;
   }
@@ -429,5 +456,31 @@ td .runner-club {
 
   .slist td .position {
     padding: 0.4rem;
+  }
+}
+
+@media screen and (max-width: 500px) {
+  .rating-table-filters {
+    flex-wrap: wrap;
+  }
+
+  .search-container,
+  .rating-select-filters {
+    display: flex;
+    justify-content: center;
+    flex: 1 100%;
+  }
+
+  .rating-select-filters {
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .rating-select-filters > label {
+    padding-top: 4px;
+  }
+
+  .search-container:before {
+    top: 11px;
   }
 }
