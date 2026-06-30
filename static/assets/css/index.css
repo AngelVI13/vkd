@@ -2,6 +2,7 @@
   ---main-max-width: 1300px;
   display: grid;
   grid-template-areas:
+    ". . powered-by . ."
     ". . events . ."
     ". . ratings . .";
   grid-template-columns:
@@ -12,6 +13,35 @@
 
 main {
   grid-area: ratings;
+}
+
+.powered-by {
+  display: flex;
+  grid-area: powered-by;
+  justify-content: center;
+  align-items: center;
+}
+
+.powered-by-txt {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--c-font);
+}
+
+.powered-by-img {
+  height: 28px;
+  margin: 0 0.4rem;
+}
+
+.powered-by-source a {
+  display: flex;
+  margin: 0 0.5rem;
+  align-items: center;
+}
+
+.powered-by-name {
+  font-style: italic;
+  color: var(--c-font);
 }
 
 .page-small {

@@ -338,6 +338,47 @@ let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
     [ class_ "carousel__track page-small" ]
     (List.map events ~f:(fun e -> event_card t e))
 
+let powered_by (t : Page_settings.t) =
+  let _ = t in
+  div
+    [ class_ "powered-by" ]
+    [
+      (* TODO: add lichess wings or some symbol before and after the text *)
+      (* TODO: make it look good on mobile*)
+      (* TODO: translations *)
+      div [ class_ "powered-by-txt" ] [ txt "Powered by:" ];
+      div
+        [ class_ "powered-by-source" ]
+        [
+          a
+            [ href "https://dbsportas.lt" ]
+            [
+              div [ class_ "powered-by-name" ] [ txt "dbsportas" ];
+              img
+                [
+                  class_ "powered-by-img";
+                  path_attr src Static.Assets.Images.db_sport_svg;
+                ];
+            ];
+        ];
+      div
+        [ class_ "powered-by-source" ]
+        [
+          a
+            [ href "https://vilniausketvirtadieniai.lt" ]
+            [
+              div
+                [ class_ "powered-by-name" ]
+                [ txt "Vilniaus Ketvirtadieniai" ];
+              img
+                [
+                  class_ "powered-by-img";
+                  path_attr src Static.Assets.Images.vk_logo_png;
+                ];
+            ];
+        ];
+    ]
+
 let page (t : Page_settings.t) (events : Db.EventInfoExtra.t list)
     (ratings : Glicko2.Rating.Info.t list) =
   html
@@ -349,6 +390,6 @@ let page (t : Page_settings.t) (events : Db.EventInfoExtra.t list)
           Header.elements t;
           div
             [ id "main-wrap" ]
-            [ event_carousel t events; ratings_section t ratings ];
+            [ powered_by t; event_carousel t events; ratings_section t ratings ];
         ];
     ]

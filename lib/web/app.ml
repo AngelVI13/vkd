@@ -148,6 +148,7 @@ let handle_index ~(db : Db.t) ~(state : State.t) ~settings request =
   Dream_html.respond page
 
 let handle_rating_table ~(db : Db.t) ~(state : State.t) ~settings request =
+  (* Utils.sleep ~s:3; *)
   let course_select =
     Dream.query request "course-select"
     |> Option.value_exn |> Index.ratingCourse_of_string
