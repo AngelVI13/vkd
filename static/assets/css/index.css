@@ -312,8 +312,11 @@ td .runner-club {
   border: 1px solid var(--c-font);
 }
 
-/* TODO: add hover to this element & add search icon image
- * before it so it's clear that its a search bar */
+.rating-table-filters {
+  display: flex;
+  justify-content: right;
+}
+
 #rating-search {
   width: 180px;
   background: var(--c-search-bg);
@@ -324,34 +327,37 @@ td .runner-club {
   opacity: 1;
 }
 
-.search-container:before {
+.search-container {
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
   color: var(--c-font);
-  top: 9px;
-  content: "\26B2";
-  transform: rotate(-45deg);
-  display: inline-block;
   font-size: 36px;
-  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 0;
 }
 
-.rating-table-filters {
-  display: flex;
-  justify-content: right;
+.search-container:before {
+  content: "\26B2";
+  transform: rotate(-45deg);
+  font-size: 36px;
+  margin: 0 0.3rem;
 }
 
-/* TODO: the animation doesn't work now - fix this */
-.rating-filter-indicator {
+.search-container:after {
   visibility: hidden;
-  width: 20px;
-  height: 20px;
-  position: relative;
-  transform: translate(5px, 5px);
+  content: "\268A";
+  font-size: 36px;
+  margin: 0 0.1rem;
 }
 
-.htmx-request.rating-filter-indicator {
+.htmx-request.search-container:after {
   visibility: visible;
-  animation: spin 4s linear infinite;
+  animation: spin 2s linear infinite;
 }
 
 @keyframes spin {
@@ -459,7 +465,7 @@ td .runner-club {
   }
 }
 
-@media screen and (max-width: 500px) {
+@media screen and (max-width: 540px) {
   .rating-table-filters {
     flex-wrap: wrap;
   }
@@ -482,5 +488,16 @@ td .runner-club {
 
   .search-container:before {
     top: 11px;
+  }
+
+  .search-container:after {
+    top: 14px;
+  }
+
+  @keyframes spin {
+    100% {
+      transform-origin: top center;
+      transform: rotate(360deg);
+    }
   }
 }

@@ -188,7 +188,7 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         Hx.swap "innerHTML";
         Hx.include_ "#rating-search";
         Hx.trigger "change";
-        Hx.indicator ".rating-filter-indicator";
+        Hx.indicator ".search-container";
       ]
       [
         label [] [ txt "%s" t.translations.course ];
@@ -211,15 +211,7 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         Hx.include_ "#filter-form";
         path_attr Hx.post Paths.rating_table_w_scope t.translations.lang;
         Hx.trigger "input changed delay:500ms";
-        Hx.indicator ".rating-filter-indicator";
-      ]
-  in
-  let indicator =
-    img
-      [
-        class_ "rating-filter-indicator";
-        id "rating-filter-indicator";
-        path_attr src Static.Assets.Images.refresh_png;
+        Hx.indicator ".search-container";
       ]
   in
   div
@@ -241,8 +233,9 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
       div
         [ class_ "rating-table-filters" ]
         [
+          (* TODO: add some logo for VKD & dbsportas *)
           select_form;
-          div [ class_ "search-container" ] [ search_input; indicator ];
+          div [ class_ "search-container search-icon" ] [ search_input ];
         ];
     ]
 
