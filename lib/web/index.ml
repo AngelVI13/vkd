@@ -1,4 +1,4 @@
-open! Core
+open Core
 open Dream_html
 open HTML
 
@@ -14,12 +14,11 @@ let head_elems (t : Page_settings.t) =
     ]
 
 let rating_row ~(t : Page_settings.t) (rating : Glicko2.Rating.Info.t) =
-  (* TODO: revert to 100 after testing *)
-  (* let is_uncertain = Float.(rating.rd >= 100.) in *)
-  let is_uncertain = Float.(rating.rd >= 80.) in
+  let is_uncertain = Float.(rating.rd >= 100.) in
   let position =
     match rating.position with None -> "" | Some p -> Int.to_string p
   in
+  let extra_classes = if is_uncertain then "help" else "" in
   tr []
     [
       td [ class_ "position" ] [ txt "%s" position ];
@@ -38,7 +37,7 @@ let rating_row ~(t : Page_settings.t) (rating : Glicko2.Rating.Info.t) =
         ];
       td
         [
-          class_ "rating";
+          class_ "rating %s" extra_classes;
           (if is_uncertain then title_ "%s" t.translations.rating_uncertainty
            else null_);
           (if is_uncertain then
@@ -218,8 +217,7 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         type_ "search";
         name "rating-search";
         id "rating-search";
-        (* TODO: put translations here *)
-        placeholder "Type to search for a runner";
+        placeholder "%s" t.translations.type_to_search_runner;
         Hx.target "#rating-rows";
         Hx.swap "innerHTML";
         Hx.include_ "#filter-form";
@@ -239,8 +237,9 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
         [
           span []
             [
-              (* TODO: add translations *)
-              div [ class_ "rating-table-txt" ] [ txt "Performance Ratings" ];
+              div
+                [ class_ "rating-table-txt" ]
+                [ txt "%s" t.translations.performance_ratings ];
               div
                 [ class_ "rating-table-desc" ]
                 [ txt "%s" Dbsportas.League.LeagueInfo.main_league_name ];
@@ -327,8 +326,6 @@ let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
       ~links:[]
   in
 
-  (* TODO: remove after testing *)
-  (* let events = List.take events 3 in *)
   let today_date = Utils.today_string () in
   let future_events =
     List.filter events ~f:(fun e -> String.(e.event_date > today_date))

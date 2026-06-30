@@ -41,6 +41,8 @@ type translations = {
   all : string;
   men : string;
   women : string;
+  type_to_search_runner : string;
+  performance_ratings : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -81,6 +83,8 @@ let english =
     all = "All";
     men = "Men";
     women = "Women";
+    type_to_search_runner = "Type to search for a runner";
+    performance_ratings = "Performance Ratings";
   }
 
 let lithuanian =
@@ -120,6 +124,8 @@ let lithuanian =
     all = "Visi";
     men = "Vyrai";
     women = "Moterys";
+    type_to_search_runner = "Įveskite tekstą, jei norite ieškoti bėgiko";
+    performance_ratings = "Našumo reitingai";
   }
 
 let translation_of_language (lang : language) : translations =
