@@ -35,3 +35,7 @@ body {
 .op-hover:hover {
   opacity: 1; /* Fully shown on mouse-over */
 }
+
+.help {
+  cursor: help;
+}

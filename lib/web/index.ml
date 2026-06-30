@@ -103,12 +103,26 @@ let ratings_table ?(page_num : int = 1) (t : Page_settings.t)
             [
               tr []
                 [
-                  (* TODO: add titles to the headers explaining what information is in that column *)
                   th [ class_ "position" ] [ txt "#" ];
                   th [] [ txt "%s" t.translations.name ];
-                  th [] [ txt "%s" t.translations.rating ];
-                  th [] [ txt "%s" t.translations.change ];
-                  th [] [ txt "%s" t.translations.last_event ];
+                  th
+                    [
+                      class_ "help";
+                      title_ "%s" t.translations.rating_description;
+                    ]
+                    [ txt "%s" t.translations.rating ];
+                  th
+                    [
+                      class_ "help";
+                      title_ "%s" t.translations.rating_change_description;
+                    ]
+                    [ txt "%s" t.translations.change ];
+                  th
+                    [
+                      class_ "help";
+                      title_ "%s" t.translations.last_event_description;
+                    ]
+                    [ txt "%s" t.translations.last_event ];
                 ];
             ];
           tbody [ id "rating-rows"; class_ "infinite-scroll" ] rows;
@@ -218,11 +232,13 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
     [ class_ "box__top" ]
     [
       div
-        [ class_ "rating-table-title" ]
+        [
+          class_ "rating-table-title help";
+          title_ "%s" t.translations.rating_description;
+        ]
         [
           span []
             [
-              (* TODO: add title explaining what this rating is and how its calculated *)
               (* TODO: add translations *)
               div [ class_ "rating-table-txt" ] [ txt "Performance Ratings" ];
               div

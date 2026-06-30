@@ -29,6 +29,9 @@ type translations = {
   prev_event : string;
   next_event : string;
   rating_uncertainty : string;
+  rating_description : string;
+  rating_change_description : string;
+  last_event_description : string;
   name : string;
   rating : string;
   change : string;
@@ -56,6 +59,19 @@ let english =
       "Runner has not participated in enough „Vilniaus Ketvirtadieniai“ events \
        to establish a reliable rating or has missed too many events so his/her \
        rating is considered unreliable.";
+    rating_description =
+      "Performance rating is calculated based on a runner's position with \
+       respect to other participants for each event using a multi-player \
+       version of the Glicko2 algorithm. Each runner has a separate rating \
+       value for each course (1, 2, 3 or D). The rating is calculated only for \
+       events from „Vilniaus Ketvirtadieniai“ league. The Glicko rating \
+       systems are used in chess, table tennis, online gaming and others to \
+       determine the 'skill of a player.";
+    rating_change_description =
+      "This is the change of a runner's rating based on his performance in the \
+       last event he/she participated.";
+    last_event_description =
+      "The date of the last event the runner participated in.";
     name = "Name";
     rating = "Rating";
     change = "Change";
@@ -83,6 +99,18 @@ let lithuanian =
       "Bėgikas/ė nedalyvavo pakankamai „Vilniaus ketvirtadienio“ renginiuose, \
        kad būtų galima nustatyti patikimą įvertinimą, arba praleido per daug \
        renginių, todėl jo/jos įvertinimas laikomas nepatikimu.";
+    rating_description =
+      "Našumo reitingas apskaičiuojamas pagal bėgiko poziciją kitų dalyvių \
+       atžvilgiu kiekvienoje rungtyje, naudojant daugelio žaidėjų „Glicko2“ \
+       algoritmo versiją. Kiekvienas bėgikas kiekvienoje trasoje turi atskirą \
+       įvertinimo vertę (1, 2, 3 arba D). Reitingas skaičiuojamas tik \
+       „Vilniaus ketvirtadienių“ lygos renginiams. „Glicko“ įvertinimo \
+       sistemos naudojamos šachmatuose, stalo tenise, internetiniuose \
+       žaidimuose ir kituose žaidimuose, siekiant nustatyti žaidėjo įgūdžius.";
+    rating_change_description =
+      "Tai bėgiko reitingo pokytis, pagrįstas jo pasirodymu paskutinėje \
+       rungtyje, kurioje jis/ji dalyvavo.";
+    last_event_description = "Paskutinio bėgiko dalyvavimo renginyje data.";
     name = "Vardas";
     rating = "Reitingas";
     change = "Pokytis";
