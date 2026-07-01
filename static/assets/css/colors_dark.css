@@ -15,4 +15,6 @@
   --c-evt-over-img: hsla(0, 0%, 0%, 0.65);
   --c-evt-over-img-sdw: #000;
   --c-search-bg: hsl(0, 0%, 73%);
+  --c-vkd-bg: hsl(0, 0%, 73%);
+  --c-dbs-bg: hsl(0, 0%, 30%);
 }

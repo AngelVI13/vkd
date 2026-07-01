@@ -343,20 +343,16 @@ let powered_by (t : Page_settings.t) =
   div
     [ class_ "powered-by" ]
     [
-      (* TODO: add lichess wings or some symbol before and after the text *)
-      (* TODO: make it look good on mobile*)
-      (* TODO: translations *)
-      div [ class_ "powered-by-txt" ] [ txt "Powered by:" ];
+      div [ class_ "powered-by-txt" ] [ txt "%s:" t.translations.powered_by ];
       div
         [ class_ "powered-by-source" ]
         [
           a
             [ href "https://dbsportas.lt" ]
             [
-              div [ class_ "powered-by-name" ] [ txt "dbsportas" ];
               img
                 [
-                  class_ "powered-by-img";
+                  class_ "powered-by-img dbsportas";
                   path_attr src Static.Assets.Images.db_sport_svg;
                 ];
             ];
@@ -367,12 +363,9 @@ let powered_by (t : Page_settings.t) =
           a
             [ href "https://vilniausketvirtadieniai.lt" ]
             [
-              div
-                [ class_ "powered-by-name" ]
-                [ txt "Vilniaus Ketvirtadieniai" ];
               img
                 [
-                  class_ "powered-by-img";
+                  class_ "powered-by-img vkd";
                   path_attr src Static.Assets.Images.vk_logo_png;
                 ];
             ];
