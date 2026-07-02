@@ -248,7 +248,6 @@ let ratings_header ?(selected_course : ratingCourse = Course1)
       div
         [ class_ "rating-table-filters" ]
         [
-          (* TODO: add some logo for VKD & dbsportas *)
           select_form;
           div [ class_ "search-container search-icon" ] [ search_input ];
         ];
@@ -328,7 +327,7 @@ let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
 
   let today_date = Utils.today_string () in
   let future_events =
-    List.filter events ~f:(fun e -> String.(e.event_date > today_date))
+    List.filter events ~f:(fun e -> String.(e.event_date >= today_date))
   in
   let events =
     (* Add default empty event if we don't have any future events *)
