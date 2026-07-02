@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 64" width="60" height="64">
+<text fill="#108040" text-anchor="middle" x="40" y="50" font-family="tahoma" font-size="64" font-weight="bold" transform="scale(0.75,1)">db</text>
+<text fill="#C0E090" text-anchor="middle" x="30" y="64" font-family="tahoma" font-size="16" font-weight="bold">SPORT</text>
+<path d="M59,25 h-26 v26 h26 z" fill="#ff671f" stroke="#ff671f"/>
+<path d="M57,26 h-23 v23 z" fill="white" stroke="white"/>
+</svg>
