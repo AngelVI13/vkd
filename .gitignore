@@ -37,3 +37,6 @@ setup.log
 _opam/
 
 *:Zone.Identifier
+
+random/
+tmp/
