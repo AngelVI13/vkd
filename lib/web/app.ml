@@ -196,7 +196,13 @@ let handle_rating_table_search ~(db : Db.t) ~(state : State.t) ~settings request
   Dream_html.respond (Dream_html.HTML.null page)
 
 let handle_user ~settings request =
-  let _ = request in
+  let runner_id =
+    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
+  in
+
+  let _ = runner_id in
+  (* TODO: fetch runner info here *)
+
   let page = User.page settings in
 
   Dream_html.respond page

@@ -304,6 +304,7 @@ td .runner-name {
   color: var(--c-font);
   font-weight: bold;
   margin-right: 0.4em;
+  cursor: pointer;
 }
 
 td .runner-club {

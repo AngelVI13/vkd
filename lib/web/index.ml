@@ -28,7 +28,11 @@ let rating_row ~(t : Page_settings.t) (rating : Glicko2.Rating.Info.t) =
             [ class_ "runner-info" ]
             [
               a
-                [ class_ "runner-name"; path_attr href Paths.index ]
+                [
+                  class_ "runner-name";
+                  path_attr href Paths.user_w_scope t.translations.lang
+                    rating.runner_id;
+                ]
                 [ txt "%s" rating.runner_name ];
               p
                 [ class_ "runner-club" ]

@@ -9,21 +9,19 @@ let head_elems (t : Page_settings.t) =
         [
           rel "stylesheet";
           type_ "text/css";
-          path_attr href Static.Assets.Css.index_css;
+          path_attr href Static.Assets.Css.user_css;
         ];
     ]
+
+let profile (t : Page_settings.t) =
+  div
+    [ class_ "profile-container page-small box" ]
+    [ txt "%s: %s" t.translations.runner "Angel" ]
 
 let page (t : Page_settings.t) =
   html
     [ lang "en" ]
     [
       head [] (head_elems t);
-      body []
-        [
-          Header.elements t;
-          h1 [] [ txt "%s" t.translations.runner ];
-          a
-            [ path_attr href Paths.index_w_scope t.translations.lang ]
-            [ txt "Home" ];
-        ];
+      body [] [ Header.elements t; div [ id "main-wrap" ] [ profile t ] ];
     ]
