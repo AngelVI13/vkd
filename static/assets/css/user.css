@@ -3,8 +3,9 @@
   display: grid;
   grid-template-areas:
     ". . profile . ."
-    ". . ratings . .";
-  "..history.."grid-template-columns:
+    ". . ratings . ."
+    ". . history . .";
+  grid-template-columns:
     var(---main-margin) 1fr minmax(auto, var(---main-max-width))
     1fr var(---main-margin);
   gap: 0.5rem;
@@ -30,6 +31,49 @@
     0 2px 2px 0 rgba(0, 0, 0, 0.08),
     0 3px 1px -2px rgba(0, 0, 0, 0.18),
     0 1px 5px 0 rgba(0, 0, 0, 0.1);
+}
+
+.box-contents {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4vh var(---box-padding);
+  color: var(--c-font);
+
+  /* TODO: don't know if i should align things like this */
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+.runner-info {
+  text-align: left;
+  width: 100%;
+  padding-left: 2rem;
+}
+
+.runner-info h1 {
+  font-size: 2em;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.runner-name {
+  font-weight: bold;
+}
+
+.runner-club {
+  font-style: italic;
+  font-size: 12px;
+  margin-bottom: 0;
+  margin-top: 4px;
+}
+
+@media screen and (max-width: 900px) {
+  .box-contents {
+    padding: 2rem 0;
+  }
 }
 
 @media screen and (max-width: 580px) {

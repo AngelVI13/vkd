@@ -14,9 +14,21 @@ let head_elems (t : Page_settings.t) =
     ]
 
 let profile (t : Page_settings.t) =
+  let _ = t in
   div
     [ class_ "profile-container page-small box" ]
-    [ txt "%s: %s" t.translations.runner "Angel" ]
+    [
+      div
+        [ class_ "box-contents" ]
+        [
+          span
+            [ class_ "runner-info" ]
+            [
+              h1 [ class_ "runner-name" ] [ txt "%s" "Angel" ];
+              p [ class_ "runner-club" ] [ txt "%s" "Bet koks" ];
+            ];
+        ];
+    ]
 
 let page (t : Page_settings.t) =
   html
