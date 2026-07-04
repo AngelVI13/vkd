@@ -40,16 +40,10 @@
   justify-content: space-between;
   padding: 4vh var(---box-padding);
   color: var(--c-font);
-
-  /* TODO: don't know if i should align things like this */
-  justify-content: center;
-  align-items: center;
-  display: flex;
 }
 
 .runner-info {
   text-align: left;
-  width: 100%;
   padding-left: 2rem;
 }
 
@@ -68,6 +62,50 @@
   font-size: 12px;
   margin-bottom: 0;
   margin-top: 4px;
+}
+
+.runner-medals {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 10px;
+  padding-right: 2rem;
+}
+
+.medal-num {
+  display: flex;
+}
+
+.medal-num:before {
+  font-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  opacity: 1;
+}
+
+.medal-num.gold:before {
+  color: gold;
+  /* content: "\2776"; */
+  content: "\2780";
+  /* content: "\2604"; */
+  /* transform: rotate(120deg); */
+}
+
+.medal-num.silver:before {
+  color: silver;
+  /* content: "\2777"; */
+  content: "\2781";
+  /* content: "\2604"; */
+  /* transform: rotate(120deg); */
+}
+
+.medal-num.bronze:before {
+  color: orange;
+  /* content: "\2778"; */
+  content: "\2782";
+  /* content: "\2604"; */
+  /* transform: rotate(120deg); */
 }
 
 @media screen and (max-width: 900px) {

@@ -27,6 +27,14 @@ let profile (t : Page_settings.t) =
               h1 [ class_ "runner-name" ] [ txt "%s" "Angel" ];
               p [ class_ "runner-club" ] [ txt "%s" "Bet koks" ];
             ];
+          div
+            [ class_ "runner-medals" ]
+            (* \2604 ; \2776 *)
+            [
+              div [ class_ "medal-num gold" ] [ txt "13" ];
+              div [ class_ "medal-num silver" ] [ txt "2" ];
+              div [ class_ "medal-num bronze" ] [ txt "7" ];
+            ];
         ];
     ]
 
