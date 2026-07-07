@@ -75,37 +75,21 @@
   display: flex;
 }
 
-.medal-num:before {
-  font-size: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
-  opacity: 1;
+.medal-num svg {
+  width: 20px;
+  height: 20px;
 }
 
-.medal-num.gold:before {
-  color: gold;
-  /* content: "\2776"; */
-  content: "\2780";
-  /* content: "\2604"; */
-  /* transform: rotate(120deg); */
+.medal-num.gold svg {
+  fill: gold;
 }
 
-.medal-num.silver:before {
-  color: silver;
-  /* content: "\2777"; */
-  content: "\2781";
-  /* content: "\2604"; */
-  /* transform: rotate(120deg); */
+.medal-num.silver svg {
+  fill: silver;
 }
 
-.medal-num.bronze:before {
-  color: orange;
-  /* content: "\2778"; */
-  content: "\2782";
-  /* content: "\2604"; */
-  /* transform: rotate(120deg); */
+.medal-num.bronze svg {
+  fill: orange;
 }
 
 @media screen and (max-width: 900px) {
