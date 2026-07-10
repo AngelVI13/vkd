@@ -339,33 +339,18 @@ let ratings_aux ~f (handle : Turso.conn) =
   (* NOTE: this preserves the order from the query *)
   List.rev !ratings
 
-let ratings_for_course (handle : Turso.conn) (course_id : string) =
-  ratings_aux ~f:(DB.ratings_for_course ~course_id) handle
+(* NOTE: by default we get ratings since the beginning of all events 2020 *)
+let ratings_for_runner (handle : Turso.conn) ~(runner_id : int)
+    ~(cutoff_date : string) =
+  ratings_aux
+    ~f:
+      (DB.ratings_for_runner_since_date ~cutoff_date
+         ~runner_id:(to_int64 runner_id))
+    handle
 
 type gender = Men | Women [@@deriving show { with_path = false }]
 
 let gender_prefix = function Men -> "V" | Women -> "M"
-
-let ratings_for_course_by_gender (handle : Turso.conn) (course_id : string)
-    (gender : gender) =
-  ratings_aux
-    ~f:
-      (DB.ratings_for_course_by_gender ~gender:(gender_prefix gender) ~course_id)
-    handle
-
-let rating_history_for_league_and_course (handle : Turso.conn)
-    (course_id : string) (runner_id : int) (league_id : int) =
-  ratings_aux
-    ~f:
-      (DB.rating_history_for_league_and_course ~runner_id:(to_int64 runner_id)
-         ~league_id:(to_int64 league_id) ~course_id)
-    handle
-
-let rating_history_for_course (handle : Turso.conn) (course_id : string)
-    (runner_id : int) =
-  ratings_aux
-    ~f:(DB.rating_history_for_course ~runner_id:(to_int64 runner_id) ~course_id)
-    handle
 
 (** NOTE: does not commit *)
 let _add_rating (handle : Turso.conn) (rating : Glicko2.Rating.Info.t) =

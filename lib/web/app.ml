@@ -1,5 +1,4 @@
 open Core
-open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 (* session fields *)
 let dark_mode_field = "dark_mode"
@@ -18,102 +17,15 @@ let translations_field =
 (* TODO: when to invalidate the cache ? Not every db update will have data to update 
    so maybe we can check if we actually sent any data to the DB and if thats the case 
    we can invalidate the cache *)
-module State = struct
-  type t = {
-    filename : string;
-    mutable latest_league_events : Db.EventInfoExtra.t list; [@default []]
-    mutable all_latest_ratings : Glicko2.Rating.Info.t list; [@default []]
-    mutable all_league_events : Db.LeagueEvent.t list; [@default []]
-  }
-  [@@deriving yojson]
 
-  let save (t : t) = Yojson.Safe.to_file t.filename (yojson_of_t t)
-
-  let load (filename : string) =
-    match Yojson.Safe.from_file filename with
-    | t -> t_of_yojson t
-    | exception exc ->
-        printf
-          "Failed to load cache from file (%s): %s . Initializing an empty \
-           cache..."
-          filename (Exn.to_string exc);
-        {
-          filename;
-          latest_league_events = [];
-          all_latest_ratings = [];
-          all_league_events = [];
-        }
-
-  let latest_league_events (t : t) (db : Db.t) =
-    if List.length t.latest_league_events > 0 then t.latest_league_events
-    else (
-      Dream.log "Fetching event data from DB";
-      let today = Utils.today_string () in
-      let events = Db.latest_league_events db today in
-      t.latest_league_events <- events;
-      save t;
-      events)
-
-  let all_league_events (t : t) (db : Db.t) =
-    if List.length t.all_league_events > 0 then t.all_league_events
-    else (
-      Dream.log "Fetching all league events data from DB";
-      let events = Db.all_league_events db in
-      t.all_league_events <- events;
-      save t;
-      events)
-
-  let _update_ratings_rd (t : t) (db : Db.t)
-      (ratings : Glicko2.Rating.Info.t list) =
-    let all_event_dates =
-      all_league_events t db |> List.map ~f:(fun event -> event.event_date)
-    in
-    let latest_event_date =
-      List.fold ratings ~init:"" ~f:(fun latest_date r ->
-          if String.(r.event_date > latest_date) then r.event_date
-          else latest_date)
-    in
-    let latest_event_idx =
-      List.findi all_event_dates ~f:(fun _ date ->
-          String.equal latest_event_date date)
-    in
-
-    List.map ratings ~f:(fun r ->
-        match latest_event_idx with
-        | None -> r
-        | Some (latest_i, _) ->
-            let rating_date_idx, _ =
-              List.findi_exn all_event_dates ~f:(fun _ date ->
-                  String.equal r.event_date date)
-            in
-            let diff = latest_i - rating_date_idx in
-            let rd_increase =
-              if diff > 0 then Float.of_int diff *. Db.rd_increase_per_event
-              else 0.
-            in
-            { r with rd = r.rd +. rd_increase })
-
-  let all_latest_ratings (t : t) (db : Db.t) =
-    if List.length t.all_latest_ratings > 0 then t.all_latest_ratings
-    else (
-      Dream.log "Fetching all latest ratings data from DB";
-      let ratings =
-        Db.all_latest_ratings_for_last_year db |> _update_ratings_rd t db
-      in
-
-      t.all_latest_ratings <- ratings;
-      save t;
-      ratings)
-end
-
-let filtered_ratings ~(db : Db.t) ~(state : State.t) ~(page_num : int)
+let filtered_ratings ~(db : Db.t) ~(state : Cache.State.t) ~(page_num : int)
     ~(course : Index.ratingCourse) ~(group : Index.ratingGroup)
     ?(search : string = "") () =
   let search = String.strip search |> String.lowercase in
   let should_search = String.(search <> "") in
 
   let ratings =
-    State.all_latest_ratings state db
+    Cache.State.all_latest_ratings state db
     |> List.filter ~f:(fun r ->
            Index.ratingCourse_eq course r.course_id
            && Index.ratingGroup_eq group r.runner_gender)
@@ -136,9 +48,9 @@ let filtered_ratings ~(db : Db.t) ~(state : State.t) ~(page_num : int)
 
   List.take ratings Settings.ratings_page_size
 
-let handle_index ~(db : Db.t) ~(state : State.t) ~settings request =
+let handle_index ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   let _ = request in
-  let events = State.latest_league_events state db in
+  let events = Cache.State.latest_league_events state db in
   let ratings =
     filtered_ratings ~db ~state ~page_num:1 ~course:Index.Course1
       ~group:GroupAll ()
@@ -147,7 +59,8 @@ let handle_index ~(db : Db.t) ~(state : State.t) ~settings request =
   let page = Index.page settings events ratings in
   Dream_html.respond page
 
-let handle_rating_table ~(db : Db.t) ~(state : State.t) ~settings request =
+let handle_rating_table ~(db : Db.t) ~(state : Cache.State.t) ~settings request
+    =
   (* Utils.sleep ~s:3; *)
   let course_select =
     Dream.query request "course-select"
@@ -173,8 +86,8 @@ let get_query_param_exn query key =
   List.Assoc.find query ~equal:String.equal key
   |> Option.value_exn |> List.hd_exn
 
-let handle_rating_table_search ~(db : Db.t) ~(state : State.t) ~settings request
-    =
+let handle_rating_table_search ~(db : Db.t) ~(state : Cache.State.t) ~settings
+    request =
   let%lwt body = Dream.body request in
   let query = Uri.query_of_encoded body in
 
@@ -195,15 +108,26 @@ let handle_rating_table_search ~(db : Db.t) ~(state : State.t) ~settings request
   let page = Index.rating_rows ~page_num settings ratings in
   Dream_html.respond (Dream_html.HTML.null page)
 
-let handle_user ~settings request =
+let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   let runner_id =
     Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
 
-  let _ = runner_id in
-  (* TODO: fetch runner info here *)
+  (* TODO: this should be calculated based on what range user selects *)
+  let now = Time_ns_unix.now () in
+  let six_months_ago =
+    Time_ns_unix.sub now
+      (* TODO: reset this to -6 * 31 *)
+      (Time_ns_unix.Span.create ~day:(-7 * 365) ~sign:Sign.Neg ())
+  in
 
-  let page = User.page settings in
+  let ratings =
+    Cache.State.ratings_for_runner state db runner_id
+      ~since:(Utils.format_time_as_date six_months_ago)
+  in
+
+  (* TODO: fetch runner info here *)
+  let page = User.page settings ratings in
 
   Dream_html.respond page
 
@@ -288,7 +212,7 @@ let lang_middleware inner_handler req =
   inner_handler req
 
 let run ~(db : Db.t) =
-  let state = State.load "state.json" in
+  let state = Cache.State.load "state.json" in
   (* NOTE: rotate cookie secret about once per year, you can use the code bellow to generate it  *)
   (* let secret = Dream.to_base64url (Dream.random 32) in *)
   let secret = "9RV8f8QqR6foKzdX51ZMXB68C9apHx8VNkbEmJ17nWE" in
@@ -302,7 +226,7 @@ let run ~(db : Db.t) =
            [
              Dream_html.get Paths.index
                (with_settings (handle_index ~db ~state));
-             Dream_html.get Paths.user (with_settings handle_user);
+             Dream_html.get Paths.user (with_settings (handle_user ~db ~state));
              Dream_html.get Paths.rating_table
                (with_settings (handle_rating_table ~db ~state));
              Dream_html.post Paths.rating_table

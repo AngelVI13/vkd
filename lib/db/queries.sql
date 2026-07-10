@@ -408,24 +408,12 @@ CREATE TABLE IF NOT EXISTS ratings (
     vol FLOAT NOT NULL
 );
 
--- TODO: how to calculate position change due to rating loss/gain
--- @ratings_for_course
-SELECT r.*, rn.name AS runner_name, rn.club AS runner_club, rn.gender AS runner_gender
-FROM ratings r
-JOIN runners rn ON r.runner_id = rn.id
-INNER JOIN (
-    -- NOTE: inner join is needed to find the latest rating based on event_date
-    -- for a runner
-    SELECT runner_id, MAX(event_date) AS max_date
-    FROM ratings
-    GROUP BY runner_id
-) latest ON r.runner_id = latest.runner_id AND r.event_date = latest.max_date
--- NOTE: we take latest ratings irrespective of league since we only track the main VKD league
-WHERE r.course_id = @course_id
-ORDER BY r.rating DESC;
-
 -- @all_latest_ratings 
-SELECT r.*, rn.name AS runner_name, rn.club AS runner_club, rn.gender AS runner_gender
+SELECT 
+    r.*, 
+    rn.name AS runner_name,
+    rn.club AS runner_club,
+    rn.gender AS runner_gender
 FROM ratings r
 JOIN runners rn ON r.runner_id = rn.id
 INNER JOIN (
@@ -437,7 +425,11 @@ INNER JOIN (
 ) latest ON r.runner_id = latest.runner_id AND r.event_date = latest.max_date;
 
 -- @all_latest_ratings_since_date
-SELECT r.*, rn.name AS runner_name, rn.club AS runner_club, rn.gender AS runner_gender
+SELECT 
+    r.*, 
+    rn.name AS runner_name,
+    rn.club AS runner_club,
+    rn.gender AS runner_gender
 FROM ratings r
 JOIN runners rn ON r.runner_id = rn.id
 INNER JOIN (
@@ -451,38 +443,16 @@ WHERE r.event_date >= @cutoff_date
     AND r.course_id IN ('1', '2', '3', 'D')
     AND r.rd < 300.0;
 
--- @ratings_for_course_by_gender
-SELECT r.*, rn.name AS runner_name, rn.club AS runner_club, rn.gender AS runner_gender
+-- @ratings_for_runner_since_date
+SELECT 
+    r.*, 
+    rn.name AS runner_name,
+    rn.club AS runner_club,
+    rn.gender AS runner_gender
 FROM ratings r
 JOIN runners rn ON r.runner_id = rn.id
-INNER JOIN (
-    -- NOTE: inner join is needed to find the latest rating based on event_date
-    -- for a runner
-    SELECT runner_id, MAX(event_date) AS max_date
-    FROM ratings
-    GROUP BY runner_id
-) latest ON r.runner_id = latest.runner_id AND r.event_date = latest.max_date
-INNER JOIN runners rn ON r.runner_id = rn.id
--- NOTE: we take latest ratings irrespective of league since we only track the main VKD league
-WHERE rn.gender = @gender AND r.course_id = @course_id
-ORDER BY r.rating DESC;
-
--- @rating_history_for_league_and_course
-SELECT r.*, rn.name AS runner_name, rn.club AS runner_club, rn.gender AS runner_gender
-FROM ratings r
-JOIN runners rn ON r.runner_id = rn.id
-WHERE runner_id = @runner_id 
-    AND league_id = @league_id 
-    AND course_id = @course_id
-ORDER BY event_date ASC;
-
--- @rating_history_for_course
-SELECT r.*, rn.name AS runner_name, rn.club AS runner_club, rn.gender AS runner_gender
-FROM ratings r
-JOIN runners rn ON r.runner_id = rn.id
-WHERE runner_id = @runner_id 
-    AND course_id = @course_id
-ORDER BY event_date ASC;
+WHERE r.runner_id = @runner_id AND r.event_date >= @cutoff_date
+    AND r.course_id IN ('1', '2', '3', 'D');
 
 -- @add_rating
 INSERT INTO ratings VALUES;
