@@ -92,6 +92,25 @@
   fill: orange;
 }
 
+.rating-info {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  text-align: center;
+}
+
+.rating-info .course-rating .course-id {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.rating-info .course-rating .course-id svg {
+  width: 20px;
+  height: 20px;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2rem 0;
