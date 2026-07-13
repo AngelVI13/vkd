@@ -107,8 +107,12 @@
 }
 
 .rating-info .course-rating .course-id svg {
-  width: 20px;
-  height: 20px;
+  width: 50px;
+  height: 50px;
+}
+
+#bike-background {
+  fill: green;
 }
 
 @media screen and (max-width: 900px) {
