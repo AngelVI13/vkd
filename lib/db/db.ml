@@ -289,6 +289,9 @@ let all_league_events (handle : Turso.conn) =
   List.rev !results
 
 (* TODO: make sure to add leagues first and then start processing events *)
+(* TODO: !!!! *)
+(* TODO: Leagues can change so we need to periodically check & update our db *)
+(* TODO: !!!! *)
 (* NOTE: use this when a new league is available *)
 let add_leagues_if_not_exists (handle : Turso.conn)
     (leagues : Dbsportas.League.LeagueInfo.t list) =

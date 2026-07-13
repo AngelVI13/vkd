@@ -33,7 +33,12 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
            (course_id, latest_rating))
     |> List.map ~f:(fun (course_id, rating) ->
            let course_icon =
-             match course_id with "1" -> Icons.diamond | _ -> null []
+             match course_id with
+             | "1" -> Icons.course1
+             | "2" -> Icons.course2
+             | "3" -> Icons.course3
+             | "D" -> Icons.bike_badge
+             | _ -> null []
            in
            div
              [ class_ "course-rating" ]
