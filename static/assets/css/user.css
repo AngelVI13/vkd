@@ -112,7 +112,17 @@
 }
 
 #bike-background {
-  fill: green;
+  fill: indianred;
+}
+
+#course1-bg,
+#course2-bg,
+#course3-bg {
+  fill: darkcyan;
+}
+
+#course-lines {
+  fill: var(--c-font);
 }
 
 @media screen and (max-width: 900px) {
