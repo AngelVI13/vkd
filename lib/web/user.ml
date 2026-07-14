@@ -25,11 +25,6 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
                     -1 * String.compare r1.event_date r2.event_date)
              |> List.hd
            in
-           let latest_rating =
-             match latest_rating with
-             | None -> "?"
-             | Some r -> sprintf "%.0f" r.rating
-           in
            (course_id, latest_rating))
     |> List.map ~f:(fun (course_id, rating) ->
            let course_icon =
@@ -40,11 +35,47 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
              | "D" -> Icons.bike_badge
              | _ -> null []
            in
+           let rating_value_class = "rating-value" in
+           let rating_details =
+             match rating with
+             | None ->
+                 div [ class_ "%s uncertain" rating_value_class ] [ txt "?" ]
+             | Some r ->
+                 let rating_change_extra =
+                   if Float.(r.rating_diff > 0.0) then "good"
+                   else if Float.(r.rating_diff < 0.0) then "bad"
+                   else "line"
+                 in
+                 div
+                   [ class_ "rating-details" ]
+                   [
+                     div
+                       [ class_ "%s" rating_value_class ]
+                       [ txt "%.0f" r.rating ];
+                     div
+                       [ class_ "rating-extra" ]
+                       [
+                         span
+                           [ class_ "rating-change %s" rating_change_extra ]
+                           [ txt "%.0f" r.rating_diff ];
+                       ];
+                   ]
+           in
            div
              [ class_ "course-rating" ]
              [
-               div [ class_ "course-id" ] [ course_icon; txt "%s" course_id ];
-               div [ class_ "rating" ] [ txt "%s" rating ];
+               div
+                 [ class_ "course-info" ]
+                 [
+                   course_icon;
+                   span []
+                     [
+                       h3
+                         [ class_ "course-name" ]
+                         [ txt "%s %s" course_id t.translations.course ];
+                       rating_details;
+                     ];
+                 ];
              ])
   in
   div

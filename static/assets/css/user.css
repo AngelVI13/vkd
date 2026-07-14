@@ -97,18 +97,86 @@
   flex-flow: row wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
-  text-align: center;
+  padding: 1rem 2rem;
+  text-align: left;
+  /* TODO: this might be too dark */
+  background: var(--c-bg-page);
 }
 
-.rating-info .course-rating .course-id {
-  font-size: 18px;
-  font-weight: bold;
+.rating-info .course-rating .course-info {
+  display: flex;
 }
 
-.rating-info .course-rating .course-id svg {
+.rating-info .course-rating .course-info svg {
   width: 50px;
   height: 50px;
+}
+
+.course-name {
+  text-transform: uppercase;
+  margin: 0;
+  display: inline-block;
+  font-size: 14px;
+}
+
+.rating-details {
+  display: flex;
+}
+
+.rating-value {
+  font-weight: bold;
+  font-size: 26px;
+}
+
+.rating-extra {
+  align-content: center;
+}
+
+.rating-change {
+  white-space: nowrap;
+}
+
+.rating-change:before {
+  display: inline-block;
+  font-weight: 1000;
+  font-size: 22px;
+  text-shadow:
+    0px 0,
+    0 -1px;
+  margin-right: 0.2em;
+  margin-right: 0.2em;
+  position: relative;
+}
+
+.rating-change.good {
+  color: green;
+}
+
+.rating-change.good:before {
+  content: "\2335";
+  transform: rotateX(180deg);
+  top: 6px;
+}
+
+.rating-change.bad {
+  color: red;
+}
+
+.rating-change.bad:before {
+  content: "\2335";
+  top: -1px;
+}
+
+.rating-change.line {
+  color: var(--c-font);
+}
+.rating-change.line:before {
+  content: "\2212";
+  top: 2px;
+}
+
+.uncertain {
+  opacity: 0.7;
 }
 
 #bike-background {
