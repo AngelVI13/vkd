@@ -26,9 +26,9 @@ end
 module State = struct
   type t = {
     filename : string;
-    mutable latest_league_events : Db.EventInfoExtra.t list; [@default []]
+    mutable latest_league_events : Db.Types.EventInfoExtra.t list; [@default []]
     mutable all_latest_ratings : Glicko2.Rating.Info.t list; [@default []]
-    mutable all_league_events : Db.LeagueEvent.t list; [@default []]
+    mutable all_league_events : Db.Types.LeagueEvent.t list; [@default []]
     mutable user_state : (int * UserState.t) list; [@default []]
   }
   [@@deriving yojson]

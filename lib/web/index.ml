@@ -261,7 +261,7 @@ let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     =
   main [ class_ "page-small box" ] [ ratings_header t; ratings_table t ratings ]
 
-let details_with_img (ev : Db.EventInfoExtra.t) (date : string)
+let details_with_img (ev : Db.Types.EventInfoExtra.t) (date : string)
     (location : string) (opacity : float) =
   [
     span
@@ -295,7 +295,7 @@ let details_with_img (ev : Db.EventInfoExtra.t) (date : string)
 (* TODO: whats the lithuanian equivalent of TBA (to be announced) *)
 let event_details_placeholder = "TBA"
 
-let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t) =
+let event_card (t : Page_settings.t) (ev : Db.Types.EventInfoExtra.t) =
   let today_date = Utils.today_string () in
   let date = ev.event_date in
   let location =
@@ -320,10 +320,11 @@ let event_card (t : Page_settings.t) (ev : Db.EventInfoExtra.t) =
   in
   card
 
-let event_carousel (t : Page_settings.t) (events : Db.EventInfoExtra.t list) =
+let event_carousel (t : Page_settings.t)
+    (events : Db.Types.EventInfoExtra.t list) =
   let default =
-    Db.EventInfoExtra.Fields.create ~event_id:0 ~league_id:0 ~league_name:""
-      ~event_nr:0 ~event_date:event_details_placeholder
+    Db.Types.EventInfoExtra.Fields.create ~event_id:0 ~league_id:0
+      ~league_name:"" ~event_nr:0 ~event_date:event_details_placeholder
       ~location:event_details_placeholder ~event_link:None ~thumbnail:None
       ~map_info:(Some event_details_placeholder) ~official_location:None
       ~links:[]
@@ -375,7 +376,7 @@ let powered_by (t : Page_settings.t) =
         ];
     ]
 
-let page (t : Page_settings.t) (events : Db.EventInfoExtra.t list)
+let page (t : Page_settings.t) (events : Db.Types.EventInfoExtra.t list)
     (ratings : Glicko2.Rating.Info.t list) =
   html
     [ lang "en" ]

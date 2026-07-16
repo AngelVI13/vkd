@@ -291,14 +291,9 @@ CREATE TABLE IF NOT EXISTS results (
     dsq INTEGER NOT NULL
 );
 
--- @results_for_course
+-- @simple_results_for_runner
 SELECT * FROM results
-WHERE league_id = @league_id
-    AND event_date = @event_date
-    AND course_id = @course_id
-ORDER BY
-    dsq ASC,
-    time_sec ASC;
+WHERE runner_id = @runner_id;
 
 -- @add_result
 INSERT INTO results VALUES;
