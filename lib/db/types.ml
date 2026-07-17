@@ -90,3 +90,8 @@ module SimpleResult = struct
   }
   [@@deriving fields, yojson]
 end
+
+module Medals = struct
+  type t = { gold : int option; silver : int option; bronze : int option }
+  [@@deriving fields, yojson]
+end

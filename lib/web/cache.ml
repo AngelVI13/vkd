@@ -8,6 +8,7 @@ module UserState = struct
     mutable rating_history : Glicko2.Rating.Info.t list; [@default []]
     mutable simple_results : Db.Types.SimpleResult.t list; [@default []]
     mutable info : Db.Types.RunnerInfo.t option; [@default None]
+    mutable medals : Db.Types.Medals.t option; [@default None]
   }
   [@@deriving yojson]
 
@@ -18,6 +19,7 @@ module UserState = struct
       rating_history = [];
       simple_results = [];
       info = None;
+      medals = None;
     }
 
   let ratings (t : t) (db : Db.t) ~(since : string) =
@@ -46,6 +48,13 @@ module UserState = struct
       let info = Db.runner_by_id db ~runner_id:t.runner_id in
       t.info <- Some info;
       info
+
+  let medals (t : t) (db : Db.t) =
+    if Option.is_some t.medals then Option.value_exn t.medals
+    else
+      let medals = Db.medals_for_runner db ~runner_id:t.runner_id in
+      t.medals <- Some medals;
+      medals
 end
 
 module State = struct
@@ -75,6 +84,14 @@ module State = struct
           all_league_events = [];
           user_state = [];
         }
+
+  let _user_state (t : t) ~(runner_id : int) =
+    match List.Assoc.find t.user_state ~equal:Int.equal runner_id with
+    | None ->
+        let state = UserState.make ~runner_id in
+        t.user_state <- (runner_id, state) :: t.user_state;
+        state
+    | Some user_state -> user_state
 
   let latest_league_events (t : t) (db : Db.t) =
     if List.length t.latest_league_events > 0 then t.latest_league_events
@@ -139,44 +156,30 @@ module State = struct
 
   let ratings_for_runner (t : t) (db : Db.t) ?(since : string = "2020-01-01")
       (runner_id : int) =
-    let user_state =
-      match List.Assoc.find t.user_state ~equal:Int.equal runner_id with
-      | None ->
-          let state = UserState.make ~runner_id in
-          t.user_state <- (runner_id, state) :: t.user_state;
-          state
-      | Some user_state -> user_state
-    in
+    let user_state = _user_state t ~runner_id in
     (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let ratings = UserState.ratings user_state db ~since in
     save t;
     ratings
 
   let simple_results_for_runner (t : t) (db : Db.t) (runner_id : int) =
-    let user_state =
-      match List.Assoc.find t.user_state ~equal:Int.equal runner_id with
-      | None ->
-          let state = UserState.make ~runner_id in
-          t.user_state <- (runner_id, state) :: t.user_state;
-          state
-      | Some user_state -> user_state
-    in
+    let user_state = _user_state t ~runner_id in
     (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let results = UserState.simple_results user_state db in
     save t;
     results
 
   let runner_info (t : t) (db : Db.t) (runner_id : int) =
-    let user_state =
-      match List.Assoc.find t.user_state ~equal:Int.equal runner_id with
-      | None ->
-          let state = UserState.make ~runner_id in
-          t.user_state <- (runner_id, state) :: t.user_state;
-          state
-      | Some user_state -> user_state
-    in
+    let user_state = _user_state t ~runner_id in
     (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let info = UserState.runner_info user_state db in
     save t;
     info
+
+  let medals (t : t) (db : Db.t) (runner_id : int) =
+    let user_state = _user_state t ~runner_id in
+    (* TODO: for deployment, disable all this saving cause it will be very slow *)
+    let medals = UserState.medals user_state db in
+    save t;
+    medals
 end

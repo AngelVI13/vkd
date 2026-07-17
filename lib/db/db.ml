@@ -583,6 +583,15 @@ let _add_medals (handle : Turso.conn) ~(event_params : Types.EventParams.t)
            position + List.length group)
        sorted_groups)
 
+let medals_for_runner (handle : Turso.conn) ~(runner_id : int) =
+  let gold, silver, bronze =
+    DB.medals_for_runner_overall handle ~runner_id:(Helpers.to_int64 runner_id)
+  in
+  Types.Medals.Fields.create
+    ~gold:(Helpers.to_int_option gold)
+    ~silver:(Helpers.to_int_option silver)
+    ~bronze:(Helpers.to_int_option bronze)
+
 (** Get map of runner_id -> age_group. *)
 let all_groups (handle : Turso.conn) : string Int64.Map.t =
   let groups = ref Int64.Map.empty in
