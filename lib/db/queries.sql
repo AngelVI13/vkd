@@ -378,6 +378,10 @@ CREATE TABLE IF NOT EXISTS runners (
     gender TEXT NOT NULL
 );
 
+-- @runner_by_id
+SELECT * FROM runners
+WHERE id = @runner_id;
+
 -- @add_runner
 INSERT INTO runners VALUES;
 

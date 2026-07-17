@@ -13,8 +13,79 @@ let head_elems (t : Page_settings.t) =
         ];
     ]
 
-let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
+let rating_section (t : Page_settings.t) (course_id : string)
+    (rating : Glicko2.Rating.Info.t option) (num_events : int) =
+  (* TODO: add hovers with description *)
+  let course_icon =
+    match course_id with
+    | "1" -> Icons.course1
+    | "2" -> Icons.course2
+    | "3" -> Icons.course3
+    | "D" -> Icons.bike_badge
+    | _ -> null []
+  in
+  let rating_value_class = "rating-value" in
+  let event_info =
+    if num_events > 0 then
+      div
+        [ class_ "course-event-num" ]
+        [ txt "%d %s" num_events t.translations.events ]
+    else null []
+  in
+  let rating_details =
+    match rating with
+    | None ->
+        div
+          [ class_ "rating-details" ]
+          [
+            div [ class_ "%s rating-unknown" rating_value_class ] [ txt "?" ];
+            div [ class_ "rating-extra" ] [ event_info ];
+          ]
+    | Some r ->
+        let rating_change_extra =
+          if Float.(r.rating_diff > 0.0) then "good"
+          else if Float.(r.rating_diff < 0.0) then "bad"
+          else "line"
+        in
+        (* TODO: if RD is still high then show the rating as uncertain *)
+        div
+          [ class_ "rating-details" ]
+          [
+            div [ class_ "%s" rating_value_class ] [ txt "%.0f" r.rating ];
+            div
+              [ class_ "rating-extra" ]
+              [
+                span
+                  [ class_ "rating-change %s" rating_change_extra ]
+                  [ txt "%.0f" r.rating_diff ];
+                event_info;
+              ];
+          ]
+  in
+  div
+    [ class_ "course-rating" ]
+    [
+      div
+        [ class_ "course-info" ]
+        [
+          course_icon;
+          span []
+            [
+              h3
+                [ class_ "course-name" ]
+                [ txt "%s %s" course_id t.translations.course ];
+              rating_details;
+            ];
+        ];
+    ]
+
+let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
+    (simple_results : Db.Types.SimpleResult.t list)
+    (runner_info : Db.Types.RunnerInfo.t) =
   let _ = t in
+  (* TODO: add hovers with description *)
+  (* TODO: add totals to page *)
+  let _ = simple_results in
   let rating_info =
     [ "1"; "2"; "3"; "D" ]
     |> List.map ~f:(fun course_id ->
@@ -27,56 +98,12 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
            in
            (course_id, latest_rating))
     |> List.map ~f:(fun (course_id, rating) ->
-           let course_icon =
-             match course_id with
-             | "1" -> Icons.course1
-             | "2" -> Icons.course2
-             | "3" -> Icons.course3
-             | "D" -> Icons.bike_badge
-             | _ -> null []
+           let num_events =
+             List.filter simple_results ~f:(fun r ->
+                 String.equal r.course_id course_id)
+             |> List.length
            in
-           let rating_value_class = "rating-value" in
-           let rating_details =
-             match rating with
-             | None ->
-                 div [ class_ "%s uncertain" rating_value_class ] [ txt "?" ]
-             | Some r ->
-                 let rating_change_extra =
-                   if Float.(r.rating_diff > 0.0) then "good"
-                   else if Float.(r.rating_diff < 0.0) then "bad"
-                   else "line"
-                 in
-                 div
-                   [ class_ "rating-details" ]
-                   [
-                     div
-                       [ class_ "%s" rating_value_class ]
-                       [ txt "%.0f" r.rating ];
-                     div
-                       [ class_ "rating-extra" ]
-                       [
-                         span
-                           [ class_ "rating-change %s" rating_change_extra ]
-                           [ txt "%.0f" r.rating_diff ];
-                       ];
-                   ]
-           in
-           div
-             [ class_ "course-rating" ]
-             [
-               div
-                 [ class_ "course-info" ]
-                 [
-                   course_icon;
-                   span []
-                     [
-                       h3
-                         [ class_ "course-name" ]
-                         [ txt "%s %s" course_id t.translations.course ];
-                       rating_details;
-                     ];
-                 ];
-             ])
+           rating_section t course_id rating num_events)
   in
   div
     [ class_ "profile-container page-small box" ]
@@ -87,8 +114,8 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
           span
             [ class_ "runner-info" ]
             [
-              h1 [ class_ "runner-name" ] [ txt "%s" "Angel" ];
-              p [ class_ "runner-club" ] [ txt "%s" "Bet koks" ];
+              h1 [ class_ "runner-name" ] [ txt "%s" runner_info.name ];
+              p [ class_ "runner-club" ] [ txt "%s" runner_info.club ];
             ];
           div
             [ class_ "runner-medals" ]
@@ -121,11 +148,18 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
       div [ class_ "rating-info" ] rating_info;
     ]
 
-let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list) =
+let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
+    (simple_results : Db.Types.SimpleResult.t list)
+    (runner_info : Db.Types.RunnerInfo.t) =
   html
     [ lang "en" ]
     [
       head [] (head_elems t);
       body []
-        [ Header.elements t; div [ id "main-wrap" ] [ profile t ratings ] ];
+        [
+          Header.elements t;
+          div
+            [ id "main-wrap" ]
+            [ profile t ratings simple_results runner_info ];
+        ];
     ]

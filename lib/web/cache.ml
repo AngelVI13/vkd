@@ -6,10 +6,19 @@ module UserState = struct
     runner_id : int;
     mutable cutoff_date : string;
     mutable rating_history : Glicko2.Rating.Info.t list; [@default []]
+    mutable simple_results : Db.Types.SimpleResult.t list; [@default []]
+    mutable info : Db.Types.RunnerInfo.t option; [@default None]
   }
   [@@deriving yojson]
 
-  let make ~runner_id = { runner_id; cutoff_date = ""; rating_history = [] }
+  let make ~runner_id =
+    {
+      runner_id;
+      cutoff_date = "";
+      rating_history = [];
+      simple_results = [];
+      info = None;
+    }
 
   let ratings (t : t) (db : Db.t) ~(since : string) =
     if String.(since = t.cutoff_date) && List.length t.rating_history > 0 then
@@ -21,6 +30,22 @@ module UserState = struct
       t.rating_history <- rating_history;
       t.cutoff_date <- since;
       rating_history
+
+  let simple_results (t : t) (db : Db.t) =
+    if List.length t.simple_results > 0 then t.simple_results
+    else
+      let simple_results =
+        Db.simple_results_for_runner db ~runner_id:t.runner_id
+      in
+      t.simple_results <- simple_results;
+      simple_results
+
+  let runner_info (t : t) (db : Db.t) =
+    if Option.is_some t.info then Option.value_exn t.info
+    else
+      let info = Db.runner_by_id db ~runner_id:t.runner_id in
+      t.info <- Some info;
+      info
 end
 
 module State = struct
@@ -126,4 +151,32 @@ module State = struct
     let ratings = UserState.ratings user_state db ~since in
     save t;
     ratings
+
+  let simple_results_for_runner (t : t) (db : Db.t) (runner_id : int) =
+    let user_state =
+      match List.Assoc.find t.user_state ~equal:Int.equal runner_id with
+      | None ->
+          let state = UserState.make ~runner_id in
+          t.user_state <- (runner_id, state) :: t.user_state;
+          state
+      | Some user_state -> user_state
+    in
+    (* TODO: for deployment, disable all this saving cause it will be very slow *)
+    let results = UserState.simple_results user_state db in
+    save t;
+    results
+
+  let runner_info (t : t) (db : Db.t) (runner_id : int) =
+    let user_state =
+      match List.Assoc.find t.user_state ~equal:Int.equal runner_id with
+      | None ->
+          let state = UserState.make ~runner_id in
+          t.user_state <- (runner_id, state) :: t.user_state;
+          state
+      | Some user_state -> user_state
+    in
+    (* TODO: for deployment, disable all this saving cause it will be very slow *)
+    let info = UserState.runner_info user_state db in
+    save t;
+    info
 end

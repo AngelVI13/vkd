@@ -616,6 +616,11 @@ let all_runners (handle : Turso.conn) : Types.RunnerInfo.t Int64.Map.t =
       runners := Map.set !runners ~key:id ~data:info);
   !runners
 
+let runner_by_id (handle : Turso.conn) ~(runner_id : int) : Types.RunnerInfo.t =
+  let row = DB.runner_by_id handle ~runner_id:(Helpers.to_int64 runner_id) in
+  let id, join_date, name, club, gender = Option.value_exn row in
+  Types.RunnerInfo.Fields.create ~id ~join_date ~name ~club ~gender
+
 (** Add runner information to DB if DB doesn't already have it.
 
     NOTE: does not commit *)

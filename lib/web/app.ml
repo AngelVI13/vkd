@@ -126,8 +126,14 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
       ~since:(Utils.format_time_as_date six_months_ago)
   in
 
+  let simple_results =
+    Cache.State.simple_results_for_runner state db runner_id
+  in
+
+  let runner_info = Cache.State.runner_info state db runner_id in
+
   (* TODO: fetch runner info here *)
-  let page = User.page settings ratings in
+  let page = User.page settings ratings simple_results runner_info in
 
   Dream_html.respond page
 

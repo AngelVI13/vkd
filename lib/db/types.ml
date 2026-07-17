@@ -51,7 +51,7 @@ module RunnerInfo = struct
     club : string;
     gender : string;
   }
-  [@@deriving fields]
+  [@@deriving fields, yojson]
 end
 
 module EventParams = struct
