@@ -38,7 +38,12 @@ let rating_section (t : Page_settings.t) (course_id : string)
         div
           [ class_ "rating-details" ]
           [
-            div [ class_ "%s rating-unknown" rating_value_class ] [ txt "?" ];
+            div
+              [
+                class_ "%s rating-unknown" rating_value_class;
+                title_ "%s" t.translations.rating_description;
+              ]
+              [ txt "?" ];
             div [ class_ "rating-extra" ] [ event_info ];
           ]
     | Some r ->
@@ -51,12 +56,20 @@ let rating_section (t : Page_settings.t) (course_id : string)
         div
           [ class_ "rating-details" ]
           [
-            div [ class_ "%s" rating_value_class ] [ txt "%.0f" r.rating ];
+            div
+              [
+                class_ "%s" rating_value_class;
+                title_ "%s" t.translations.rating_description;
+              ]
+              [ txt "%.0f" r.rating ];
             div
               [ class_ "rating-extra" ]
               [
                 span
-                  [ class_ "rating-change %s" rating_change_extra ]
+                  [
+                    class_ "rating-change %s" rating_change_extra;
+                    title_ "%s" t.translations.rating_change_description;
+                  ]
                   [ txt "%.0f" r.rating_diff ];
                 event_info;
               ];
