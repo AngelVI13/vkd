@@ -1,4 +1,4 @@
-open! Core
+open Core
 open Dream_html
 open HTML
 
@@ -94,7 +94,50 @@ let rating_section (t : Page_settings.t) (course_id : string)
         ];
     ]
 
-let rating_graph (ratings : (string * Glicko2.Rating.Info.t list) list) =
+let rating_trace (t : Page_settings.t)
+    (all_events : Db.Types.LeagueEvent.t list)
+    ((course_id, ratings) : string * Glicko2.Rating.Info.t list) =
+  match List.hd ratings with
+  | None -> None
+  | Some rating ->
+      let events =
+        List.drop_while all_events ~f:(fun event ->
+            String.(event.event_date < rating.event_date))
+      in
+
+      let dates, ratings =
+        List.fold ~init:([], []) events
+          ~f:(fun (dates_axis, ratings_axis) event ->
+            let rating =
+              match
+                List.find ratings ~f:(fun rating ->
+                    String.(event.event_date = rating.event_date))
+              with
+              | None -> `Null
+              | Some r -> `Float r.rating
+            in
+
+            (`String event.event_date :: dates_axis, rating :: ratings_axis))
+      in
+
+      (* TODO: convert these to Yojson `List *)
+      let dates = List.rev dates in
+      let ratings = List.rev ratings in
+      Some
+        (`Assoc
+           [
+             ("type", `String "scatter");
+             ("mode", `String "lines");
+             ("name", `String (sprintf "%s %s" t.translations.course course_id));
+             ("x", `List dates);
+             ("y", `List ratings);
+             (* TODO: choose different color depending on the course id *)
+             ("line", `Assoc [ ("color", `String "#17BECF") ]);
+           ])
+
+let rating_graph (t : Page_settings.t)
+    (ratings : (string * Glicko2.Rating.Info.t list) list)
+    (all_events : Db.Types.LeagueEvent.t list) =
   let _ = ratings in
   (* 
 2015-02-17,127.489998,128.880005,126.919998,127.830002,63152400,122.905254,106.7410523,117.9276669,129.1142814,Increasing
@@ -102,32 +145,10 @@ let rating_graph (ratings : (string * Glicko2.Rating.Info.t list) list) =
 2015-02-19,128.479996,129.029999,128.330002,128.449997,37362400,123.501363,108.8942449,119.8891668,130.8840887,Decreasing
 2015-02-20,128.619995,129.5,128.050003,129.5,48948400,124.510914,109.7854494,120.7635001,131.7415509,Increasing
    *)
-  let traces_json =
-    `List
-      [
-        `Assoc
-          [
-            ("type", `String "scatter");
-            ("mode", `String "lines");
-            ("name", `String "Course 1");
-            (* TODO: add translation here *)
-            ( "x",
-              `List
-                [
-                  `String "2015-02-17";
-                  `String "2015-02-18";
-                  `String "2015-02-19";
-                  `String "2015-02-20";
-                ] );
-            ("y", `List [ `String "1"; `String "2"; `String "3"; `String "1" ]);
-            ("line", `Assoc [ ("color", `String "#17BECF") ]);
-          ];
-      ]
-  in
+  let traces_json = `List (List.map ratings ~f:(rating_trace t all_events)) in
   let layout_json =
     `Assoc
       [
-        ("title", `Assoc [ ("text", `String "Rating Graph") ]);
         ( "xaxis",
           `Assoc
             [
@@ -140,16 +161,16 @@ let rating_graph (ratings : (string * Glicko2.Rating.Info.t list) list) =
                         [
                           `Assoc
                             [
-                              ("count", `Int 1);
-                              ("label", `String "1m");
+                              ("count", `Int 6);
+                              ("label", `String "6m");
                               ("step", `String "month");
                               ("stepmode", `String "backward");
                             ];
                           `Assoc
                             [
-                              ("count", `Int 6);
-                              ("label", `String "6m");
-                              ("step", `String "month");
+                              ("count", `Int 1);
+                              ("label", `String "1y");
+                              ("step", `String "year");
                               ("stepmode", `String "backward");
                             ];
                           `Assoc [ ("step", `String "all") ];
@@ -180,7 +201,8 @@ let rating_graph (ratings : (string * Glicko2.Rating.Info.t list) list) =
 
 let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
-    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
+    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t)
+    (all_events : Db.Types.LeagueEvent.t list) =
   let _ = t in
   (* TODO: add hovers with description *)
   (* TODO: add totals to page *)
@@ -254,12 +276,13 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
           (* TODO: fix how rating-info is shown on the page *)
         ];
       div [ class_ "rating-info" ] rating_info;
-      rating_graph sorted_ratings_per_course;
+      rating_graph t sorted_ratings_per_course all_events;
     ]
 
 let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
-    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
+    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t)
+    (all_events : Db.Types.LeagueEvent.t list) =
   html
     [ lang "en" ]
     [
@@ -269,6 +292,6 @@ let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
           Header.elements t;
           div
             [ id "main-wrap" ]
-            [ profile t ratings simple_results runner_info medals ];
+            [ profile t ratings simple_results runner_info medals all_events ];
         ];
     ]

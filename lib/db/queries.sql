@@ -39,6 +39,11 @@ JOIN leagues AS l
 WHERE l.name = @league_name
 ORDER BY le.event_date ASC;
 
+-- @all_events
+SELECT *
+FROM league_events
+ORDER BY event_date ASC;
+
 -- @create_league_events_date_idx
 CREATE INDEX IF NOT EXISTS idx_league_events_date ON league_events(event_date DESC);
 

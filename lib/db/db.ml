@@ -221,6 +221,18 @@ let all_league_events (handle : Turso.conn) =
         :: !results);
   List.rev !results
 
+let all_events (handle : Turso.conn) =
+  let results = ref [] in
+  DB.all_events handle (fun ~id ~league_id ~event_nr ~event_date ~location ->
+      let _ = id in
+      results :=
+        Types.LeagueEvent.Fields.create
+          ~league_id:(Int.of_int64_exn league_id)
+          ~event_nr:(Int.of_int64_exn event_nr)
+          ~event_date ~location
+        :: !results);
+  List.rev !results
+
 (* TODO: make sure to add leagues first and then start processing events *)
 (* TODO: !!!! *)
 (* TODO: Leagues can change so we need to periodically check & update our db *)

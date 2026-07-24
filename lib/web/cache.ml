@@ -63,6 +63,8 @@ module State = struct
     mutable latest_league_events : Db.Types.EventInfoExtra.t list; [@default []]
     mutable all_latest_ratings : Glicko2.Rating.Info.t list; [@default []]
     mutable all_league_events : Db.Types.LeagueEvent.t list; [@default []]
+    (* this includes all leagues *)
+    mutable all_events : Db.Types.LeagueEvent.t list; [@default []]
     mutable user_state : (int * UserState.t) list; [@default []]
   }
   [@@deriving yojson]
@@ -82,6 +84,7 @@ module State = struct
           latest_league_events = [];
           all_latest_ratings = [];
           all_league_events = [];
+          all_events = [];
           user_state = [];
         }
 
@@ -109,6 +112,15 @@ module State = struct
       Dream.log "Fetching all league events data from DB";
       let events = Db.all_league_events db in
       t.all_league_events <- events;
+      save t;
+      events)
+
+  let all_events (t : t) (db : Db.t) =
+    if List.length t.all_events > 0 then t.all_events
+    else (
+      Dream.log "Fetching all events data from DB";
+      let events = Db.all_events db in
+      t.all_events <- events;
       save t;
       events)
 
