@@ -11,6 +11,8 @@ let head_elems (t : Page_settings.t) =
           type_ "text/css";
           path_attr href Static.Assets.Css.user_css;
         ];
+      (* script [ src "https://cdn.plot.ly/plotly-3.7.0.min.js" ] ""; *)
+      script [ path_attr src Static.Assets.Js.Plotly.plotly_3_7_0_min_js ] "";
     ]
 
 let rating_section (t : Page_settings.t) (course_id : string)
@@ -92,31 +94,115 @@ let rating_section (t : Page_settings.t) (course_id : string)
         ];
     ]
 
+let rating_graph (ratings : (string * Glicko2.Rating.Info.t list) list) =
+  let _ = ratings in
+  (* 
+2015-02-17,127.489998,128.880005,126.919998,127.830002,63152400,122.905254,106.7410523,117.9276669,129.1142814,Increasing
+2015-02-18,127.629997,128.779999,127.449997,128.720001,44891700,123.760965,107.842423,118.9403335,130.0382439,Increasing
+2015-02-19,128.479996,129.029999,128.330002,128.449997,37362400,123.501363,108.8942449,119.8891668,130.8840887,Decreasing
+2015-02-20,128.619995,129.5,128.050003,129.5,48948400,124.510914,109.7854494,120.7635001,131.7415509,Increasing
+   *)
+  let traces_json =
+    `List
+      [
+        `Assoc
+          [
+            ("type", `String "scatter");
+            ("mode", `String "lines");
+            ("name", `String "Course 1");
+            (* TODO: add translation here *)
+            ( "x",
+              `List
+                [
+                  `String "2015-02-17";
+                  `String "2015-02-18";
+                  `String "2015-02-19";
+                  `String "2015-02-20";
+                ] );
+            ("y", `List [ `String "1"; `String "2"; `String "3"; `String "1" ]);
+            ("line", `Assoc [ ("color", `String "#17BECF") ]);
+          ];
+      ]
+  in
+  let layout_json =
+    `Assoc
+      [
+        ("title", `Assoc [ ("text", `String "Rating Graph") ]);
+        ( "xaxis",
+          `Assoc
+            [
+              ("autorange", `Bool true);
+              ( "rangeselector",
+                `Assoc
+                  [
+                    ( "buttons",
+                      `List
+                        [
+                          `Assoc
+                            [
+                              ("count", `Int 1);
+                              ("label", `String "1m");
+                              ("step", `String "month");
+                              ("stepmode", `String "backward");
+                            ];
+                          `Assoc
+                            [
+                              ("count", `Int 6);
+                              ("label", `String "6m");
+                              ("step", `String "month");
+                              ("stepmode", `String "backward");
+                            ];
+                          `Assoc [ ("step", `String "all") ];
+                        ] );
+                    ("type", `String "date");
+                  ] );
+            ] );
+        ( "yaxis",
+          `Assoc [ ("autorange", `Bool true); ("type", `String "linear") ] );
+      ]
+  in
+  let config_json = `Assoc [] in
+  let plot_data =
+    Yojson.Safe.to_string
+      (`Assoc
+         [
+           ("traces", traces_json);
+           ("layout", layout_json);
+           ("config", config_json);
+         ])
+  in
+  null
+    [
+      div [ id "rating-graph" ] [];
+      script [ type_ "application/json"; id "plot-data" ] "%s" plot_data;
+      script [ path_attr src Static.Assets.Js.Scripts.rating_graph_js ] "";
+    ]
+
 let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
     (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
   let _ = t in
   (* TODO: add hovers with description *)
   (* TODO: add totals to page *)
-  let _ = simple_results in
-  let rating_info =
+  let sorted_ratings_per_course =
     [ "1"; "2"; "3"; "D" ]
     |> List.map ~f:(fun course_id ->
            let latest_rating =
              List.filter ratings ~f:(fun rating ->
                  String.equal rating.course_id course_id)
              |> List.sort ~compare:(fun r1 r2 ->
-                    -1 * String.compare r1.event_date r2.event_date)
-             |> List.hd
+                    String.compare r1.event_date r2.event_date)
            in
            (course_id, latest_rating))
-    |> List.map ~f:(fun (course_id, rating) ->
-           let num_events =
-             List.filter simple_results ~f:(fun r ->
-                 String.equal r.course_id course_id)
-             |> List.length
-           in
-           rating_section t course_id rating num_events)
+  in
+  let rating_info =
+    List.map sorted_ratings_per_course ~f:(fun (course_id, ratings) ->
+        let num_events =
+          List.filter simple_results ~f:(fun r ->
+              String.equal r.course_id course_id)
+          |> List.length
+        in
+        rating_section t course_id (List.last ratings) num_events)
   in
   div
     [ class_ "profile-container page-small box" ]
@@ -168,6 +254,7 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
           (* TODO: fix how rating-info is shown on the page *)
         ];
       div [ class_ "rating-info" ] rating_info;
+      rating_graph sorted_ratings_per_course;
     ]
 
 let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)

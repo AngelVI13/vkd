@@ -39,3 +39,22 @@ let head_elems (dark_mode : string) =
         path_attr href Static.Assets.Css.header_css;
       ];
   ]
+
+type ratingCourse = Course1 | Course2 | Course3 | CourseD
+[@@deriving enumerate, eq]
+
+let show_ratingCourse = function
+  | Course1 -> "1"
+  | Course2 -> "2"
+  | Course3 -> "3"
+  | CourseD -> "D"
+
+let ratingCourse_of_string = function
+  | "1" -> Course1
+  | "2" -> Course2
+  | "3" -> Course3
+  | "D" -> CourseD
+  | _ -> assert false
+
+let ratingCourse_eq (rating_course : ratingCourse) (course_id : string) : bool =
+  String.equal (show_ratingCourse rating_course) course_id

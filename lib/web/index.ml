@@ -1,6 +1,7 @@
 open Core
 open Dream_html
 open HTML
+open Common
 
 let head_elems (t : Page_settings.t) =
   Common.head_elems t.dark_mode
@@ -131,25 +132,6 @@ let ratings_table ?(page_num : int = 1) (t : Page_settings.t)
           tbody [ id "rating-rows"; class_ "infinite-scroll" ] rows;
         ];
     ]
-
-type ratingCourse = Course1 | Course2 | Course3 | CourseD
-[@@deriving enumerate, eq]
-
-let show_ratingCourse = function
-  | Course1 -> "1"
-  | Course2 -> "2"
-  | Course3 -> "3"
-  | CourseD -> "D"
-
-let ratingCourse_of_string = function
-  | "1" -> Course1
-  | "2" -> Course2
-  | "3" -> Course3
-  | "D" -> CourseD
-  | _ -> assert false
-
-let ratingCourse_eq (rating_course : ratingCourse) (course_id : string) : bool =
-  String.equal (show_ratingCourse rating_course) course_id
 
 type ratingGroup = GroupAll | GroupMen | GroupWomen [@@deriving enumerate, eq]
 

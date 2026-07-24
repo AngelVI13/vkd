@@ -19,7 +19,7 @@ let translations_field =
    we can invalidate the cache *)
 
 let filtered_ratings ~(db : Db.t) ~(state : Cache.State.t) ~(page_num : int)
-    ~(course : Index.ratingCourse) ~(group : Index.ratingGroup)
+    ~(course : Common.ratingCourse) ~(group : Index.ratingGroup)
     ?(search : string = "") () =
   let search = String.strip search |> String.lowercase in
   let should_search = String.(search <> "") in
@@ -27,7 +27,7 @@ let filtered_ratings ~(db : Db.t) ~(state : Cache.State.t) ~(page_num : int)
   let ratings =
     Cache.State.all_latest_ratings state db
     |> List.filter ~f:(fun r ->
-           Index.ratingCourse_eq course r.course_id
+           Common.ratingCourse_eq course r.course_id
            && Index.ratingGroup_eq group r.runner_gender)
     |> List.sort ~compare:(fun r1 r2 -> Float.compare r2.rating r1.rating)
     |> List.mapi ~f:(fun i r ->
@@ -52,7 +52,7 @@ let handle_index ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   let _ = request in
   let events = Cache.State.latest_league_events state db in
   let ratings =
-    filtered_ratings ~db ~state ~page_num:1 ~course:Index.Course1
+    filtered_ratings ~db ~state ~page_num:1 ~course:Common.Course1
       ~group:GroupAll ()
   in
 
@@ -64,7 +64,7 @@ let handle_rating_table ~(db : Db.t) ~(state : Cache.State.t) ~settings request
   (* Utils.sleep ~s:3; *)
   let course_select =
     Dream.query request "course-select"
-    |> Option.value_exn |> Index.ratingCourse_of_string
+    |> Option.value_exn |> Common.ratingCourse_of_string
   in
   let group_select =
     Dream.query request "group-select"
@@ -92,7 +92,7 @@ let handle_rating_table_search ~(db : Db.t) ~(state : Cache.State.t) ~settings
   let query = Uri.query_of_encoded body in
 
   let course_select =
-    get_query_param_exn query "course-select" |> Index.ratingCourse_of_string
+    get_query_param_exn query "course-select" |> Common.ratingCourse_of_string
   in
   let group_select =
     get_query_param_exn query "group-select" |> Index.ratingGroup_of_string
