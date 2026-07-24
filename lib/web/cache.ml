@@ -115,6 +115,7 @@ module State = struct
       save t;
       events)
 
+  (* TODO: this is currently not used - DELETE *)
   let all_events (t : t) (db : Db.t) =
     if List.length t.all_events > 0 then t.all_events
     else (

@@ -130,15 +130,11 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     Cache.State.simple_results_for_runner state db runner_id
   in
 
-  let all_events = Cache.State.all_events state db in
-
   let runner_info = Cache.State.runner_info state db runner_id in
   let medals = Cache.State.medals state db runner_id in
 
   (* TODO: fetch runner info here *)
-  let page =
-    User.page settings ratings simple_results runner_info medals all_events
-  in
+  let page = User.page settings ratings simple_results runner_info medals in
 
   Dream_html.respond page
 

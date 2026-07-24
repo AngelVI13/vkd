@@ -11,20 +11,18 @@ let head_elems (t : Page_settings.t) =
           type_ "text/css";
           path_attr href Static.Assets.Css.user_css;
         ];
-      (* script [ src "https://cdn.plot.ly/plotly-3.7.0.min.js" ] ""; *)
-      script [ path_attr src Static.Assets.Js.Plotly.plotly_3_7_0_min_js ] "";
+      script [ src "https://cdn.plot.ly/plotly-3.7.0.min.js" ] "";
     ]
 
 let rating_section (t : Page_settings.t) (course_id : string)
     (rating : Glicko2.Rating.Info.t option) (num_events : int) =
   (* TODO: add hovers with description *)
   let course_icon =
-    match course_id with
-    | "1" -> Icons.course1
-    | "2" -> Icons.course2
-    | "3" -> Icons.course3
-    | "D" -> Icons.bike_badge
-    | _ -> null []
+    match Common.ratingCourse_of_string course_id with
+    | Course1 -> Icons.course1
+    | Course2 -> Icons.course2
+    | Course3 -> Icons.course3
+    | CourseD -> Icons.bike_badge
   in
   let rating_value_class = "rating-value" in
   let event_info =
@@ -67,12 +65,14 @@ let rating_section (t : Page_settings.t) (course_id : string)
             div
               [ class_ "rating-extra" ]
               [
-                span
-                  [
-                    class_ "rating-change %s" rating_change_extra;
-                    title_ "%s" t.translations.rating_change_description;
-                  ]
-                  [ txt "%.0f" r.rating_diff ];
+                (if Float.(r.rating_diff = 0.0) then null []
+                 else
+                   span
+                     [
+                       class_ "rating-change %s" rating_change_extra;
+                       title_ "%s" t.translations.rating_change_description;
+                     ]
+                     [ txt "%.0f" r.rating_diff ]);
                 event_info;
               ];
           ]
@@ -95,60 +95,57 @@ let rating_section (t : Page_settings.t) (course_id : string)
     ]
 
 let rating_trace (t : Page_settings.t)
-    (all_events : Db.Types.LeagueEvent.t list)
     ((course_id, ratings) : string * Glicko2.Rating.Info.t list) =
-  match List.hd ratings with
-  | None -> None
-  | Some rating ->
-      let events =
-        List.drop_while all_events ~f:(fun event ->
-            String.(event.event_date < rating.event_date))
-      in
+  if List.length ratings = 0 then None
+  else
+    let data =
+      List.map ratings ~f:(fun rating ->
+          [
+            `String rating.event_date; `Int Float.(to_int (round rating.rating));
+          ])
+      |> List.transpose_exn
+    in
 
-      let dates, ratings =
-        List.fold ~init:([], []) events
-          ~f:(fun (dates_axis, ratings_axis) event ->
-            let rating =
-              match
-                List.find ratings ~f:(fun rating ->
-                    String.(event.event_date = rating.event_date))
-              with
-              | None -> `Null
-              | Some r -> `Float r.rating
-            in
+    let dates = List.nth_exn data 0 in
+    let ratings = List.nth_exn data 1 in
 
-            (`String event.event_date :: dates_axis, rating :: ratings_axis))
-      in
+    let color =
+      match Common.ratingCourse_of_string course_id with
+      | Course1 -> "gold"
+      | Course2 -> "silver"
+      | Course3 -> "orange"
+      | CourseD -> "indianred"
+    in
 
-      (* TODO: convert these to Yojson `List *)
-      let dates = List.rev dates in
-      let ratings = List.rev ratings in
-      Some
-        (`Assoc
-           [
-             ("type", `String "scatter");
-             ("mode", `String "lines");
-             ("name", `String (sprintf "%s %s" t.translations.course course_id));
-             ("x", `List dates);
-             ("y", `List ratings);
-             (* TODO: choose different color depending on the course id *)
-             ("line", `Assoc [ ("color", `String "#17BECF") ]);
-           ])
+    Some
+      (`Assoc
+         [
+           ("type", `String "scatter");
+           ("mode", `String "lines+markers");
+           ("name", `String (sprintf "%s %s" t.translations.course course_id));
+           ("x", `List dates);
+           ("y", `List ratings);
+           ("line", `Assoc [ ("color", `String color) ]);
+           ("connectgaps", `Bool true);
+         ])
 
 let rating_graph (t : Page_settings.t)
-    (ratings : (string * Glicko2.Rating.Info.t list) list)
-    (all_events : Db.Types.LeagueEvent.t list) =
-  let _ = ratings in
-  (* 
-2015-02-17,127.489998,128.880005,126.919998,127.830002,63152400,122.905254,106.7410523,117.9276669,129.1142814,Increasing
-2015-02-18,127.629997,128.779999,127.449997,128.720001,44891700,123.760965,107.842423,118.9403335,130.0382439,Increasing
-2015-02-19,128.479996,129.029999,128.330002,128.449997,37362400,123.501363,108.8942449,119.8891668,130.8840887,Decreasing
-2015-02-20,128.619995,129.5,128.050003,129.5,48948400,124.510914,109.7854494,120.7635001,131.7415509,Increasing
-   *)
-  let traces_json = `List (List.map ratings ~f:(rating_trace t all_events)) in
+    (ratings : (string * Glicko2.Rating.Info.t list) list) =
+  (* NOTE: These colors are copied from the light & dark colors css variable --c-bg-page *)
+  let bg_color =
+    if String.(t.dark_mode = "1") then "hsl(37, 10%, 8%)"
+    else "hsl(37, 10%, 92%)"
+  in
+  let traces_json =
+    `List (List.map ratings ~f:(rating_trace t) |> List.filter_opt)
+  in
   let layout_json =
     `Assoc
       [
+        ("hovermode", `String "x unified");
+        ("hoverdistance", `Int 100);
+        ("dragmode", `Bool false);
+        ("scrollZoom", `Bool false);
         ( "xaxis",
           `Assoc
             [
@@ -180,9 +177,25 @@ let rating_graph (t : Page_settings.t)
             ] );
         ( "yaxis",
           `Assoc [ ("autorange", `Bool true); ("type", `String "linear") ] );
+        ("height", `Int 250);
+        ( "margin",
+          `Assoc
+            [ ("l", `Int 60); ("r", `Int 60); ("t", `Int 40); ("b", `Int 40) ]
+        );
+        ("autosize", `Bool true);
+        ("plot_bgcolor", `String bg_color);
+        ("paper_bgcolor", `String bg_color);
       ]
   in
-  let config_json = `Assoc [] in
+  let config_json =
+    `Assoc
+      [
+        ("responsive", `Bool true);
+        ("displayModeBar", `Bool false);
+        (* ("frameMargins", `Float 0.5); *)
+        (* ("fillFrame", `Bool true); *)
+      ]
+  in
   let plot_data =
     Yojson.Safe.to_string
       (`Assoc
@@ -201,13 +214,12 @@ let rating_graph (t : Page_settings.t)
 
 let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
-    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t)
-    (all_events : Db.Types.LeagueEvent.t list) =
-  let _ = t in
+    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
   (* TODO: add hovers with description *)
   (* TODO: add totals to page *)
   let sorted_ratings_per_course =
-    [ "1"; "2"; "3"; "D" ]
+    Common.all_of_ratingCourse
+    |> List.map ~f:Common.show_ratingCourse
     |> List.map ~f:(fun course_id ->
            let latest_rating =
              List.filter ratings ~f:(fun rating ->
@@ -276,13 +288,12 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
           (* TODO: fix how rating-info is shown on the page *)
         ];
       div [ class_ "rating-info" ] rating_info;
-      rating_graph t sorted_ratings_per_course all_events;
+      rating_graph t sorted_ratings_per_course;
     ]
 
 let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
-    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t)
-    (all_events : Db.Types.LeagueEvent.t list) =
+    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
   html
     [ lang "en" ]
     [
@@ -292,6 +303,6 @@ let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
           Header.elements t;
           div
             [ id "main-wrap" ]
-            [ profile t ratings simple_results runner_info medals all_events ];
+            [ profile t ratings simple_results runner_info medals ];
         ];
     ]
