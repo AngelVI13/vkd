@@ -229,6 +229,8 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
            in
            (course_id, latest_rating))
   in
+  (* TODO: maybe add a button to only show courses which we have rating for and
+     have a 'Show All' button to reveal otherwise ? *)
   let rating_info =
     List.map sorted_ratings_per_course ~f:(fun (course_id, ratings) ->
         let num_events =

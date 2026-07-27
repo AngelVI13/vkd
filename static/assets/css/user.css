@@ -73,11 +73,12 @@
 
 .medal-num {
   display: flex;
+  font-size: 24px;
 }
 
 .medal-num svg {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
 }
 
 .medal-num.gold svg {
@@ -205,22 +206,98 @@
 
 @media screen and (max-width: 900px) {
   .box-contents {
-    padding: 4vh 0;
+    padding: 2vh 0;
   }
 
-  /* TODO: continue from here */
-  .runner-name {
-    font-size: 24px;
+  .runner-info h1 {
+    font-size: 22px;
+  }
+
+  .medal-num {
+    font-size: 20px;
+  }
+
+  .medal-num svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .rating-info {
+    padding-bottom: 0.5rem;
+  }
+
+  .course-name {
+    font-size: 12px;
   }
 
   .rating-info .course-rating .course-info svg {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
+  }
+
+  .course-info span {
+    top: -4px;
+    display: inline-block;
+    position: relative;
+  }
+
+  .rating-value {
+    font-size: 16px;
+  }
+
+  .rating-change::before {
+    font-size: 18px;
+  }
+
+  .rating-extra {
+    font-size: 14px;
+  }
+
+  .course-event-num {
+    top: 0px;
+  }
+
+  .good + .course-event-num {
+    top: -2px;
+  }
+
+  .bad + .course-event-num {
+    top: -2px;
+  }
+}
+
+@media screen and (max-width: 700px) {
+  .course-rating {
+    flex: 50%;
   }
 }
 
 @media screen and (max-width: 580px) {
   #main-wrap {
     gap: 0.2rem;
+  }
+}
+
+@media screen and (max-width: 450px) {
+  .runner-info h1 {
+    font-size: 20px;
+    margin-bottom: 0.1rem;
+  }
+
+  .medal-num {
+    font-size: 18px;
+  }
+
+  .medal-num svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .course-rating {
+    flex: 100%;
+  }
+
+  .rating-info {
+    padding-bottom: 0;
   }
 }
