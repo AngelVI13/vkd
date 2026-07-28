@@ -95,3 +95,44 @@ module Medals = struct
   type t = { gold : int option; silver : int option; bronze : int option }
   [@@deriving fields, yojson]
 end
+
+module ResultStats = struct
+  type t = {
+    league_id : int;
+    event_nr : int;
+    event_date : string;
+    (* --- *)
+    course_id : string;
+    runner_id : int;
+    (* --- *)
+    mistake_time : int;
+    mistake_num : int;
+    small_mistake_time : int;
+    small_mistake_num : int;
+    small_mistake_time_ratio : int;
+    small_mistake_num_ratio : int;
+    big_mistake_time : int;
+    big_mistake_num : int;
+    big_mistake_time_ratio : int;
+    big_mistake_num_ratio : int;
+    blunder_mistake_time : int;
+    blunder_mistake_num : int;
+    blunder_mistake_time_ratio : int;
+    blunder_mistake_num_ratio : int;
+    consecutive_mistakes : int;
+    tilt_rate : int;
+    mistake_cluster : Dbsportas.Runner_stats.mistakeCluster option;
+    mistakes_impact : Dbsportas.Runner_stats.mistakesImpact option;
+    race_execution : Dbsportas.Runner_stats.raceExecution option;
+    best_splits : int;
+    top5_splits : int;
+    top10_splits : int;
+    performance : int;
+    overall_position : int option;
+    position_gender : int option;
+    position_group : int option;
+    potential_time : int option;
+    potential_position : int option;
+  }
+  [@@deriving fields, yojson]
+end

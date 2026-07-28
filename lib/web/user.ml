@@ -212,6 +212,59 @@ let rating_graph (t : Page_settings.t)
       script [ path_attr src Static.Assets.Js.Scripts.rating_graph_js ] "";
     ]
 
+let runner_section (runner_info : Db.Types.RunnerInfo.t)
+    (medals : Db.Types.Medals.t) =
+  div
+    [ class_ "box-contents" ]
+    [
+      span
+        [ class_ "runner-info" ]
+        [
+          h1 [ class_ "runner-name" ] [ txt "%s" runner_info.name ];
+          p [ class_ "runner-club" ] [ txt "%s" runner_info.club ];
+        ];
+      div
+        [ class_ "runner-medals" ]
+        (* TODO: all runner info including when they joined *)
+        (* TODO: all rating info for each course - with history *)
+        (* TODO: all medals *)
+        (* TODO: all events participated with position and course *)
+        (* -------------- *)
+        (* TODO: aggregated stats - second priority *)
+        (* TODO: number of top1 top5 and top10 controls as % or totals ? *)
+        (* TODO: tilt rate *)
+        (* -------------- *)
+        (* TODO: maybe show the following as graphs *)
+        (* TODO: mistake stats *)
+        (* TODO: performance stats *)
+        (* \2604 ; \2776 *)
+        [
+          div
+            [ class_ "medal-num gold" ]
+            [
+              Icons.medal;
+              div [] [ txt "%d" (Option.value ~default:0 medals.gold) ];
+            ];
+          div
+            [ class_ "medal-num silver" ]
+            [
+              Icons.medal;
+              div [] [ txt "%d" (Option.value ~default:0 medals.silver) ];
+            ];
+          div
+            [ class_ "medal-num bronze" ]
+            [
+              Icons.medal;
+              div [] [ txt "%d" (Option.value ~default:0 medals.bronze) ];
+            ];
+        ];
+    ]
+
+let history_section (t : Page_settings.t)
+    (simple_results : Db.Types.SimpleResult.t list) =
+  let _ = (t, simple_results) in
+  div [] []
+
 let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
     (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
@@ -243,54 +296,10 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
   div
     [ class_ "profile-container page-small box" ]
     [
-      div
-        [ class_ "box-contents" ]
-        [
-          span
-            [ class_ "runner-info" ]
-            [
-              h1 [ class_ "runner-name" ] [ txt "%s" runner_info.name ];
-              p [ class_ "runner-club" ] [ txt "%s" runner_info.club ];
-            ];
-          div
-            [ class_ "runner-medals" ]
-            (* TODO: all runner info including when they joined *)
-            (* TODO: all rating info for each course - with history *)
-            (* TODO: all medals *)
-            (* TODO: all events participated with position and course *)
-            (* -------------- *)
-            (* TODO: aggregated stats - second priority *)
-            (* TODO: number of top1 top5 and top10 controls as % or totals ? *)
-            (* TODO: tilt rate *)
-            (* -------------- *)
-            (* TODO: maybe show the following as graphs *)
-            (* TODO: mistake stats *)
-            (* TODO: performance stats *)
-            (* \2604 ; \2776 *)
-            [
-              div
-                [ class_ "medal-num gold" ]
-                [
-                  Icons.medal;
-                  div [] [ txt "%d" (Option.value ~default:0 medals.gold) ];
-                ];
-              div
-                [ class_ "medal-num silver" ]
-                [
-                  Icons.medal;
-                  div [] [ txt "%d" (Option.value ~default:0 medals.silver) ];
-                ];
-              div
-                [ class_ "medal-num bronze" ]
-                [
-                  Icons.medal;
-                  div [] [ txt "%d" (Option.value ~default:0 medals.bronze) ];
-                ];
-            ];
-          (* TODO: fix how rating-info is shown on the page *)
-        ];
+      runner_section runner_info medals;
       div [ class_ "rating-info" ] rating_info;
       rating_graph t sorted_ratings_per_course;
+      history_section t simple_results;
     ]
 
 let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)

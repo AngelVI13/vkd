@@ -172,6 +172,9 @@ CREATE TABLE IF NOT EXISTS event_stats (
     num_women INTEGER NOT NULL
 );
 
+-- @create_event_stats_date_idx
+CREATE INDEX IF NOT EXISTS idx_event_stats_date ON event_stats(event_date DESC);
+
 -- @add_event_stats
 INSERT INTO event_stats VALUES;
 
@@ -352,6 +355,10 @@ CREATE TABLE IF NOT EXISTS result_stats (
 
 -- @add_result_stats
 INSERT INTO result_stats VALUES;
+
+-- @result_stats_for_runner
+SELECT * FROM result_stats
+WHERE runner_id = @runner_id;
 
 -- @create_splits
 CREATE TABLE IF NOT EXISTS splits (

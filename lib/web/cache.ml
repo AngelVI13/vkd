@@ -7,6 +7,7 @@ module UserState = struct
     mutable cutoff_date : string;
     mutable rating_history : Glicko2.Rating.Info.t list; [@default []]
     mutable simple_results : Db.Types.SimpleResult.t list; [@default []]
+    mutable result_stats : Db.Types.ResultStats.t list; [@default []]
     mutable info : Db.Types.RunnerInfo.t option; [@default None]
     mutable medals : Db.Types.Medals.t option; [@default None]
   }
@@ -18,6 +19,7 @@ module UserState = struct
       cutoff_date = "";
       rating_history = [];
       simple_results = [];
+      result_stats = [];
       info = None;
       medals = None;
     }
@@ -41,6 +43,13 @@ module UserState = struct
       in
       t.simple_results <- simple_results;
       simple_results
+
+  let result_stats (t : t) (db : Db.t) =
+    if List.length t.result_stats > 0 then t.result_stats
+    else
+      let result_stats = Db.result_stats_for_runner db ~runner_id:t.runner_id in
+      t.result_stats <- result_stats;
+      result_stats
 
   let runner_info (t : t) (db : Db.t) =
     if Option.is_some t.info then Option.value_exn t.info
@@ -179,6 +188,13 @@ module State = struct
     let user_state = _user_state t ~runner_id in
     (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let results = UserState.simple_results user_state db in
+    save t;
+    results
+
+  let result_stats_for_runner (t : t) (db : Db.t) (runner_id : int) =
+    let user_state = _user_state t ~runner_id in
+    (* TODO: for deployment, disable all this saving cause it will be very slow *)
+    let results = UserState.result_stats user_state db in
     save t;
     results
 

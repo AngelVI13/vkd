@@ -1,7 +1,8 @@
 open Core
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
-type resultStatus = Finished | Dsq [@@deriving yojson, eq, show]
+type resultStatus = Finished | Dsq
+[@@deriving yojson, eq, show { with_path = false }]
 
 type t = {
   number : int;

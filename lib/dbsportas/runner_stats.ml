@@ -20,7 +20,9 @@ type raceExecution =
 (* | Stay -> Down | LateFade       | Controlled start, held well, but died at the end | *)
 (* | Stay -> Up   | LateKick       | Patient and steady, then made a move at the end | *)
 (* | Stay -> Stay | Even Split     | Consistent execution throughout | *)
-[@@deriving yojson, show]
+[@@deriving yojson, show { with_path = false }, sexp]
+
+let raceExecution_of_string s = raceExecution_of_sexp (Sexp.of_string s)
 
 type mistakeCluster =
   | BeginningCluster
@@ -32,7 +34,9 @@ type mistakeCluster =
 let mistakeCluster_of_string s = mistakeCluster_of_sexp (Sexp.of_string s)
 
 type mistakesImpact = NoImpact | MinorImpact | SignificatImpact | HugeImpact
-[@@deriving yojson, show]
+[@@deriving yojson, show { with_path = false }, sexp]
+
+let mistakesImpact_of_string s = mistakesImpact_of_sexp (Sexp.of_string s)
 
 type t = {
   mistake_time : int;

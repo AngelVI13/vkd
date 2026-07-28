@@ -46,6 +46,7 @@ let create_tables (handle : Turso.conn) =
   let _ = DB.create_event_details_date_idx handle in
   let _ = DB.create_event_map_links_date_idx handle in
   let _ = DB.create_event_maps_date_idx handle in
+  let _ = DB.create_event_stats_date_idx handle in
   ignore (Turso.send_buffered handle)
 
 (* NOTE: this is not needed for turso connection *)
@@ -534,6 +535,94 @@ let simple_results_for_runner (handle : Turso.conn) ~(runner_id : int) =
          results := result :: !results));
   !results
 
+let result_stats_for_runner (handle : Turso.conn) ~(runner_id : int) =
+  let results = ref [] in
+  ignore
+    (DB.result_stats_for_runner handle ~runner_id:(Int64.of_int runner_id)
+       (fun
+         ~id
+         ~league_id
+         ~event_nr
+         ~event_date
+         ~course_id
+         ~runner_id
+         ~mistake_time
+         ~mistake_num
+         ~small_mistake_time
+         ~small_mistake_num
+         ~small_mistake_time_ratio
+         ~small_mistake_num_ratio
+         ~big_mistake_time
+         ~big_mistake_num
+         ~big_mistake_time_ratio
+         ~big_mistake_num_ratio
+         ~blunder_mistake_time
+         ~blunder_mistake_num
+         ~blunder_mistake_time_ratio
+         ~blunder_mistake_num_ratio
+         ~consecutive_mistakes
+         ~tilt_rate
+         ~mistake_cluster
+         ~mistakes_impact
+         ~race_execution
+         ~best_splits
+         ~top5_splits
+         ~top10_splits
+         ~performance
+         ~overall_position
+         ~position_gender
+         ~position_group
+         ~potential_time
+         ~potential_position
+       ->
+         let _ = id in
+         let result =
+           Types.ResultStats.Fields.create
+             ~league_id:(Helpers.of_int64 league_id)
+             ~event_nr:(Helpers.of_int64 event_nr)
+             ~event_date ~course_id
+             ~runner_id:(Helpers.of_int64 runner_id)
+             ~mistake_time:(Helpers.of_int64 mistake_time)
+             ~mistake_num:(Helpers.of_int64 mistake_num)
+             ~small_mistake_time:(Helpers.of_int64 small_mistake_time)
+             ~small_mistake_num:(Helpers.of_int64 small_mistake_num)
+             ~small_mistake_time_ratio:
+               (Helpers.of_int64 small_mistake_time_ratio)
+             ~small_mistake_num_ratio:(Helpers.of_int64 small_mistake_num_ratio)
+             ~big_mistake_time:(Helpers.of_int64 big_mistake_time)
+             ~big_mistake_num:(Helpers.of_int64 big_mistake_num)
+             ~big_mistake_time_ratio:(Helpers.of_int64 big_mistake_time_ratio)
+             ~big_mistake_num_ratio:(Helpers.of_int64 big_mistake_num_ratio)
+             ~blunder_mistake_time:(Helpers.of_int64 blunder_mistake_time)
+             ~blunder_mistake_num:(Helpers.of_int64 blunder_mistake_num)
+             ~blunder_mistake_time_ratio:
+               (Helpers.of_int64 blunder_mistake_time_ratio)
+             ~blunder_mistake_num_ratio:
+               (Helpers.of_int64 blunder_mistake_num_ratio)
+             ~consecutive_mistakes:(Helpers.of_int64 consecutive_mistakes)
+             ~tilt_rate:(Helpers.of_int64 tilt_rate)
+             ~mistake_cluster:
+               (Option.map mistake_cluster
+                  ~f:Dbsportas.Runner_stats.mistakeCluster_of_string)
+             ~mistakes_impact:
+               (Option.map mistakes_impact
+                  ~f:Dbsportas.Runner_stats.mistakesImpact_of_string)
+             ~race_execution:
+               (Option.map race_execution
+                  ~f:Dbsportas.Runner_stats.raceExecution_of_string)
+             ~best_splits:(Helpers.of_int64 best_splits)
+             ~top5_splits:(Helpers.of_int64 top5_splits)
+             ~top10_splits:(Helpers.of_int64 top10_splits)
+             ~performance:(Helpers.of_int64 performance)
+             ~overall_position:(Helpers.of_int64_opt overall_position)
+             ~position_gender:(Helpers.of_int64_opt position_gender)
+             ~position_group:(Helpers.of_int64_opt position_group)
+             ~potential_time:(Helpers.of_int64_opt potential_time)
+             ~potential_position:(Helpers.of_int64_opt potential_position)
+         in
+         results := result :: !results));
+  !results
+
 type medal_type = Gold | Silver | Bronze
 
 let medal_type_to_string = function
@@ -877,7 +966,8 @@ let test_rating_fn (handle : Turso.conn) =
 
 let test (handle : Turso.conn) =
   (* add_leagues_if_not_exists handle Dbsportas.League.leagues; *)
-  (* action_refresh_events_and_results handle; *)
+  action_refresh_events_and_results handle;
+
   (* action_refresh_event_details ~year:(Some "2026") handle; *)
 
   (* test_rating_fn handle; *)
