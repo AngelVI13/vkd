@@ -535,10 +535,13 @@ let simple_results_for_runner (handle : Turso.conn) ~(runner_id : int) =
          results := result :: !results));
   !results
 
-let result_stats_for_runner (handle : Turso.conn) ~(runner_id : int) =
+let result_stats_for_runner (handle : Turso.conn) ~(runner_id : int)
+    ~(page_size : int) ~page_num =
+  let offset = (page_num - 1) * page_size in
   let results = ref [] in
   ignore
     (DB.result_stats_for_runner handle ~runner_id:(Int64.of_int runner_id)
+       ~page_size:(Int64.of_int page_size) ~offset:(Int64.of_int offset)
        (fun
          ~id
          ~league_id

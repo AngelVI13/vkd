@@ -113,7 +113,11 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
 
-  (* TODO: this should be calculated based on what range user selects *)
+  (* TODO: currently we take all user ratings and then filter in the frontend. 
+   Shuold we instead only fetch the default setting and add more if user requests ?
+   It's harder to do since we have to hook into the plotly graph buttons but it
+   might save data if user is mostly not checking his historical rating (or
+   atleast nothing more than last 6 months) *)
   let now = Time_ns_unix.now () in
   let six_months_ago =
     Time_ns_unix.sub now
@@ -129,6 +133,14 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   let simple_results =
     Cache.State.simple_results_for_runner state db runner_id
   in
+
+  (* TODO: make page size into a var because it will also be used in the user.ml *)
+  let result_stats =
+    Cache.State.result_stats_for_runner state db runner_id ~page_size:10
+      ~page_num:1
+  in
+  (* TODO: finish this *)
+  let _ = result_stats in
 
   let runner_info = Cache.State.runner_info state db runner_id in
   let medals = Cache.State.medals state db runner_id in

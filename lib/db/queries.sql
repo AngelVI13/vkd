@@ -358,7 +358,10 @@ INSERT INTO result_stats VALUES;
 
 -- @result_stats_for_runner
 SELECT * FROM result_stats
-WHERE runner_id = @runner_id;
+WHERE runner_id = @runner_id
+ORDER BY event_date DESC
+LIMIT @page_size
+OFFSET @offset;
 
 -- @create_splits
 CREATE TABLE IF NOT EXISTS splits (
