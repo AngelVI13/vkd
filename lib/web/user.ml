@@ -261,13 +261,23 @@ let runner_section (runner_info : Db.Types.RunnerInfo.t)
     ]
 
 let history_section (t : Page_settings.t)
-    (simple_results : Db.Types.SimpleResult.t list) =
-  let _ = (t, simple_results) in
-  div [] []
+    (simple_results : Db.Types.SimpleResult.t list)
+    (result_stats : Db.Types.ResultStats.t list) =
+  let _ = (t, simple_results, result_stats) in
+  div
+    [ class_ "angles number-menu number-menu--tabs menu-box-pop" ]
+    [
+      a
+        [ class_ "nm-item to-activity active" ]
+        [ txt "%s" t.translations.events ];
+      a [ class_ "nm-item to-games" ] [ txt "Stats" ];
+      (* TODO: make this as translation *)
+    ]
 
 let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
-    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
+    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t)
+    (result_stats : Db.Types.ResultStats.t list) =
   (* TODO: add hovers with description *)
   (* TODO: add totals to page *)
   let sorted_ratings_per_course =
@@ -299,12 +309,13 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
       runner_section runner_info medals;
       div [ class_ "rating-info" ] rating_info;
       rating_graph t sorted_ratings_per_course;
-      history_section t simple_results;
+      history_section t simple_results result_stats;
     ]
 
 let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
-    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
+    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t)
+    (result_stats : Db.Types.ResultStats.t list) =
   html
     [ lang "en" ]
     [
@@ -314,6 +325,6 @@ let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
           Header.elements t;
           div
             [ id "main-wrap" ]
-            [ profile t ratings simple_results runner_info medals ];
+            [ profile t ratings simple_results runner_info medals result_stats ];
         ];
     ]

@@ -204,6 +204,27 @@
   margin-left: 5px;
 }
 
+.angles {
+  border-top: 1px solid var(--c-border);
+  box-shadow:
+    inset 0 3px 3px -2px #fff,
+    inset 0 -4px 6px -3px hsl(from var(--c-body-gradient) h s calc(l + 5));
+  font-size: 1.2em;
+  height: 4rem;
+  --c-metal-top: hsl(0, 0%, 96%);
+  --c-metal-bottom: hsl(0, 0%, 93%);
+  background-image: linear-gradient(
+    to bottom,
+    var(--c-metal-top),
+    var(--c-metal-bottom)
+  );
+}
+
+.number-menu {
+  user-select: none;
+  display: flex;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;

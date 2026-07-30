@@ -134,19 +134,18 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     Cache.State.simple_results_for_runner state db runner_id
   in
 
-  (* TODO: make page size into a var because it will also be used in the user.ml *)
   let result_stats =
-    Cache.State.result_stats_for_runner state db runner_id ~page_size:10
-      ~page_num:1
+    Cache.State.result_stats_for_runner state db runner_id ~page_size:1
+      ~page_num:Settings.runner_history_page_size
   in
-  (* TODO: finish this *)
-  let _ = result_stats in
 
   let runner_info = Cache.State.runner_info state db runner_id in
   let medals = Cache.State.medals state db runner_id in
 
   (* TODO: fetch runner info here *)
-  let page = User.page settings ratings simple_results runner_info medals in
+  let page =
+    User.page settings ratings simple_results runner_info medals result_stats
+  in
 
   Dream_html.respond page
 
