@@ -44,6 +44,7 @@ type translations = {
   type_to_search_runner : string;
   performance_ratings : string;
   powered_by : string;
+  stats : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -87,6 +88,7 @@ let english =
     type_to_search_runner = "Type to search for a runner";
     performance_ratings = "Performance Ratings";
     powered_by = "Powered by";
+    stats = "Stats";
   }
 
 let lithuanian =
@@ -129,6 +131,7 @@ let lithuanian =
     type_to_search_runner = "Įveskite tekstą, jei norite ieškoti bėgiko";
     performance_ratings = "Našumo reitingai";
     powered_by = "Sukurta naudojant";
+    stats = "Statistika";
   }
 
 let translation_of_language (lang : language) : translations =

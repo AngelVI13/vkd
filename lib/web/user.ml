@@ -270,8 +270,7 @@ let history_section (t : Page_settings.t)
       a
         [ class_ "nm-item to-activity active" ]
         [ txt "%s" t.translations.events ];
-      a [ class_ "nm-item to-games" ] [ txt "Stats" ];
-      (* TODO: make this as translation *)
+      a [ class_ "nm-item to-games" ] [ txt "%s" t.translations.stats ];
     ]
 
 let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)

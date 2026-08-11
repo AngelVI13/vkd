@@ -1,4 +1,5 @@
 :root {
+  ---site-hue: 37deg;
   --c-font: hsl(0, 0%, 73%);
   --c-title-color: hsl(0, 0%, 52%);
   --c-font-page: hsl(0, 0%, 48%);
@@ -12,9 +13,15 @@
   --c-ublog-post-card-over-image: #ddd;
   --c-font-dimmer: hsl(0, 0%, 42%);
   --c-font-dim: hsl(0, 0%, 58%);
+  --c-font-clear: hsl(from var(--c-font) h s 80% / alpha);
   --c-evt-over-img: hsla(0, 0%, 0%, 0.65);
   --c-evt-over-img-sdw: #000;
   --c-search-bg: hsl(0, 0%, 73%);
   --c-vkd-bg: hsl(0, 0%, 73%);
   --c-dbs-bg: hsl(0, 0%, 30%);
+  --c-metal-top: hsl(var(---site-hue) 7% 22%);
+  --c-metal-bottom: hsl(var(---site-hue) 6% 19%);
+  --c-box-shadow:
+    inset 0 1px 3px -2px hsl(0, 0%, 45%),
+    inset 0 -4px 6px -3px hsl(from var(--c-body-gradient) h s calc(l + 3));
 }
