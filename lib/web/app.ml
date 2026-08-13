@@ -135,8 +135,8 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   in
 
   let result_stats =
-    Cache.State.result_stats_for_runner state db runner_id ~page_size:1
-      ~page_num:Settings.runner_history_page_size
+    Cache.State.result_stats_for_runner state db runner_id
+      ~page_size:Settings.runner_history_page_size ~page_num:1
   in
 
   let runner_info = Cache.State.runner_info state db runner_id in

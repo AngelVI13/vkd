@@ -264,13 +264,29 @@ let history_section (t : Page_settings.t)
     (simple_results : Db.Types.SimpleResult.t list)
     (result_stats : Db.Types.ResultStats.t list) =
   let _ = (t, simple_results, result_stats) in
-  div
-    [ class_ "angles number-menu number-menu--tabs menu-box-pop" ]
+  let sections =
+    List.map result_stats ~f:(fun rstats ->
+        section []
+          [
+            h2 []
+              [
+                time
+                  [ datetime "%s" rstats.event_date ]
+                  [ txt "%s" rstats.event_date ];
+              ];
+          ])
+  in
+  null
     [
-      a
-        [ class_ "nm-item to-activity active" ]
-        [ txt "%s" t.translations.events ];
-      a [ class_ "nm-item to-games" ] [ txt "%s" t.translations.stats ];
+      div
+        [ class_ "angles number-menu number-menu--tabs menu-box-pop" ]
+        [
+          a
+            [ class_ "nm-item to-activity active" ]
+            [ txt "%s" t.translations.events ];
+          a [ class_ "nm-item to-games" ] [ txt "%s" t.translations.stats ];
+        ];
+      div [ class_ "angle-content" ] [ div [ class_ "activity" ] sections ];
     ]
 
 let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)

@@ -261,6 +261,35 @@
   background: var(--c-bg-box);
 }
 
+.angle-content .activity {
+  margin-bottom: 2em;
+}
+
+.activity section {
+  font-size: 1.2em;
+  margin-inline-start: 2rem;
+  padding-top: 1rem;
+}
+
+.activity section h2 {
+  color: var(--c-datetime);
+  font-size: 1.2em;
+  margin-bottom: 10px;
+  font-weight: 300;
+}
+
+.activity section h2 time {
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+time {
+  font-size: 90%;
+  opacity: 0.9;
+  white-space: nowrap;
+  unicode-bidi: plaintext;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;

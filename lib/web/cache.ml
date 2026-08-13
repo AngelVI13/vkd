@@ -48,7 +48,8 @@ module UserState = struct
     (* NOTE: this should only be called with consecutive page numbers, for
        example when we have the first 2 pages we should NEVER be requesting
        page 4 *)
-    assert (List.length t.result_stats >= page_num);
+    assert (
+      List.length t.result_stats = 0 || List.length t.result_stats >= page_num);
 
     match List.nth t.result_stats (page_num - 1) with
     | None ->
