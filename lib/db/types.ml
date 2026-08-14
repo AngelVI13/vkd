@@ -87,6 +87,8 @@ module SimpleResult = struct
     points : int;
     pace : string option;
     dsq : int;
+    (* --- *)
+    location : string;
   }
   [@@deriving fields, yojson]
 end

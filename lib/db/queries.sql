@@ -300,8 +300,10 @@ CREATE TABLE IF NOT EXISTS results (
 );
 
 -- @simple_results_for_runner
-SELECT * FROM results
-WHERE runner_id = @runner_id;
+SELECT r.* , ed.location FROM results r
+JOIN event_details ed ON r.event_date = ed.event_date
+WHERE runner_id = @runner_id
+ORDER BY r.event_date DESC;
 
 -- @add_result
 INSERT INTO results VALUES;

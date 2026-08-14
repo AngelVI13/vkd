@@ -264,15 +264,31 @@ let history_section (t : Page_settings.t)
     (simple_results : Db.Types.SimpleResult.t list)
     (result_stats : Db.Types.ResultStats.t list) =
   let _ = (t, simple_results, result_stats) in
+
+  let full_results =
+    List.map simple_results ~f:(fun r ->
+        let stats =
+          List.find result_stats ~f:(fun s ->
+              String.equal r.event_date s.event_date)
+        in
+        (r, stats))
+  in
+
+  (* TODO: merge all info about rating (we need location from there) & simple & detailed results *)
+  (* TODO: not all events have result stats -> this table should be based on simple results instead *)
+
+  (* TODO: add league name to simple results and here add it as title so on hover it will show *)
+  (* TODO: show different icon if the event is from the main league or some other league *)
   let sections =
-    List.map result_stats ~f:(fun rstats ->
+    List.map full_results ~f:(fun (results, stats) ->
+        let _ = stats in
         section []
           [
             h2 []
               [
                 time
-                  [ datetime "%s" rstats.event_date ]
-                  [ txt "%s" rstats.event_date ];
+                  [ datetime "%s" results.event_date ]
+                  [ txt "%s" results.event_date ];
               ];
             div
               [ class_ "entries" ]
@@ -281,12 +297,7 @@ let history_section (t : Page_settings.t)
                   [ class_ "entry" ]
                   [
                     div [ class_ "icon" ] [];
-                    div
-                      [ class_ "event" ]
-                      [
-                        txt "League %d Event Nr %d" rstats.league_id
-                          rstats.event_nr;
-                      ];
+                    div [ class_ "event" ] [ txt "%s" results.location ];
                     div [ class_ "positions" ] [];
                   ];
               ];

@@ -520,6 +520,7 @@ let simple_results_for_runner (handle : Turso.conn) ~(runner_id : int) =
          ~points
          ~pace
          ~dsq
+         ~location
        ->
          let _ = id in
          let result =
@@ -531,9 +532,10 @@ let simple_results_for_runner (handle : Turso.conn) ~(runner_id : int) =
              ~time_sec:(Helpers.of_int64_opt time_sec)
              ~start_time:(Helpers.of_int64_opt start_time)
              ~points:(Helpers.of_int64 points) ~pace ~dsq:(Helpers.of_int64 dsq)
+             ~location
          in
          results := result :: !results));
-  !results
+  List.rev !results
 
 let result_stats_for_runner (handle : Turso.conn) ~(runner_id : int)
     ~(page_size : int) ~page_num =
@@ -624,7 +626,7 @@ let result_stats_for_runner (handle : Turso.conn) ~(runner_id : int)
              ~potential_position:(Helpers.of_int64_opt potential_position)
          in
          results := result :: !results));
-  !results
+  List.rev !results
 
 type medal_type = Gold | Silver | Bronze
 

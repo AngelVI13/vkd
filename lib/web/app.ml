@@ -130,6 +130,8 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
       ~since:(Utils.format_time_as_date six_months_ago)
   in
 
+  (* TODO: currently we are only using these to get the amount of times we have participated in each course. 
+     we might have to replace fetching all of the data with just fetching the count of races in each course *)
   let simple_results =
     Cache.State.simple_results_for_runner state db runner_id
   in
