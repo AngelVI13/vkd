@@ -290,6 +290,53 @@ time {
   unicode-bidi: plaintext;
 }
 
+.activity .entries {
+  display: flex;
+  flex-flow: column;
+  margin: 0 50px;
+  border-inline-start: 3px solid var(--c-datetime);
+}
+
+.activity .entries {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  /* -- */
+  min-height: 64px;
+  position: relative;
+  padding: 6px 0;
+  /* -- */
+  padding-inline-start: 45px;
+}
+
+.activity .entry > .icon {
+  position: absolute;
+  top: 12px;
+  font-size: 30px;
+  float: inline-start;
+  width: 46px;
+  height: 46px;
+  margin-inline-start: -72px;
+  line-height: 41px;
+  text-align: center;
+  background-color: var(--c-datetime);
+  border: 3px solid var(--c-bg-box);
+  border-radius: 50%;
+  color: #fff;
+}
+
+.activity .entry > .icon::before {
+  font-size: 1.2em;
+  vertical-align: middle;
+  font-style: normal;
+  font-weight: normal;
+  text-transform: none;
+  speak: none;
+  content: "\2605";
+  opacity: 0.9;
+  unicode-bidi: isolate;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;

@@ -274,6 +274,22 @@ let history_section (t : Page_settings.t)
                   [ datetime "%s" rstats.event_date ]
                   [ txt "%s" rstats.event_date ];
               ];
+            div
+              [ class_ "entries" ]
+              [
+                div
+                  [ class_ "entry" ]
+                  [
+                    div [ class_ "icon" ] [];
+                    div
+                      [ class_ "event" ]
+                      [
+                        txt "League %d Event Nr %d" rstats.league_id
+                          rstats.event_nr;
+                      ];
+                    div [ class_ "positions" ] [];
+                  ];
+              ];
           ])
   in
   null
