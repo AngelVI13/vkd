@@ -344,12 +344,16 @@ time {
   content: "\2726";
 }
 
+.activity .entry > .event {
+  font-weight: bold;
+}
+
 .activity .history-rating {
   display: inline-block;
   direction: ltr;
   margin-inline-start: 0.7em;
   /* -- */
-  font-weight: bold;
+  font-weight: 300;
 }
 
 @media screen and (max-width: 900px) {
@@ -393,7 +397,7 @@ time {
     font-size: 16px;
   }
 
-  .rating-change::before {
+  .rating-extra .rating-change::before {
     font-size: 18px;
   }
 

@@ -326,8 +326,26 @@ let history_section (t : Page_settings.t)
           match rating with
           | None -> null []
           | Some rating ->
-              (* TODO: add rating diff *)
-              div [ class_ "history-rating" ] [ txt "%.0f" rating.rating ]
+              let rating_change_extra =
+                if Float.(rating.rating_diff > 0.0) then "good"
+                else if Float.(rating.rating_diff < 0.0) then "bad"
+                else "line"
+              in
+              (* TODO: show ? if rating is still uncertain *)
+              (* TODO: show course id in brackets after that rating *)
+              div
+                [ class_ "history-rating" ]
+                [
+                  txt "%.0f" rating.rating;
+                  (if Float.(rating.rating_diff = 0.0) then null []
+                   else
+                     span
+                       [
+                         class_ "rating-change %s" rating_change_extra;
+                         title_ "%s" t.translations.rating_change_description;
+                       ]
+                       [ txt "%.0f" rating.rating_diff ]);
+                ]
         in
 
         (* TODO: add position_info *)
