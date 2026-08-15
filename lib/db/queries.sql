@@ -300,8 +300,9 @@ CREATE TABLE IF NOT EXISTS results (
 );
 
 -- @simple_results_for_runner
-SELECT r.* , ed.location FROM results r
+SELECT r.* , ed.location, l.name AS league_name FROM results r
 JOIN event_details ed ON r.event_date = ed.event_date
+JOIN leagues l ON r.league_id = l.id
 WHERE runner_id = @runner_id
 ORDER BY r.event_date DESC;
 

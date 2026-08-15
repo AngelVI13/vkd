@@ -521,6 +521,7 @@ let simple_results_for_runner (handle : Turso.conn) ~(runner_id : int) =
          ~pace
          ~dsq
          ~location
+         ~league_name
        ->
          let _ = id in
          let result =
@@ -532,7 +533,7 @@ let simple_results_for_runner (handle : Turso.conn) ~(runner_id : int) =
              ~time_sec:(Helpers.of_int64_opt time_sec)
              ~start_time:(Helpers.of_int64_opt start_time)
              ~points:(Helpers.of_int64 points) ~pace ~dsq:(Helpers.of_int64 dsq)
-             ~location
+             ~location ~league_name
          in
          results := result :: !results));
   List.rev !results

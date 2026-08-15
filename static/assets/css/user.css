@@ -332,9 +332,16 @@ time {
   font-weight: normal;
   text-transform: none;
   speak: none;
-  content: "\2605";
   opacity: 0.9;
   unicode-bidi: isolate;
+}
+
+.icon-star::before {
+  content: "\2605";
+}
+
+.icon-rombus::before {
+  content: "\2726";
 }
 
 @media screen and (max-width: 900px) {

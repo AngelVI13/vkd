@@ -89,6 +89,8 @@ module SimpleResult = struct
     dsq : int;
     (* --- *)
     location : string;
+    (* --- *)
+    league_name : string;
   }
   [@@deriving fields, yojson]
 end
