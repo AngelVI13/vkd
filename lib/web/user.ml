@@ -260,24 +260,61 @@ let runner_section (runner_info : Db.Types.RunnerInfo.t)
         ];
     ]
 
+let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
+    (simple_results : Db.Types.SimpleResult.t list) =
+  let sorted_ratings_per_course =
+    Common.all_of_ratingCourse
+    |> List.map ~f:Common.show_ratingCourse
+    |> List.map ~f:(fun course_id ->
+           let latest_rating =
+             List.filter ratings ~f:(fun rating ->
+                 String.equal rating.course_id course_id)
+             |> List.sort ~compare:(fun r1 r2 ->
+                    String.compare r1.event_date r2.event_date)
+           in
+           (course_id, latest_rating))
+  in
+  (* TODO: maybe add a button to only show courses which we have rating for and
+     have a 'Show All' button to reveal otherwise ? *)
+  let rating_info =
+    List.map sorted_ratings_per_course ~f:(fun (course_id, ratings) ->
+        let num_events =
+          List.filter simple_results ~f:(fun r ->
+              String.equal r.course_id course_id)
+          |> List.length
+        in
+        rating_section t course_id (List.last ratings) num_events)
+  in
+
+  null
+    [
+      div [ class_ "rating-info" ] rating_info;
+      rating_graph t sorted_ratings_per_course;
+    ]
+
 let history_section (t : Page_settings.t)
     (simple_results : Db.Types.SimpleResult.t list)
-    (result_stats : Db.Types.ResultStats.t list) =
-  let _ = (t, simple_results, result_stats) in
-
+    (result_stats : Db.Types.ResultStats.t list)
+    (ratings : Glicko2.Rating.Info.t list) =
+  (* TODO: this might be very slow if we have a lot of
+     simple_results/ratings/stats - optimize as map if necessary *)
   let full_results =
     List.map simple_results ~f:(fun r ->
         let stats =
           List.find result_stats ~f:(fun s ->
               String.equal r.event_date s.event_date)
         in
-        (r, stats))
+        let rating =
+          List.find ratings ~f:(fun rating ->
+              String.equal r.event_date rating.event_date)
+        in
+        (r, stats, rating))
   in
 
   (* TODO: merge all info about rating (we need location from there) & simple & detailed results *)
   (* TODO: not all events have result stats -> this table should be based on simple results instead *)
   let sections =
-    List.map full_results ~f:(fun (results, stats) ->
+    List.map full_results ~f:(fun (results, stats, rating) ->
         let icon_class =
           if
             String.equal results.league_name
@@ -285,6 +322,15 @@ let history_section (t : Page_settings.t)
           then "icon-star"
           else "icon-rombus"
         in
+        let rating_info =
+          match rating with
+          | None -> null []
+          | Some rating ->
+              (* TODO: add rating diff *)
+              div [ class_ "history-rating" ] [ txt "%.0f" rating.rating ]
+        in
+
+        (* TODO: add position_info *)
         let _ = stats in
         section []
           [
@@ -301,7 +347,9 @@ let history_section (t : Page_settings.t)
                   [ class_ "entry" ]
                   [
                     div [ class_ "icon %s" icon_class ] [];
-                    div [ class_ "event" ] [ txt "%s" results.location ];
+                    div
+                      [ class_ "event" ]
+                      [ txt "%s" results.location; rating_info ];
                     div [ class_ "positions" ] [];
                   ];
               ];
@@ -326,36 +374,12 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (result_stats : Db.Types.ResultStats.t list) =
   (* TODO: add hovers with description *)
   (* TODO: add totals to page *)
-  let sorted_ratings_per_course =
-    Common.all_of_ratingCourse
-    |> List.map ~f:Common.show_ratingCourse
-    |> List.map ~f:(fun course_id ->
-           let latest_rating =
-             List.filter ratings ~f:(fun rating ->
-                 String.equal rating.course_id course_id)
-             |> List.sort ~compare:(fun r1 r2 ->
-                    String.compare r1.event_date r2.event_date)
-           in
-           (course_id, latest_rating))
-  in
-  (* TODO: maybe add a button to only show courses which we have rating for and
-     have a 'Show All' button to reveal otherwise ? *)
-  let rating_info =
-    List.map sorted_ratings_per_course ~f:(fun (course_id, ratings) ->
-        let num_events =
-          List.filter simple_results ~f:(fun r ->
-              String.equal r.course_id course_id)
-          |> List.length
-        in
-        rating_section t course_id (List.last ratings) num_events)
-  in
   div
     [ class_ "profile-container page-small box" ]
     [
       runner_section runner_info medals;
-      div [ class_ "rating-info" ] rating_info;
-      rating_graph t sorted_ratings_per_course;
-      history_section t simple_results result_stats;
+      ratings_section t ratings simple_results;
+      history_section t simple_results result_stats ratings;
     ]
 
 let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)

@@ -344,6 +344,14 @@ time {
   content: "\2726";
 }
 
+.activity .history-rating {
+  display: inline-block;
+  direction: ltr;
+  margin-inline-start: 0.7em;
+  /* -- */
+  font-weight: bold;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;
