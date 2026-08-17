@@ -1,10 +1,7 @@
 #main-wrap {
   ---main-max-width: 1300px;
   display: grid;
-  grid-template-areas:
-    ". . profile . ."
-    ". . ratings . ."
-    ". . history . .";
+  grid-template-areas: ". . profile . .";
   grid-template-columns:
     var(---main-margin) 1fr minmax(auto, var(---main-max-width))
     1fr var(---main-margin);
@@ -13,8 +10,6 @@
 
 .profile-container {
   grid-area: profile;
-  /* TODO: copy stuff here from top__box from index so each
-   * section container can look the same ? */
 }
 
 .page-small {
@@ -309,6 +304,13 @@ time {
   padding-inline-start: 45px;
 }
 
+.activity .entry {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  width: 100%;
+}
+
 .activity .entry > .icon {
   position: absolute;
   top: 12px;
@@ -354,6 +356,19 @@ time {
   margin-inline-start: 0.7em;
   /* -- */
   font-weight: 300;
+}
+
+.activity .positions {
+  margin-left: auto;
+  font-size: 0.7em;
+  display: flex;
+  gap: 8px;
+}
+
+.activity .positions > * {
+  display: flex;
+  gap: 4px;
+  align-items: center;
 }
 
 @media screen and (max-width: 900px) {

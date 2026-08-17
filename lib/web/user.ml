@@ -348,8 +348,38 @@ let history_section (t : Page_settings.t)
                 ]
         in
 
-        (* TODO: add position_info *)
-        let _ = stats in
+        let position_info =
+          match stats with
+          | None -> null []
+          | Some s -> (
+              match
+                Option.all
+                  [ s.overall_position; s.position_gender; s.position_group ]
+              with
+              | None -> null []
+              | Some positions ->
+                  let overall_pos = List.nth_exn positions 0 in
+                  let gender_pos = List.nth_exn positions 1 in
+                  let group_pos = List.nth_exn positions 2 in
+                  div
+                    [ class_ "positions" ]
+                    [
+                      (* TODO: prettify these & add icons to these *)
+                      (* TODO: also double check the position values *)
+                      div
+                        [ class_ "overall" ]
+                        (* TODO: add info about the course *)
+                        [ strong [] [ txt "%d" overall_pos ] ];
+                      div
+                        [ class_ "gender" ]
+                        (* TODO: add info about the gender *)
+                        [ strong [] [ txt "%d" gender_pos ] ];
+                      div
+                        [ class_ "group" ]
+                        (* TODO: add info about the group *)
+                        [ strong [] [ txt "%d" group_pos ] ];
+                    ])
+        in
         section []
           [
             h2 []
@@ -367,8 +397,9 @@ let history_section (t : Page_settings.t)
                     div [ class_ "icon %s" icon_class ] [];
                     div
                       [ class_ "event" ]
+                      (* TODO: make this into a clickable link + cursor: pointer *)
                       [ txt "%s" results.location; rating_info ];
-                    div [ class_ "positions" ] [];
+                    position_info;
                   ];
               ];
           ])
