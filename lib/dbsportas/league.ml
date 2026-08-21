@@ -584,6 +584,8 @@ let parse_league_page ?(with_results = true)
                  match Int.of_string with exception _ -> None | _ -> Some nr)
            in
 
+           (* TODO: event numbers can change when events are added/removed from the league -> use the event-date for whitelisting *)
+
            (* if event_nr is found and whitelist is provided but the event_nr
               is not in the whitelist -> skip downloading event results *)
            if

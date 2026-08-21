@@ -44,6 +44,16 @@ SELECT *
 FROM league_events
 ORDER BY event_date ASC;
 
+-- NOTE: this includes events from both leagues
+-- @all_league_events_for_year
+SELECT le.*
+FROM league_events le
+JOIN leagues l ON le.league_id = l.id
+WHERE l.league_year = @league_year
+ORDER BY 
+    le.league_id ASC, 
+    le.event_date ASC;
+
 -- @create_league_events_date_idx
 CREATE INDEX IF NOT EXISTS idx_league_events_date ON league_events(event_date DESC);
 
@@ -199,6 +209,7 @@ WHERE l.league_year = @league_year
 ORDER BY 
     le.league_id ASC, 
     le.event_date ASC;
+
 
 -- @create_courses
 CREATE TABLE IF NOT EXISTS courses (

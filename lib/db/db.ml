@@ -381,6 +381,21 @@ let _add_course_stats ~(event_params : Types.EventParams.t)
        ~avg_mistake_num_men:(Helpers.to_int64 s.avg_mistake_num_men)
        ~avg_mistake_num_women:(Helpers.to_int64 s.avg_mistake_num_women))
 
+let _fetch_league_events ~fn handle =
+  let events = ref [] in
+  ignore
+    (fn handle (fun ~id ~league_id ~event_nr ~event_date ~location ->
+         let _ = id in
+         let league_id = Helpers.of_int64 league_id in
+         let event =
+           Dbsportas.League.LeagueEvent.Fields.create
+             ~nr:(Helpers.of_int64 event_nr)
+             ~date:(Utils.time_of_date event_date)
+             ~location ~results:None
+         in
+         events := (league_id, event) :: !events));
+  List.rev !events
+
 (** Fetch all events which don't have results associated with them in the db.
     @param year:
       Format: '2013'. If not provided, it will try to refresh any unprocessed
@@ -398,19 +413,12 @@ let unprocessed_league_events ?(year : string option = None)
     | None -> DB.events_to_be_processed
   in
 
-  let events = ref [] in
-  ignore
-    (fetch_fn handle (fun ~id ~league_id ~event_nr ~event_date ~location ->
-         let _ = id in
-         let league_id = Helpers.of_int64 league_id in
-         let event =
-           Dbsportas.League.LeagueEvent.Fields.create
-             ~nr:(Helpers.of_int64 event_nr)
-             ~date:(Utils.time_of_date event_date)
-             ~location ~results:None
-         in
-         events := (league_id, event) :: !events));
-  List.rev !events
+  _fetch_league_events ~fn:fetch_fn handle
+
+let all_league_events_for_year ~(year : int) (handle : Turso.conn) =
+  _fetch_league_events
+    ~fn:(DB.all_league_events_for_year ~league_year:(Int64.of_int year))
+    handle
 
 (** NOTE: does not commit *)
 let _add_result_stats (handle : Turso.conn)
@@ -910,6 +918,28 @@ let _add_full_event ~(league_id : string) ~(is_part_of_main_league : bool)
   if is_part_of_main_league then _update_ratings ~event_params handle event
   else ()
 
+let refresh_league_events ?(year : string option = None) handle =
+  let now = Time_ns_unix.now () in
+  let current_year = Time_ns_unix.to_date ~zone:Timezone.utc now |> Date.year in
+
+  (* Refresh DB league events if user asks for current year or if it's not specified at all *)
+  let refresh_needed =
+    match year with Some y -> Int.of_string y = current_year | None -> true
+  in
+
+  if refresh_needed then
+    all_league_events_for_year ~year:current_year handle
+    |> List.iter ~f:(fun (league_id, events) ->
+           let _ = (league_id, events) in
+           let curr_league =
+             Dbsportas.League.download_league_info ~with_results:false
+               ~league_id:(Int.to_string league_id) ()
+           in
+
+           (* TODO: compare db_events with web_events & add/update/remove entries from db *)
+           ())
+  else ()
+
 (** Update missing events & results for a particular year.
 
     @param year:
@@ -918,6 +948,8 @@ let _add_full_event ~(league_id : string) ~(is_part_of_main_league : bool)
 let action_refresh_events_and_results ?(year : string option = None)
     (handle : Turso.conn) =
   assert (List.length handle.statements = 0);
+  ignore (refresh_league_events ~year handle);
+  (* TODO: first refresh all league events data AND THEN continue *)
   let unprocessed = unprocessed_league_events ~year handle in
 
   let now = Time_ns_unix.now () in
@@ -947,6 +979,8 @@ let action_refresh_events_and_results ?(year : string option = None)
              let event_nrs_to_include =
                List.map group ~f:(fun (_, ev) -> ev.nr)
              in
+             (* TODO: event numbers can change when events are added/removed
+                from the league -> use the event-date for whitelisting *)
              Dbsportas.League.download_league_info
                ~include_events:(Some event_nrs_to_include)
                ~league_id:(Int.to_string league_id) ())
@@ -971,6 +1005,7 @@ let test_rating_fn (handle : Turso.conn) =
   printf "\n"
 
 let test (handle : Turso.conn) =
+  (* NOTE: this is a step that should be executed manually *)
   (* add_leagues_if_not_exists handle Dbsportas.League.leagues; *)
   action_refresh_events_and_results handle;
 
