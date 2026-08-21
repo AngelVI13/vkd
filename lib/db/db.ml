@@ -927,16 +927,48 @@ let refresh_league_events ?(year : string option = None) handle =
     match year with Some y -> Int.of_string y = current_year | None -> true
   in
 
+  let module EventDiff = struct
+    type t = {
+      old : Dbsportas.League.LeagueEvent.t option;
+      new_ : Dbsportas.League.LeagueEvent.t option;
+    }
+    [@@deriving fields]
+  end in
   if refresh_needed then
     all_league_events_for_year ~year:current_year handle
-    |> List.iter ~f:(fun (league_id, events) ->
+    |>
+    (* group by league id *)
+    List.sort_and_group ~compare:(fun (id1, _) (id2, _) -> Int.compare id1 id2)
+    |> List.iter ~f:(fun events ->
+           let league_id, _ = List.hd_exn events in
            let _ = (league_id, events) in
+
+           let events_diff = String.Map.empty in
            let curr_league =
              Dbsportas.League.download_league_info ~with_results:false
                ~league_id:(Int.to_string league_id) ()
            in
+           let events_diff =
+             List.fold events ~init:events_diff ~f:(fun diff (_, event) ->
+                 Map.update diff (Utils.format_time_as_date event.date)
+                   ~f:(fun d ->
+                     match d with
+                     | None ->
+                         EventDiff.Fields.create ~old:(Some event) ~new_:None
+                     | Some d -> Field.fset EventDiff.Fields.old d (Some event)))
+           in
+           let events_diff =
+             List.fold curr_league.events ~init:events_diff
+               ~f:(fun diff event ->
+                 Map.update diff (Utils.format_time_as_date event.date)
+                   ~f:(fun d ->
+                     match d with
+                     | None ->
+                         EventDiff.Fields.create ~new_:(Some event) ~old:None
+                     | Some d -> Field.fset EventDiff.Fields.new_ d (Some event)))
+           in
 
-           (* TODO: compare db_events with web_events & add/update/remove entries from db *)
+           (* TODO: go through diff and generate add/update/remove requests from db  *)
            ())
   else ()
 
