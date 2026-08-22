@@ -177,11 +177,32 @@ let leagues_for_name (handle : Turso.conn) (league_name : string) =
 (** NOTE: does not commit *)
 let _add_league_event (handle : Turso.conn) (league_id : int)
     (event : Dbsportas.League.LeagueEvent.t) =
-  DB.add_league_event handle ~id:None
-    ~league_id:(Helpers.to_int64 league_id)
-    ~event_nr:(Helpers.to_int64 event.nr)
-    ~event_date:(Utils.format_time_as_date event.date)
-    ~location:event.location
+  ignore
+    (DB.add_league_event handle ~id:None
+       ~league_id:(Helpers.to_int64 league_id)
+       ~event_nr:(Helpers.to_int64 event.nr)
+       ~event_date:(Utils.format_time_as_date event.date)
+       ~location:event.location)
+
+(** NOTE: does not commit *)
+let _delete_league_event (handle : Turso.conn) (league_id : int)
+    (event : Dbsportas.League.LeagueEvent.t) =
+  ignore
+    (DB.delete_league_event handle
+       ~league_id:(Helpers.to_int64 league_id)
+       ~event_nr:(Helpers.to_int64 event.nr)
+       ~event_date:(Utils.format_time_as_date event.date))
+
+(** NOTE: does not commit *)
+let _update_league_event (handle : Turso.conn) (league_id : int)
+    (old : Dbsportas.League.LeagueEvent.t)
+    (new_ : Dbsportas.League.LeagueEvent.t) =
+  ignore
+    (DB.update_league_event handle
+       ~league_id:(Helpers.to_int64 league_id)
+       ~old_event_nr:(Helpers.to_int64 old.nr)
+       ~old_event_date:(Utils.format_time_as_date old.date)
+       ~new_event_nr:(Helpers.to_int64 new_.nr) ~new_location:new_.location)
 
 let latest_league_events (handle : Turso.conn) (date : string) =
   let results = ref [] in
@@ -934,43 +955,65 @@ let refresh_league_events ?(year : string option = None) handle =
     }
     [@@deriving fields]
   end in
-  if refresh_needed then
-    all_league_events_for_year ~year:current_year handle
-    |>
-    (* group by league id *)
-    List.sort_and_group ~compare:(fun (id1, _) (id2, _) -> Int.compare id1 id2)
-    |> List.iter ~f:(fun events ->
-           let league_id, _ = List.hd_exn events in
-           let _ = (league_id, events) in
+  match refresh_needed with
+  | false -> ()
+  | true ->
+      ignore
+        (all_league_events_for_year ~year:current_year handle
+        |>
+        (* group by league id *)
+        List.sort_and_group ~compare:(fun (id1, _) (id2, _) ->
+            Int.compare id1 id2)
+        |> List.iter ~f:(fun events ->
+               let league_id, _ = List.hd_exn events in
+               let _ = (league_id, events) in
 
-           let events_diff = String.Map.empty in
-           let curr_league =
-             Dbsportas.League.download_league_info ~with_results:false
-               ~league_id:(Int.to_string league_id) ()
-           in
-           let events_diff =
-             List.fold events ~init:events_diff ~f:(fun diff (_, event) ->
-                 Map.update diff (Utils.format_time_as_date event.date)
-                   ~f:(fun d ->
-                     match d with
-                     | None ->
-                         EventDiff.Fields.create ~old:(Some event) ~new_:None
-                     | Some d -> Field.fset EventDiff.Fields.old d (Some event)))
-           in
-           let events_diff =
-             List.fold curr_league.events ~init:events_diff
-               ~f:(fun diff event ->
-                 Map.update diff (Utils.format_time_as_date event.date)
-                   ~f:(fun d ->
-                     match d with
-                     | None ->
-                         EventDiff.Fields.create ~new_:(Some event) ~old:None
-                     | Some d -> Field.fset EventDiff.Fields.new_ d (Some event)))
-           in
+               let events_diff = String.Map.empty in
+               let curr_league =
+                 Dbsportas.League.download_league_info ~with_results:false
+                   ~league_id:(Int.to_string league_id) ()
+               in
+               let events_diff =
+                 List.fold events ~init:events_diff ~f:(fun diff (_, event) ->
+                     Map.update diff (Utils.format_time_as_date event.date)
+                       ~f:(fun d ->
+                         match d with
+                         | None ->
+                             EventDiff.Fields.create ~old:(Some event)
+                               ~new_:None
+                         | Some d ->
+                             Field.fset EventDiff.Fields.old d (Some event)))
+               in
+               let events_diff =
+                 List.fold curr_league.events ~init:events_diff
+                   ~f:(fun diff event ->
+                     Map.update diff (Utils.format_time_as_date event.date)
+                       ~f:(fun d ->
+                         match d with
+                         | None ->
+                             EventDiff.Fields.create ~new_:(Some event)
+                               ~old:None
+                         | Some d ->
+                             Field.fset EventDiff.Fields.new_ d (Some event)))
+               in
 
-           (* TODO: go through diff and generate add/update/remove requests from db  *)
-           ())
-  else ()
+               Map.iter events_diff ~f:(fun diff ->
+                   match (diff.old, diff.new_) with
+                   | None, None -> assert false
+                   | None, Some new_event ->
+                       _add_league_event handle league_id new_event
+                   | Some old, None -> _delete_league_event handle league_id old
+                   | Some old, Some new_ ->
+                       (* NOTE: we check if number or location changed ->
+                         event_date here is equal because diff is based on
+                         event_date *)
+                       if
+                         Int.(equal old.nr new_.nr)
+                         && String.(equal old.location new_.location)
+                       then ()
+                       else _update_league_event handle league_id old new_)));
+      (* send all statements to turso *)
+      ignore (Turso.send_buffered handle)
 
 (** Update missing events & results for a particular year.
 
@@ -980,8 +1023,10 @@ let refresh_league_events ?(year : string option = None) handle =
 let action_refresh_events_and_results ?(year : string option = None)
     (handle : Turso.conn) =
   assert (List.length handle.statements = 0);
+  (* NOTE: this has to happen first because it updates the db if necessary *)
   ignore (refresh_league_events ~year handle);
-  (* TODO: first refresh all league events data AND THEN continue *)
+  assert (List.length handle.statements = 0);
+
   let unprocessed = unprocessed_league_events ~year handle in
 
   let now = Time_ns_unix.now () in
@@ -1039,7 +1084,8 @@ let test_rating_fn (handle : Turso.conn) =
 let test (handle : Turso.conn) =
   (* NOTE: this is a step that should be executed manually *)
   (* add_leagues_if_not_exists handle Dbsportas.League.leagues; *)
-  action_refresh_events_and_results handle;
+  (* action_refresh_events_and_results handle; *)
+  ignore (refresh_league_events ~year:None handle);
 
   (* action_refresh_event_details ~year:(Some "2026") handle; *)
 

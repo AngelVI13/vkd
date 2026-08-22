@@ -60,6 +60,20 @@ CREATE INDEX IF NOT EXISTS idx_league_events_date ON league_events(event_date DE
 -- @add_league_event
 INSERT INTO league_events VALUES;
 
+-- @delete_league_event
+DELETE FROM league_events
+WHERE league_id = @league_id 
+    AND event_nr = @event_nr 
+    AND event_date = @event_date;
+
+-- @update_league_event
+UPDATE league_events
+SET event_nr = @new_event_nr,
+    location = @new_location
+WHERE league_id = @league_id 
+    AND event_nr = @old_event_nr 
+    AND event_date = @old_event_date;
+
 -- @create_event_details 
 CREATE TABLE IF NOT EXISTS event_details (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
