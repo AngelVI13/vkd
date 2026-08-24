@@ -371,6 +371,25 @@ time {
   align-items: center;
 }
 
+#podium,
+#male-sign,
+#female-sign,
+#group-icon {
+  width: 22px;
+  height: 22px;
+}
+
+#podium-line,
+#male-line,
+#female-line {
+  fill: var(--c-font);
+  stroke: black;
+}
+
+#group-line {
+  fill: var(--c-font);
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;

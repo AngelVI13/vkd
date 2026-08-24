@@ -1056,8 +1056,6 @@ let action_refresh_events_and_results ?(year : string option = None)
              let event_nrs_to_include =
                List.map group ~f:(fun (_, ev) -> ev.nr)
              in
-             (* TODO: event numbers can change when events are added/removed
-                from the league -> use the event-date for whitelisting *)
              Dbsportas.League.download_league_info
                ~include_events:(Some event_nrs_to_include)
                ~league_id:(Int.to_string league_id) ())

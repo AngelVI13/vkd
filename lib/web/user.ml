@@ -364,20 +364,25 @@ let history_section (t : Page_settings.t)
                   div
                     [ class_ "positions" ]
                     [
+                      (* TODO: add hover to explain what each icon is for *)
                       (* TODO: prettify these & add icons to these *)
                       (* TODO: also double check the position values *)
                       div
                         [ class_ "overall" ]
                         (* TODO: add info about the course *)
-                        [ strong [] [ txt "%d" overall_pos ] ];
+                        [ Icons.podium; strong [] [ txt "%d" overall_pos ] ];
                       div
                         [ class_ "gender" ]
                         (* TODO: add info about the gender *)
-                        [ strong [] [ txt "%d" gender_pos ] ];
+                        [
+                          (* TODO: check gender here *)
+                          (if true then Icons.male else Icons.female);
+                          strong [] [ txt "%d" gender_pos ];
+                        ];
                       div
                         [ class_ "group" ]
                         (* TODO: add info about the group *)
-                        [ strong [] [ txt "%d" group_pos ] ];
+                        [ Icons.group; strong [] [ txt "%d" group_pos ] ];
                     ])
         in
         section []
