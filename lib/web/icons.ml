@@ -428,7 +428,7 @@ let podium =
           stroke "#000000";
           stroke_linecap `round;
           stroke_linejoin `round;
-          stroke_width "32px";
+          stroke_width "40px";
           d
             "M32,160V456a8,8,0,0,0,8,8H176V160a16,16,0,0,0-16-16H48A16,16,0,0,0,32,160Z";
         ]
@@ -440,7 +440,7 @@ let podium =
           stroke "#000000";
           stroke_linecap `round;
           stroke_linejoin `round;
-          stroke_width "32px";
+          stroke_width "40px";
           d "M320,48H192a16,16,0,0,0-16,16V464H336V64A16,16,0,0,0,320,48Z";
         ]
         [];
@@ -451,7 +451,7 @@ let podium =
           stroke "#000000";
           stroke_linecap `round;
           stroke_linejoin `round;
-          stroke_width "32px";
+          stroke_width "40px";
           d
             "M464,208H352a16,16,0,0,0-16,16V464H472a8,8,0,0,0,8-8V224A16,16,0,0,0,464,208Z";
         ]

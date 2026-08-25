@@ -369,6 +369,29 @@ time {
   display: flex;
   gap: 4px;
   align-items: center;
+  cursor: help;
+}
+
+.positions strong {
+  background: var(--c-datetime);
+  font-size: 1.2em;
+  padding: 0 6px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+/* TODO: somehow differentiate between the colors of the
+ * different positions */
+.positions .overall strong {
+  background: rgba(0, 200, 0, 1);
+}
+
+.positions .gender strong {
+  background: rgba(0, 200, 0, 0.8);
+}
+
+.positions .group strong {
+  background: rgba(0, 200, 0, 0.6);
 }
 
 #podium,
@@ -379,13 +402,12 @@ time {
   height: 22px;
 }
 
-#podium-line,
-#male-line,
-#female-line {
-  fill: var(--c-font);
-  stroke: black;
+#podium-line {
+  stroke: var(--c-font);
 }
 
+#male-line,
+#female-line,
 #group-line {
   fill: var(--c-font);
 }

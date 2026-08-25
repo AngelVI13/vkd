@@ -364,24 +364,31 @@ let history_section (t : Page_settings.t)
                   div
                     [ class_ "positions" ]
                     [
-                      (* TODO: add hover to explain what each icon is for *)
                       (* TODO: prettify these & add icons to these *)
-                      (* TODO: also double check the position values *)
                       div
-                        [ class_ "overall" ]
-                        (* TODO: add info about the course *)
+                        [
+                          class_ "overall";
+                          title_ "%s" t.translations.overall_position;
+                        ]
                         [ Icons.podium; strong [] [ txt "%d" overall_pos ] ];
                       div
-                        [ class_ "gender" ]
-                        (* TODO: add info about the gender *)
                         [
-                          (* TODO: check gender here *)
-                          (if true then Icons.male else Icons.female);
+                          class_ "gender";
+                          title_ "%s" t.translations.gender_position;
+                        ]
+                        [
+                          (if
+                             String.equal Dbsportas.League.gender_men
+                               results.gender
+                           then Icons.male
+                           else Icons.female);
                           strong [] [ txt "%d" gender_pos ];
                         ];
                       div
-                        [ class_ "group" ]
-                        (* TODO: add info about the group *)
+                        [
+                          class_ "group";
+                          title_ "%s" t.translations.group_position;
+                        ]
                         [ Icons.group; strong [] [ txt "%d" group_pos ] ];
                     ])
         in

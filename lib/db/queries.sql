@@ -324,13 +324,6 @@ CREATE TABLE IF NOT EXISTS results (
     dsq INTEGER NOT NULL
 );
 
--- @simple_results_for_runner
-SELECT r.* , ed.location, l.name AS league_name FROM results r
-JOIN event_details ed ON r.event_date = ed.event_date
-JOIN leagues l ON r.league_id = l.id
-WHERE runner_id = @runner_id
-ORDER BY r.event_date DESC;
-
 -- @add_result
 INSERT INTO results VALUES;
 
@@ -430,6 +423,19 @@ INSERT INTO runners VALUES;
 
 -- @all_runners
 SELECT * FROM runners;
+
+-- @simple_results_for_runner
+SELECT 
+    r.* , 
+    ed.location, 
+    l.name AS league_name,
+    rn.gender AS gender
+    FROM results r
+JOIN event_details ed ON r.event_date = ed.event_date
+JOIN leagues l ON r.league_id = l.id
+JOIN runners rn ON r.runner_id = rn.id
+WHERE runner_id = @runner_id
+ORDER BY r.event_date DESC;
 
 -- TODO: do not insert rows only for rd changes 
 -- TODO: clean up all the course_id versions

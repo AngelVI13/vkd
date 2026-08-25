@@ -91,6 +91,8 @@ module SimpleResult = struct
     location : string;
     (* --- *)
     league_name : string;
+    (* --- *)
+    gender : string;
   }
   [@@deriving fields, yojson]
 end
