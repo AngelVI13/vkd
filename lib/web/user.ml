@@ -292,6 +292,117 @@ let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
       rating_graph t sorted_ratings_per_course;
     ]
 
+let history_row_course_info (t : Page_settings.t)
+    (results : Db.Types.SimpleResult.t) =
+  div
+    [ class_ "history-course" ]
+    [ txt "%s %s" results.course_id t.translations.course ]
+
+let history_row_rating_info (t : Page_settings.t)
+    (rating : Glicko2.Rating.Info.t option) =
+  match rating with
+  | None -> null []
+  | Some rating ->
+      let rating_change_extra =
+        if Float.(rating.rating_diff > 0.0) then "good"
+        else if Float.(rating.rating_diff < 0.0) then "bad"
+        else "line"
+      in
+      (* TODO: show ? if rating is still uncertain *)
+      (* TODO: show course id in brackets after that rating *)
+      div
+        [ class_ "history-rating" ]
+        [
+          txt "%.0f" rating.rating;
+          (if Float.(rating.rating_diff = 0.0) then null []
+           else
+             span
+               [
+                 class_ "rating-change %s" rating_change_extra;
+                 title_ "%s" t.translations.rating_change_description;
+               ]
+               [ txt "%.0f" rating.rating_diff ]);
+        ]
+
+let history_row_positions_info (t : Page_settings.t)
+    (results : Db.Types.SimpleResult.t) (stats : Db.Types.ResultStats.t option)
+    =
+  match stats with
+  | None -> null []
+  | Some s -> (
+      match
+        Option.all [ s.overall_position; s.position_gender; s.position_group ]
+      with
+      | None -> null []
+      | Some positions ->
+          let overall_pos = List.nth_exn positions 0 in
+          let gender_pos = List.nth_exn positions 1 in
+          let group_pos = List.nth_exn positions 2 in
+          div
+            [ class_ "positions" ]
+            [
+              (* TODO: prettify these & add icons to these *)
+              div
+                [
+                  class_ "overall"; title_ "%s" t.translations.overall_position;
+                ]
+                [ Icons.podium; strong [] [ txt "%d" overall_pos ] ];
+              div
+                [ class_ "gender"; title_ "%s" t.translations.gender_position ]
+                [
+                  (if String.equal Dbsportas.League.gender_men results.gender
+                   then Icons.male
+                   else Icons.female);
+                  strong [] [ txt "%d" gender_pos ];
+                ];
+              div
+                [ class_ "group"; title_ "%s" t.translations.group_position ]
+                [ Icons.group; strong [] [ txt "%d" group_pos ] ];
+            ])
+
+let history_row (t : Page_settings.t)
+    ( (results : Db.Types.SimpleResult.t),
+      (stats : Db.Types.ResultStats.t option),
+      (rating : Glicko2.Rating.Info.t option) ) =
+  let icon_class =
+    if
+      String.equal results.league_name
+        Dbsportas.League.LeagueInfo.main_league_name
+    then "icon-star"
+    else "icon-rombus"
+  in
+
+  section []
+    [
+      h2 []
+        [
+          time
+            [ datetime "%s" results.event_date ]
+            [ txt "%s" results.event_date ];
+        ];
+      div
+        [ class_ "entries"; title_ "%s" results.league_name ]
+        [
+          div
+            [ class_ "entry" ]
+            [
+              div [ class_ "icon %s" icon_class ] [];
+              div
+                [ class_ "event" ]
+                (* TODO: make this into a clickable link + cursor: pointer *)
+                [
+                  txt "%s" results.location;
+                  (* TODO: put the course info underneath the location (in one
+                     block) - and the rating should be next to the block as it
+                     is currently *)
+                  history_row_course_info t results;
+                  history_row_rating_info t rating;
+                ];
+              history_row_positions_info t results stats;
+            ];
+        ];
+    ]
+
 let history_section (t : Page_settings.t)
     (simple_results : Db.Types.SimpleResult.t list)
     (result_stats : Db.Types.ResultStats.t list)
@@ -313,109 +424,7 @@ let history_section (t : Page_settings.t)
 
   (* TODO: merge all info about rating (we need location from there) & simple & detailed results *)
   (* TODO: not all events have result stats -> this table should be based on simple results instead *)
-  let sections =
-    List.map full_results ~f:(fun (results, stats, rating) ->
-        let icon_class =
-          if
-            String.equal results.league_name
-              Dbsportas.League.LeagueInfo.main_league_name
-          then "icon-star"
-          else "icon-rombus"
-        in
-        let rating_info =
-          match rating with
-          | None -> null []
-          | Some rating ->
-              let rating_change_extra =
-                if Float.(rating.rating_diff > 0.0) then "good"
-                else if Float.(rating.rating_diff < 0.0) then "bad"
-                else "line"
-              in
-              (* TODO: show ? if rating is still uncertain *)
-              (* TODO: show course id in brackets after that rating *)
-              div
-                [ class_ "history-rating" ]
-                [
-                  txt "%.0f" rating.rating;
-                  (if Float.(rating.rating_diff = 0.0) then null []
-                   else
-                     span
-                       [
-                         class_ "rating-change %s" rating_change_extra;
-                         title_ "%s" t.translations.rating_change_description;
-                       ]
-                       [ txt "%.0f" rating.rating_diff ]);
-                ]
-        in
-
-        let position_info =
-          match stats with
-          | None -> null []
-          | Some s -> (
-              match
-                Option.all
-                  [ s.overall_position; s.position_gender; s.position_group ]
-              with
-              | None -> null []
-              | Some positions ->
-                  let overall_pos = List.nth_exn positions 0 in
-                  let gender_pos = List.nth_exn positions 1 in
-                  let group_pos = List.nth_exn positions 2 in
-                  div
-                    [ class_ "positions" ]
-                    [
-                      (* TODO: prettify these & add icons to these *)
-                      div
-                        [
-                          class_ "overall";
-                          title_ "%s" t.translations.overall_position;
-                        ]
-                        [ Icons.podium; strong [] [ txt "%d" overall_pos ] ];
-                      div
-                        [
-                          class_ "gender";
-                          title_ "%s" t.translations.gender_position;
-                        ]
-                        [
-                          (if
-                             String.equal Dbsportas.League.gender_men
-                               results.gender
-                           then Icons.male
-                           else Icons.female);
-                          strong [] [ txt "%d" gender_pos ];
-                        ];
-                      div
-                        [
-                          class_ "group";
-                          title_ "%s" t.translations.group_position;
-                        ]
-                        [ Icons.group; strong [] [ txt "%d" group_pos ] ];
-                    ])
-        in
-        section []
-          [
-            h2 []
-              [
-                time
-                  [ datetime "%s" results.event_date ]
-                  [ txt "%s" results.event_date ];
-              ];
-            div
-              [ class_ "entries"; title_ "%s" results.league_name ]
-              [
-                div
-                  [ class_ "entry" ]
-                  [
-                    div [ class_ "icon %s" icon_class ] [];
-                    div
-                      [ class_ "event" ]
-                      (* TODO: make this into a clickable link + cursor: pointer *)
-                      [ txt "%s" results.location; rating_info ];
-                    position_info;
-                  ];
-              ];
-          ])
-  in
+  let sections = List.map full_results ~f:(history_row t) in
   null
     [
       div

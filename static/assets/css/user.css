@@ -373,25 +373,17 @@ time {
 }
 
 .positions strong {
-  background: var(--c-datetime);
+  background: var(--c-hl-green);
   font-size: 1.2em;
   padding: 0 6px;
   border-radius: 5px;
   text-align: center;
 }
 
-/* TODO: somehow differentiate between the colors of the
- * different positions */
-.positions .overall strong {
-  background: rgba(0, 200, 0, 1);
-}
-
-.positions .gender strong {
-  background: rgba(0, 200, 0, 0.8);
-}
-
-.positions .group strong {
-  background: rgba(0, 200, 0, 0.6);
+.positions strong:hover {
+  transform: scale(1.25) translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 10; /* in case neighbors get covered */
 }
 
 #podium,
@@ -410,6 +402,10 @@ time {
 #female-line,
 #group-line {
   fill: var(--c-font);
+}
+
+.history-course {
+  text-transform: uppercase;
 }
 
 @media screen and (max-width: 900px) {

@@ -25,4 +25,5 @@
     inset 0 1px 3px -2px hsl(0, 0%, 45%),
     inset 0 -4px 6px -3px hsl(from var(--c-body-gradient) h s calc(l + 3));
   --c-datetime: hsl(120, 30%, 30%);
+  --c-hl-green: #355e3b;
 }
