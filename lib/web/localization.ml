@@ -45,6 +45,7 @@ type translations = {
   performance_ratings : string;
   powered_by : string;
   stats : string;
+  position : string;
   overall_position : string;
   gender_position : string;
   group_position : string;
@@ -92,6 +93,7 @@ let english =
     performance_ratings = "Performance Ratings";
     powered_by = "Powered by";
     stats = "Stats";
+    position = "Position";
     overall_position = "Position overall";
     gender_position = "Position by gender";
     group_position = "Position by group (V-21, M-45, etc)";
@@ -138,6 +140,7 @@ let lithuanian =
     performance_ratings = "Našumo reitingai";
     powered_by = "Sukurta naudojant";
     stats = "Statistika";
+    position = "Pozicija";
     overall_position = "Bendroji pozicija";
     gender_position = "Pozicija pagal lytį";
     group_position = "Pozicija pagal grupę (V-21, M-45, etc)";

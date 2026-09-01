@@ -260,6 +260,12 @@
   margin-bottom: 2em;
 }
 
+.activity section .history-header {
+  display: flex;
+  justify-content: space-between;
+  margin-inline-end: 6rem;
+}
+
 .activity section {
   font-size: 1.2em;
   margin-inline-start: 2rem;
@@ -270,11 +276,10 @@
   color: var(--c-datetime);
   font-size: 1.2em;
   margin-bottom: 10px;
-  font-weight: 300;
+  font-weight: bold;
 }
 
 .activity section h2 time {
-  font-weight: bold;
   text-transform: uppercase;
 }
 
@@ -348,6 +353,8 @@ time {
 
 .activity .entry > .event {
   font-weight: bold;
+  padding-top: 18px;
+  cursor: pointer;
 }
 
 .activity .history-rating {
@@ -374,7 +381,7 @@ time {
 
 .positions strong {
   background: var(--c-hl-green);
-  font-size: 1.2em;
+  font-size: 20px;
   padding: 0 6px;
   border-radius: 5px;
   text-align: center;
@@ -406,6 +413,9 @@ time {
 
 .history-course {
   text-transform: uppercase;
+  font-size: 14px;
+  font-weight: normal;
+  font-style: italic;
 }
 
 @media screen and (max-width: 900px) {

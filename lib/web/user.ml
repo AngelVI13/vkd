@@ -16,7 +16,6 @@ let head_elems (t : Page_settings.t) =
 
 let rating_section (t : Page_settings.t) (course_id : string)
     (rating : Glicko2.Rating.Info.t option) (num_events : int) =
-  (* TODO: add hovers with description *)
   let course_icon =
     match Common.ratingCourse_of_string course_id with
     | Course1 -> Icons.course1
@@ -226,9 +225,6 @@ let runner_section (runner_info : Db.Types.RunnerInfo.t)
       div
         [ class_ "runner-medals" ]
         (* TODO: all runner info including when they joined *)
-        (* TODO: all rating info for each course - with history *)
-        (* TODO: all medals *)
-        (* TODO: all events participated with position and course *)
         (* -------------- *)
         (* TODO: aggregated stats - second priority *)
         (* TODO: number of top1 top5 and top10 controls as % or totals ? *)
@@ -309,7 +305,6 @@ let history_row_rating_info (t : Page_settings.t)
         else "line"
       in
       (* TODO: show ? if rating is still uncertain *)
-      (* TODO: show course id in brackets after that rating *)
       div
         [ class_ "history-rating" ]
         [
@@ -330,6 +325,10 @@ let history_row_positions_info (t : Page_settings.t)
   match stats with
   | None -> null []
   | Some s -> (
+      (* TODO: Augustas Velde is not disqualified and he has a rating but no
+       position info ???? maybe because he is marked with group S ? *)
+      (* TODO: in the case of disqualification just put `dsq` in a green block
+       instead of the positions so it's not empty - test with Brazauskaitė Leokadija *)
       match
         Option.all [ s.overall_position; s.position_gender; s.position_group ]
       with
@@ -341,7 +340,6 @@ let history_row_positions_info (t : Page_settings.t)
           div
             [ class_ "positions" ]
             [
-              (* TODO: prettify these & add icons to these *)
               div
                 [
                   class_ "overall"; title_ "%s" t.translations.overall_position;
@@ -360,7 +358,7 @@ let history_row_positions_info (t : Page_settings.t)
                 [ Icons.group; strong [] [ txt "%d" group_pos ] ];
             ])
 
-let history_row (t : Page_settings.t)
+let history_row (t : Page_settings.t) (i : int)
     ( (results : Db.Types.SimpleResult.t),
       (stats : Db.Types.ResultStats.t option),
       (rating : Glicko2.Rating.Info.t option) ) =
@@ -372,14 +370,22 @@ let history_row (t : Page_settings.t)
     else "icon-rombus"
   in
 
+  let event_date =
+    h2 []
+      [
+        time
+          [ datetime "%s" results.event_date ]
+          [ txt "%s" results.event_date ];
+      ]
+  in
+
   section []
     [
-      h2 []
-        [
-          time
-            [ datetime "%s" results.event_date ]
-            [ txt "%s" results.event_date ];
-        ];
+      (if Int.(i = 0) then
+         div
+           [ class_ "history-header" ]
+           [ event_date; h2 [] [ txt "%s" t.translations.position ] ]
+       else event_date);
       div
         [ class_ "entries"; title_ "%s" results.league_name ]
         [
@@ -389,15 +395,9 @@ let history_row (t : Page_settings.t)
               div [ class_ "icon %s" icon_class ] [];
               div
                 [ class_ "event" ]
-                (* TODO: make this into a clickable link + cursor: pointer *)
-                [
-                  txt "%s" results.location;
-                  (* TODO: put the course info underneath the location (in one
-                     block) - and the rating should be next to the block as it
-                     is currently *)
-                  history_row_course_info t results;
-                  history_row_rating_info t rating;
-                ];
+                (* TODO: make this into a clickable link *)
+                [ txt "%s" results.location; history_row_course_info t results ];
+              history_row_rating_info t rating;
               history_row_positions_info t results stats;
             ];
         ];
@@ -422,9 +422,7 @@ let history_section (t : Page_settings.t)
         (r, stats, rating))
   in
 
-  (* TODO: merge all info about rating (we need location from there) & simple & detailed results *)
-  (* TODO: not all events have result stats -> this table should be based on simple results instead *)
-  let sections = List.map full_results ~f:(history_row t) in
+  let sections = List.mapi full_results ~f:(history_row t) in
   null
     [
       div
