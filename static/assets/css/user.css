@@ -387,6 +387,10 @@ time {
   text-align: center;
 }
 
+.positions .dsq strong {
+  background: indianred;
+}
+
 .positions strong:hover {
   transform: scale(1.25) translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);

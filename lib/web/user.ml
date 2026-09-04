@@ -322,41 +322,47 @@ let history_row_rating_info (t : Page_settings.t)
 let history_row_positions_info (t : Page_settings.t)
     (results : Db.Types.SimpleResult.t) (stats : Db.Types.ResultStats.t option)
     =
-  match stats with
-  | None -> null []
-  | Some s -> (
-      (* TODO: Augustas Velde is not disqualified and he has a rating but no
-       position info ???? maybe because he is marked with group S ? *)
-      (* TODO: in the case of disqualification just put `dsq` in a green block
-       instead of the positions so it's not empty - test with Brazauskaitė Leokadija *)
-      match
-        Option.all [ s.overall_position; s.position_gender; s.position_group ]
-      with
-      | None -> null []
-      | Some positions ->
-          let overall_pos = List.nth_exn positions 0 in
-          let gender_pos = List.nth_exn positions 1 in
-          let group_pos = List.nth_exn positions 2 in
-          div
-            [ class_ "positions" ]
-            [
-              div
-                [
-                  class_ "overall"; title_ "%s" t.translations.overall_position;
-                ]
-                [ Icons.podium; strong [] [ txt "%d" overall_pos ] ];
-              div
-                [ class_ "gender"; title_ "%s" t.translations.gender_position ]
-                [
-                  (if String.equal Dbsportas.League.gender_men results.gender
-                   then Icons.male
-                   else Icons.female);
-                  strong [] [ txt "%d" gender_pos ];
-                ];
-              div
-                [ class_ "group"; title_ "%s" t.translations.group_position ]
-                [ Icons.group; strong [] [ txt "%d" group_pos ] ];
-            ])
+  let overall_pos, gender_pos, group_pos =
+    match stats with
+    | None -> ("?", "?", "?")
+    | Some s ->
+        let overall =
+          Option.map s.overall_position ~f:Int.to_string
+          |> Option.value ~default:"?"
+        in
+        let gender =
+          Option.map s.gender_position ~f:Int.to_string
+          |> Option.value ~default:"?"
+        in
+        let group =
+          Option.map s.group_position ~f:Int.to_string
+          |> Option.value ~default:"?"
+        in
+        (overall, gender, group)
+  in
+
+  let positions =
+    if results.dsq = 1 then
+      [ div [ class_ "dsq"; title_ "" ] [ strong [] [ txt "dsq" ] ] ]
+    else
+      [
+        div
+          [ class_ "overall"; title_ "%s" t.translations.overall_position ]
+          [ Icons.podium; strong [] [ txt "%s" overall_pos ] ];
+        div
+          [ class_ "gender"; title_ "%s" t.translations.gender_position ]
+          [
+            (if String.equal Dbsportas.League.gender_men results.gender then
+               Icons.male
+             else Icons.female);
+            strong [] [ txt "%s" gender_pos ];
+          ];
+        div
+          [ class_ "group"; title_ "%s" t.translations.group_position ]
+          [ Icons.group; strong [] [ txt "%s" group_pos ] ];
+      ]
+  in
+  div [ class_ "positions" ] positions
 
 let history_row (t : Page_settings.t) (i : int)
     ( (results : Db.Types.SimpleResult.t),

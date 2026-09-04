@@ -333,11 +333,11 @@ end
 module LeagueEvent = struct
   type t = {
     nr : int;
-    date : Time_ns_unix.t;
+    date : (Time_ns_unix.t[@yojson.opaque]);
     location : string;
     results : EventResults.t option;
   }
-  [@@deriving fields]
+  [@@deriving fields, yojson]
 
   let of_td_list ~results td_list =
     assert (List.length td_list >= 3);
@@ -377,7 +377,7 @@ end
 
 module League = struct
   type t = { id : string; url : string; events : LeagueEvent.t list }
-  [@@deriving show { with_path = false }, fields]
+  [@@deriving show { with_path = false }, fields, yojson]
 end
 
 (** Strip string (remove whitespaces, tabs & newlines before and after the
@@ -697,6 +697,24 @@ let%expect_test "download_league_info" =
   printf "hello1";
   [%expect {| hello1 |}]
 
+let%expect_test "download_league_info_141_1" =
+  let league_id = "141" in
+
+  let league =
+    download_league_info ~with_results:true ~include_events:(Some [ 1 ])
+      ~league_id ()
+  in
+  (* TODO: i get exception because can't calculate the fst and snd times (List
+     of length 0 - investigate) *)
+  let _ =
+    League.yojson_of_t league
+    |> Yojson.Safe.to_file
+         (sprintf "/home/angel/Documents/ocaml/vkd/league%s_full.json" league_id)
+  in
+  let _ = league_id in
+  printf "hello1";
+  [%expect {| hello1 |}]
+
 (* let%expect_test "parse_league_page finished league" = *)
 (*   let filename = "/home/angel/Documents/ocaml/vkd/league.html" in *)
 (*   let page_html = In_channel.read_all filename in *)
@@ -713,7 +731,8 @@ let%expect_test "download_league_info" =
 (*         { nr: 4; date: 2025-04-17; location: Dvarčionys; results_url: Some( /lt/mvarz/244/reztur/4 ) }; *)
 (*         { nr: 5; date: 2025-04-24; location: Skersinė; results_url: Some( /lt/mvarz/244/reztur/5 ) }; *)
 (*         { nr: 6; date: 2025-05-01; location: Kaminai (Apuoko lyga); results_url: Some( /lt/mvarz/244/reztur/6 ) }; *)
-(*         { nr: 7; date: 2025-05-08; location: Ozas; results_url: Some( /lt/mvarz/244/reztur/7 ) }; *)
+(*         { nr: 7; date: 2025-05-08; location: Ozas; results_url: Some(
+  /lt/mvarz/244/reztur/7 ) }; *)
 (*         { nr: 8; date: 2025-05-15; location: Šnipiškės; results_url: Some( /lt/mvarz/244/reztur/8 ) }; *)
 (*         { nr: 9; date: 2025-05-22; location: Karoliniškės; results_url: Some( /lt/mvarz/244/reztur/9 ) }; *)
 (*         { nr: 10; date: 2025-05-29; location: Žirmūnai; results_url: Some( /lt/mvarz/244/reztur/10 ) }; *)

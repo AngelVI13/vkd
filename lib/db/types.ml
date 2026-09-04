@@ -135,8 +135,8 @@ module ResultStats = struct
     top10_splits : int;
     performance : int;
     overall_position : int option;
-    position_gender : int option;
-    position_group : int option;
+    gender_position : int option;
+    group_position : int option;
     potential_time : int option;
     potential_position : int option;
   }
