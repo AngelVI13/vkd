@@ -45,18 +45,26 @@
 .runner-info h1 {
   font-size: 2em;
   margin-top: 0;
-  margin-bottom: 0.5rem;
+  margin-bottom: 5px;
 }
 
 .runner-name {
   font-weight: bold;
 }
 
-.runner-club {
+.runner-club-join-date {
+  display: flex;
+}
+
+.runner-club-join-date * {
   font-style: italic;
-  font-size: 12px;
+  font-size: 16px;
   margin-bottom: 0;
   margin-top: 4px;
+}
+
+.runner-club {
+  font-weight: bold;
 }
 
 .runner-medals {
@@ -431,6 +439,11 @@ time {
     font-size: 22px;
   }
 
+  .runner-club-join-date * {
+    font-style: italic;
+    font-size: 12px;
+  }
+
   .medal-num {
     font-size: 20px;
   }
@@ -496,7 +509,24 @@ time {
   }
 }
 
+@media screen and (max-width: 500px) {
+  .course-event-num {
+    display: none;
+  }
+
+  .runner-join-date {
+    display: none;
+  }
+}
+
 @media screen and (max-width: 450px) {
+  .runner-info {
+    padding-left: 1rem;
+  }
+
+  .runner-medals {
+    padding-right: 1rem;
+  }
   .runner-info h1 {
     font-size: 20px;
     margin-bottom: 0.1rem;
@@ -509,10 +539,6 @@ time {
   .medal-num svg {
     width: 20px;
     height: 20px;
-  }
-
-  .course-rating {
-    flex: 100%;
   }
 
   .rating-info {

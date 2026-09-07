@@ -211,7 +211,7 @@ let rating_graph (t : Page_settings.t)
       script [ path_attr src Static.Assets.Js.Scripts.rating_graph_js ] "";
     ]
 
-let runner_section (runner_info : Db.Types.RunnerInfo.t)
+let runner_section (t : Page_settings.t) (runner_info : Db.Types.RunnerInfo.t)
     (medals : Db.Types.Medals.t) =
   div
     [ class_ "box-contents" ]
@@ -220,11 +220,20 @@ let runner_section (runner_info : Db.Types.RunnerInfo.t)
         [ class_ "runner-info" ]
         [
           h1 [ class_ "runner-name" ] [ txt "%s" runner_info.name ];
-          p [ class_ "runner-club" ] [ txt "%s" runner_info.club ];
+          div
+            [ class_ "runner-club-join-date" ]
+            [
+              p [ class_ "runner-club" ] [ txt "%s" runner_info.club ];
+              p
+                [ class_ "runner-join-date" ]
+                [
+                  txt "(%s: %s)" t.translations.first_event
+                    runner_info.join_date;
+                ];
+            ];
         ];
       div
         [ class_ "runner-medals" ]
-        (* TODO: all runner info including when they joined *)
         (* -------------- *)
         (* TODO: aggregated stats - second priority *)
         (* TODO: number of top1 top5 and top10 controls as % or totals ? *)
@@ -451,7 +460,7 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
   div
     [ class_ "profile-container page-small box" ]
     [
-      runner_section runner_info medals;
+      runner_section t runner_info medals;
       ratings_section t ratings simple_results;
       history_section t simple_results result_stats ratings;
     ]

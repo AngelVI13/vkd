@@ -49,6 +49,7 @@ type translations = {
   overall_position : string;
   gender_position : string;
   group_position : string;
+  first_event : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -97,6 +98,7 @@ let english =
     overall_position = "Position overall";
     gender_position = "Position by gender";
     group_position = "Position by group (V-21, M-45, etc)";
+    first_event = "First event";
   }
 
 let lithuanian =
@@ -144,6 +146,7 @@ let lithuanian =
     overall_position = "Bendroji pozicija";
     gender_position = "Pozicija pagal lytį";
     group_position = "Pozicija pagal grupę (V-21, M-45, etc)";
+    first_event = "Pirmasis etapas";
   }
 
 let translation_of_language (lang : language) : translations =
