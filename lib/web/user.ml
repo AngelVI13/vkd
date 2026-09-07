@@ -399,7 +399,12 @@ let history_row (t : Page_settings.t) (i : int)
       (if Int.(i = 0) then
          div
            [ class_ "history-header" ]
-           [ event_date; h2 [] [ txt "%s" t.translations.position ] ]
+           [
+             event_date;
+             h2
+               [ class_ "header-position" ]
+               [ txt "%s" t.translations.position ];
+           ]
        else event_date);
       div
         [ class_ "entries"; title_ "%s" results.league_name ]
