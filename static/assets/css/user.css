@@ -378,6 +378,11 @@ time {
   font-weight: 300;
 }
 
+.activity .history-rating:not(:has(> span)) {
+  top: 2px;
+  position: relative;
+}
+
 .activity .positions {
   margin-left: auto;
   font-size: 0.7em;
