@@ -151,6 +151,17 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 
   Dream_html.respond page
 
+let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
+  let runner_id =
+    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
+  in
+
+  let tab = Dream.query request "tab" |> Option.value_exn in
+
+  let _ = (runner_id, tab, settings, state, db) in
+
+  Dream_html.respond (Dream_html.HTML.null [])
+
 let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =
   let current_url = Uri.of_string url in
   let path = Uri.path current_url in
@@ -247,6 +258,8 @@ let run ~(db : Db.t) =
              Dream_html.get Paths.index
                (with_settings (handle_index ~db ~state));
              Dream_html.get Paths.user (with_settings (handle_user ~db ~state));
+             Dream_html.get Paths.user_tab
+               (with_settings (handle_user ~db ~state));
              Dream_html.get Paths.rating_table
                (with_settings (handle_rating_table ~db ~state));
              Dream_html.post Paths.rating_table

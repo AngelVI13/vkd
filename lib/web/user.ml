@@ -423,7 +423,7 @@ let history_row (t : Page_settings.t) (i : int)
         ];
     ]
 
-let history_section (t : Page_settings.t)
+let history_tab (t : Page_settings.t)
     (simple_results : Db.Types.SimpleResult.t list)
     (result_stats : Db.Types.ResultStats.t list)
     (ratings : Glicko2.Rating.Info.t list) =
@@ -443,17 +443,37 @@ let history_section (t : Page_settings.t)
   in
 
   let sections = List.mapi full_results ~f:(history_row t) in
-  null
+  [ div [ class_ "activity" ] sections ]
+
+type userTab = History | Stats
+[@@deriving show { with_path = false }, sexp, enumerate, eq]
+
+let tab_sections (t : Page_settings.t) ~(selected_tab : userTab)
+    ~(runner_id : int) tab_content =
+  let tabs =
+    List.map all_of_userTab ~f:(fun tab ->
+        let label =
+          match tab with
+          | History -> txt "%s" t.translations.events
+          | Stats -> txt "%s" t.translations.stats
+        in
+        let property_list =
+          if equal_userTab tab selected_tab then [ class_ "nm-item active" ]
+          else
+            [
+              class_ "nm-item";
+              path_attr Hx.get Paths.user_tab_w_scope t.translations.lang
+                runner_id (show_userTab tab);
+            ]
+        in
+        a property_list [ label ])
+  in
+
+  div
+    [ id "tab-section" ]
     [
-      div
-        [ class_ "angles number-menu number-menu--tabs menu-box-pop" ]
-        [
-          a
-            [ class_ "nm-item to-activity active" ]
-            [ txt "%s" t.translations.events ];
-          a [ class_ "nm-item to-games" ] [ txt "%s" t.translations.stats ];
-        ];
-      div [ class_ "angle-content" ] [ div [ class_ "activity" ] sections ];
+      div [ class_ "angles number-menu number-menu--tabs menu-box-pop" ] tabs;
+      div [ class_ "angle-content" ] tab_content;
     ]
 
 let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
@@ -462,12 +482,15 @@ let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
     (result_stats : Db.Types.ResultStats.t list) =
   (* TODO: add hovers with description *)
   (* TODO: add totals to page *)
+  let tab_content = history_tab t simple_results result_stats ratings in
   div
     [ class_ "profile-container page-small box" ]
     [
       runner_section t runner_info medals;
       ratings_section t ratings simple_results;
-      history_section t simple_results result_stats ratings;
+      tab_sections t ~selected_tab:History
+        ~runner_id:(Int.of_int64_exn runner_info.id)
+        tab_content;
     ]
 
 let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
