@@ -448,6 +448,8 @@ let history_tab (t : Page_settings.t)
 type userTab = History | Stats
 [@@deriving show { with_path = false }, sexp, enumerate, eq]
 
+let userTab_of_string s = userTab_of_sexp (Sexp.of_string s)
+
 let tab_sections (t : Page_settings.t) ~(selected_tab : userTab)
     ~(runner_id : int) tab_content =
   let tabs =
@@ -464,6 +466,11 @@ let tab_sections (t : Page_settings.t) ~(selected_tab : userTab)
               class_ "nm-item";
               path_attr Hx.get Paths.user_tab_w_scope t.translations.lang
                 runner_id (show_userTab tab);
+              Hx.trigger "click";
+              Hx.target "#tab-section";
+              Hx.swap "outerHTML";
+              (* TODO: maybe add a spinner here  *)
+              (* Hx.indicator "#update-spinner"; *)
             ]
         in
         a property_list [ label ])

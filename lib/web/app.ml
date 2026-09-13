@@ -108,11 +108,7 @@ let handle_rating_table_search ~(db : Db.t) ~(state : Cache.State.t) ~settings
   let page = Index.rating_rows ~page_num settings ratings in
   Dream_html.respond (Dream_html.HTML.null page)
 
-let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
-  let runner_id =
-    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
-  in
-
+let _fetch_recent_ratings ~(db : Db.t) ~(state : Cache.State.t) runner_id =
   (* TODO: currently we take all user ratings and then filter in the frontend. 
    Shuold we instead only fetch the default setting and add more if user requests ?
    It's harder to do since we have to hook into the plotly graph buttons but it
@@ -125,10 +121,15 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
       (Time_ns_unix.Span.create ~day:(-7 * 365) ~sign:Sign.Neg ())
   in
 
-  let ratings =
-    Cache.State.ratings_for_runner state db runner_id
-      ~since:(Utils.format_time_as_date six_months_ago)
+  Cache.State.ratings_for_runner state db runner_id
+    ~since:(Utils.format_time_as_date six_months_ago)
+
+let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
+  let runner_id =
+    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
+
+  let ratings = _fetch_recent_ratings ~db ~state runner_id in
 
   (* TODO: currently we are only using these to get the amount of times we have participated in each course. 
      we might have to replace fetching all of the data with just fetching the count of races in each course *)
@@ -156,11 +157,37 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
 
-  let tab = Dream.query request "tab" |> Option.value_exn in
+  let tab =
+    Dream.query request "tab" |> Option.value_exn |> User.userTab_of_string
+  in
 
-  let _ = (runner_id, tab, settings, state, db) in
+  let tab_content =
+    match tab with
+    | User.History ->
+        let ratings = _fetch_recent_ratings ~db ~state runner_id in
 
-  Dream_html.respond (Dream_html.HTML.null [])
+        (* TODO: currently we are only using these to get the amount of times
+           we have participated in each course. 
+           we might have to replace fetching all of the data with just fetching the
+           count of races in each course *)
+        let simple_results =
+          Cache.State.simple_results_for_runner state db runner_id
+        in
+
+        let result_stats =
+          Cache.State.result_stats_for_runner state db runner_id
+            ~page_size:Settings.runner_history_page_size ~page_num:1
+        in
+        User.history_tab settings simple_results result_stats ratings
+    | User.Stats -> []
+    (* TODO: add stats here *)
+  in
+
+  let tab_section =
+    User.tab_sections settings ~selected_tab:tab ~runner_id tab_content
+  in
+
+  Dream_html.respond tab_section
 
 let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =
   let current_url = Uri.of_string url in
@@ -259,7 +286,7 @@ let run ~(db : Db.t) =
                (with_settings (handle_index ~db ~state));
              Dream_html.get Paths.user (with_settings (handle_user ~db ~state));
              Dream_html.get Paths.user_tab
-               (with_settings (handle_user ~db ~state));
+               (with_settings (handle_user_tab ~db ~state));
              Dream_html.get Paths.rating_table
                (with_settings (handle_rating_table ~db ~state));
              Dream_html.post Paths.rating_table
