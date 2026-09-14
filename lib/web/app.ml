@@ -179,8 +179,14 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
             ~page_size:Settings.runner_history_page_size ~page_num:1
         in
         User.history_tab settings simple_results result_stats ratings
-    | User.Stats -> []
-    (* TODO: add stats here *)
+    | User.Stats ->
+        (* TODO: we need result_stats here as well but all of them for that user i.e.
+           without a limit -> change the cache function to store just all
+           results & then to do the chopping based on the offset and page_size
+           postfactum  *)
+        (* TODO: also fetch the total_splits for runner, its already in the
+           queries.sql -> add it do DB.ml and to cache *)
+        []
   in
 
   let tab_section =

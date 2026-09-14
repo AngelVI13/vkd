@@ -445,6 +445,49 @@ let history_tab (t : Page_settings.t)
   let sections = List.mapi full_results ~f:(history_row t) in
   [ div [ class_ "activity" ] sections ]
 
+module UserStats = struct
+  type t = {
+    all_splits : int;
+    top_1_splits : int;
+    top_5_splits : int;
+    top_10_splits : int;
+  }
+  [@@deriving fields]
+
+  let empty () =
+    { all_splits = 0; top_1_splits = 0; top_5_splits = 0; top_10_splits = 0 }
+
+  let fold_stats (t : t) (stats : Db.Types.ResultStats.t) =
+    {
+      t with
+      (* TODO: need to get all_splits from somewhere else in db: all_splits *)
+      top_1_splits = t.top_1_splits + stats.best_splits;
+      top_5_splits = t.top_5_splits + stats.top5_splits;
+      top_10_splits = t.top_10_splits + stats.top10_splits;
+    }
+end
+
+let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
+    =
+  (* TODO: add labels to each split  *)
+  let _ = t in
+  let overall_stats =
+    List.fold ~init:(UserStats.empty ()) ~f:UserStats.fold_stats result_stats
+  in
+  [
+    div
+      [ class_ "user-stats" ]
+      [
+        div
+          [ class_ "split-stats" ]
+          [
+            div [ class_ "split-stat" ] [ txt "%d" overall_stats.top_1_splits ];
+            div [ class_ "split-stat" ] [ txt "%d" overall_stats.top_5_splits ];
+            div [ class_ "split-stat" ] [ txt "%d" overall_stats.top_10_splits ];
+          ];
+      ];
+  ]
+
 type userTab = History | Stats
 [@@deriving show { with_path = false }, sexp, enumerate, eq]
 

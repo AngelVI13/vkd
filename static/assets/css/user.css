@@ -440,6 +440,14 @@ time {
   font-style: italic;
 }
 
+.user-stats {
+  width: 100%;
+}
+
+.split-stats {
+  display: flex;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;

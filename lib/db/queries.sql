@@ -405,6 +405,11 @@ CREATE TABLE IF NOT EXISTS splits (
 -- @add_splits
 INSERT INTO splits VALUES;
 
+-- @total_splits_for_runner
+SELECT COUNT(*) FROM splits 
+WHERE runner_id = @runner_id 
+AND time_sec IS NOT NULL;
+
 -- @create_runners
 CREATE TABLE IF NOT EXISTS runners (
     id INTEGER PRIMARY KEY,
