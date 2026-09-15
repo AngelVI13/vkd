@@ -172,9 +172,8 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 
         User.history_tab settings simple_results result_stats ratings
     | User.Stats ->
-        (* TODO: also fetch the total_splits for runner, its already in the
-           queries.sql -> add it do DB.ml and to cache *)
-        User.stats_tab settings result_stats
+        let total_splits = Cache.State.total_splits state db runner_id in
+        User.stats_tab settings result_stats total_splits
   in
 
   let tab_section =

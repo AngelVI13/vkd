@@ -440,9 +440,6 @@ JOIN runners rn ON r.runner_id = rn.id
 WHERE runner_id = @runner_id
 ORDER BY r.event_date DESC;
 
--- TODO: do not insert rows only for rd changes 
--- TODO: clean up all the course_id versions
-
 -- NOTE: ratings are only ever created for VKD
 -- @create_ratings
 CREATE TABLE IF NOT EXISTS ratings (

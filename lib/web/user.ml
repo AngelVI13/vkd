@@ -463,7 +463,7 @@ module UserStats = struct
   let fold_stats (t : t) (stats : Db.Types.ResultStats.t) =
     {
       t with
-      (* TODO: need to get all_splits from somewhere else in db: all_splits *)
+      (* TODO: do we need all_splits in this record *)
       top_1_splits = t.top_1_splits + stats.best_splits;
       top_5_splits = t.top_5_splits + stats.top5_splits;
       top_10_splits = t.top_10_splits + stats.top10_splits;
@@ -471,7 +471,7 @@ module UserStats = struct
 end
 
 let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
-    =
+    (total_splits : int) =
   (* TODO: add labels to each split  *)
   let _ = t in
   let overall_stats =
@@ -487,6 +487,7 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
             div [ class_ "split-stat" ] [ txt "%d" overall_stats.top_1_splits ];
             div [ class_ "split-stat" ] [ txt "%d" overall_stats.top_5_splits ];
             div [ class_ "split-stat" ] [ txt "%d" overall_stats.top_10_splits ];
+            div [ class_ "split-stat" ] [ txt "%d" total_splits ];
           ];
       ];
   ]
@@ -515,7 +516,7 @@ let tab_sections (t : Page_settings.t) ~(selected_tab : userTab)
               Hx.trigger "click";
               Hx.target "#tab-section";
               Hx.swap "outerHTML";
-              (* TODO: maybe add a spinner here  *)
+              (* TODO: definitely add a spinner here  *)
               (* Hx.indicator "#update-spinner"; *)
             ]
         in

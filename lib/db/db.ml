@@ -656,6 +656,10 @@ let result_stats_for_runner (handle : Turso.conn) ~(runner_id : int) =
          results := result :: !results));
   List.rev !results
 
+let total_splits_for_runner (handle : Turso.conn) ~(runner_id : int) =
+  DB.total_splits_for_runner handle ~runner_id:(Int64.of_int runner_id)
+  |> Int.of_int64_exn
+
 type medal_type = Gold | Silver | Bronze
 
 let medal_type_to_string = function
