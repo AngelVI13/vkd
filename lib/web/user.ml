@@ -442,7 +442,10 @@ let history_tab (t : Page_settings.t)
         (r, stats, rating))
   in
 
-  let sections = List.mapi full_results ~f:(history_row t) in
+  (* NOTE: we only show the latest 10 results in the history tab  *)
+  let results_to_show = List.take full_results 10 in
+
+  let sections = List.mapi results_to_show ~f:(history_row t) in
   [ div [ class_ "activity" ] sections ]
 
 module UserStats = struct

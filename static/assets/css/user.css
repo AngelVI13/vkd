@@ -446,6 +446,9 @@ time {
 
 .split-stats {
   display: flex;
+  justify-content: space-around;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
 }
 
 @media screen and (max-width: 900px) {

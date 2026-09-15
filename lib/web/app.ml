@@ -137,10 +137,7 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     Cache.State.simple_results_for_runner state db runner_id
   in
 
-  let result_stats =
-    Cache.State.result_stats_for_runner state db runner_id
-      ~page_size:Settings.runner_history_page_size ~page_num:1
-  in
+  let result_stats = Cache.State.result_stats_for_runner state db runner_id in
 
   let runner_info = Cache.State.runner_info state db runner_id in
   let medals = Cache.State.medals state db runner_id in
@@ -157,36 +154,27 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
 
+  let result_stats = Cache.State.result_stats_for_runner state db runner_id in
+
   let tab =
     Dream.query request "tab" |> Option.value_exn |> User.userTab_of_string
   in
 
+  (* TODO: add the tab query to the url so that if we refresh the page we stay on the current tab *)
   let tab_content =
     match tab with
     | User.History ->
         let ratings = _fetch_recent_ratings ~db ~state runner_id in
 
-        (* TODO: currently we are only using these to get the amount of times
-           we have participated in each course. 
-           we might have to replace fetching all of the data with just fetching the
-           count of races in each course *)
         let simple_results =
           Cache.State.simple_results_for_runner state db runner_id
         in
 
-        let result_stats =
-          Cache.State.result_stats_for_runner state db runner_id
-            ~page_size:Settings.runner_history_page_size ~page_num:1
-        in
         User.history_tab settings simple_results result_stats ratings
     | User.Stats ->
-        (* TODO: we need result_stats here as well but all of them for that user i.e.
-           without a limit -> change the cache function to store just all
-           results & then to do the chopping based on the offset and page_size
-           postfactum  *)
         (* TODO: also fetch the total_splits for runner, its already in the
            queries.sql -> add it do DB.ml and to cache *)
-        []
+        User.stats_tab settings result_stats
   in
 
   let tab_section =
