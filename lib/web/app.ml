@@ -124,43 +124,9 @@ let _fetch_recent_ratings ~(db : Db.t) ~(state : Cache.State.t) runner_id =
   Cache.State.ratings_for_runner state db runner_id
     ~since:(Utils.format_time_as_date six_months_ago)
 
-let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
-  let runner_id =
-    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
-  in
-
-  let ratings = _fetch_recent_ratings ~db ~state runner_id in
-
-  (* TODO: currently we are only using these to get the amount of times we have participated in each course. 
-     we might have to replace fetching all of the data with just fetching the count of races in each course *)
-  let simple_results =
-    Cache.State.simple_results_for_runner state db runner_id
-  in
-
-  let result_stats = Cache.State.result_stats_for_runner state db runner_id in
-
-  let runner_info = Cache.State.runner_info state db runner_id in
-  let medals = Cache.State.medals state db runner_id in
-
-  (* TODO: fetch runner info here *)
-  let page =
-    User.page settings ratings simple_results runner_info medals result_stats
-  in
-
-  Dream_html.respond page
-
-let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
-  let runner_id =
-    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
-  in
-
-  let result_stats = Cache.State.result_stats_for_runner state db runner_id in
-
-  let tab =
-    Dream.query request "tab" |> Option.value_exn |> User.userTab_of_string
-  in
-
-  (* TODO: add the tab query to the url so that if we refresh the page we stay on the current tab *)
+let _tab_section ~(db : Db.t) ~(state : Cache.State.t) ~settings
+    ~(tab : User.userTab) ~(runner_id : int)
+    ~(result_stats : Db.Types.ResultStats.t list) =
   let tab_content =
     match tab with
     | User.History ->
@@ -176,11 +142,74 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
         User.stats_tab settings result_stats total_splits
   in
 
-  let tab_section =
-    User.tab_sections settings ~selected_tab:tab ~runner_id tab_content
+  User.tab_sections settings ~selected_tab:tab ~runner_id tab_content
+
+let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
+  let runner_id =
+    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
 
-  Dream_html.respond tab_section
+  let tab =
+    match Dream.query request "tab" with
+    | None -> User.History
+    | Some tab -> User.userTab_of_string tab
+  in
+
+  let ratings = _fetch_recent_ratings ~db ~state runner_id in
+
+  (* TODO: currently we are only using these to get the amount of times we have participated in each course. 
+     we might have to replace fetching all of the data with just fetching the count of races in each course *)
+  let simple_results =
+    Cache.State.simple_results_for_runner state db runner_id
+  in
+
+  let result_stats = Cache.State.result_stats_for_runner state db runner_id in
+
+  let runner_info = Cache.State.runner_info state db runner_id in
+  let medals = Cache.State.medals state db runner_id in
+
+  let tab_section =
+    _tab_section ~db ~state ~settings ~tab ~runner_id ~result_stats
+  in
+
+  (* TODO: fetch runner info here *)
+  let page =
+    User.page ~tabs:tab_section settings ratings simple_results runner_info
+      medals
+  in
+
+  Dream_html.respond page
+
+let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
+  let runner_id =
+    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
+  in
+
+  let result_stats = Cache.State.result_stats_for_runner state db runner_id in
+
+  let tab_query_name = "tab" in
+  let tab =
+    Dream.query request tab_query_name
+    |> Option.value_exn |> User.userTab_of_string
+  in
+
+  let current_url =
+    Dream.header request "HX-Current-URL" |> Option.value_exn |> Uri.of_string
+  in
+
+  let new_url = Uri.remove_query_param current_url tab_query_name in
+
+  (* Add the current tab state to the url so that on refresh you are still on the same tab *)
+  let new_url =
+    Uri.add_query_param new_url (tab_query_name, [ User.show_userTab tab ])
+    |> Uri.to_string
+  in
+
+  let tab_section =
+    _tab_section ~db ~state ~settings ~tab ~runner_id ~result_stats
+  in
+
+  Dream_html.respond ~code:200 ~headers:[ ("HX-Push-Url", new_url) ] tab_section
 
 let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =
   let current_url = Uri.of_string url in

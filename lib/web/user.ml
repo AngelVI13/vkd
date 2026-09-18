@@ -530,27 +530,24 @@ let tab_sections (t : Page_settings.t) ~(selected_tab : userTab)
       div [ class_ "angle-content" ] tab_content;
     ]
 
-let profile (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
+let profile (t : Page_settings.t) ~(tabs : node)
+    (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
-    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t)
-    (result_stats : Db.Types.ResultStats.t list) =
+    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
   (* TODO: add hovers with description *)
   (* TODO: add totals to page *)
-  let tab_content = history_tab t simple_results result_stats ratings in
   div
     [ class_ "profile-container page-small box" ]
     [
       runner_section t runner_info medals;
       ratings_section t ratings simple_results;
-      tab_sections t ~selected_tab:History
-        ~runner_id:(Int.of_int64_exn runner_info.id)
-        tab_content;
+      tabs;
     ]
 
-let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
+let page (t : Page_settings.t) ~(tabs : node)
+    (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
-    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t)
-    (result_stats : Db.Types.ResultStats.t list) =
+    (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
   html
     [ lang "en" ]
     [
@@ -560,6 +557,6 @@ let page (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
           Header.elements t;
           div
             [ id "main-wrap" ]
-            [ profile t ratings simple_results runner_info medals result_stats ];
+            [ profile t ~tabs ratings simple_results runner_info medals ];
         ];
     ]
