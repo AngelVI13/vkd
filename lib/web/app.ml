@@ -61,7 +61,6 @@ let handle_index ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 
 let handle_rating_table ~(db : Db.t) ~(state : Cache.State.t) ~settings request
     =
-  (* Utils.sleep ~s:3; *)
   let course_select =
     Dream.query request "course-select"
     |> Option.value_exn |> Common.ratingCourse_of_string

@@ -507,17 +507,17 @@ let tab_sections (t : Page_settings.t) ~(selected_tab : userTab)
           | Stats -> txt "%s" t.translations.stats
         in
         let property_list =
-          if equal_userTab tab selected_tab then [ class_ "nm-item active" ]
+          if equal_userTab tab selected_tab then
+            [ class_ "nm-item active load-indicator" ]
           else
             [
-              class_ "nm-item";
+              class_ "nm-item load-indicator";
               path_attr Hx.get Paths.user_tab_w_scope t.translations.lang
                 runner_id (show_userTab tab);
               Hx.trigger "click";
               Hx.target "#tab-section";
               Hx.swap "outerHTML";
-              (* TODO: definitely add a spinner here  *)
-              (* Hx.indicator "#update-spinner"; *)
+              Hx.indicator ".load-indicator";
             ]
         in
         a property_list [ label ])

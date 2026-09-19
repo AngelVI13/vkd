@@ -264,6 +264,27 @@
   background: var(--c-bg-box);
 }
 
+.load-indicator:after {
+  visibility: hidden;
+  content: "\268A";
+  font-size: 22px;
+  margin: 0 0.1rem;
+}
+
+/* NOTE: This is very hacky as it will show the indicator
+ * on all tabs that are currently not active. For now we
+ * have just 2 so it's ok */
+.htmx-request.load-indicator:not(.active):after {
+  visibility: visible;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 .angle-content .activity {
   margin-bottom: 2em;
 }
