@@ -180,6 +180,7 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   Dream_html.respond page
 
 let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
+  (* Utils.sleep ~s:3; *)
   let runner_id =
     Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
@@ -208,7 +209,9 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     _tab_section ~db ~state ~settings ~tab ~runner_id ~result_stats
   in
 
-  Dream_html.respond ~code:200 ~headers:[ ("HX-Push-Url", new_url) ] tab_section
+  Dream_html.respond ~code:200
+    ~headers:[ ("HX-Replace-Url", new_url) ]
+    tab_section
 
 let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =
   let current_url = Uri.of_string url in
