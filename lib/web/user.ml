@@ -470,10 +470,28 @@ module UserStats = struct
     }
 end
 
+let split_stat ~label (value : int) (total : int) =
+  div
+    [ class_ "split-stat" ]
+    [
+      div [ class_ "split-stat-label" ] [ txt "%s" label ];
+      div
+        [ class_ "split-stat-container" ]
+        [
+          div [ class_ "split-stat-value" ] [ txt "%d" value ];
+          div
+            [ class_ "split-stat-percent" ]
+            [
+              txt "%.3f"
+                Float.(
+                  round_decimal ~decimal_digits:3
+                    (100. * (of_int value / of_int total)));
+            ];
+        ];
+    ]
+
 let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
     (total_splits : int) =
-  (* TODO: add labels to each split  *)
-  let _ = t in
   let overall_stats =
     List.fold ~init:(UserStats.empty ()) ~f:UserStats.fold_stats result_stats
   in
@@ -484,9 +502,16 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
         div
           [ class_ "split-stats" ]
           [
-            div [ class_ "split-stat" ] [ txt "%d" overall_stats.top_1_splits ];
-            div [ class_ "split-stat" ] [ txt "%d" overall_stats.top_5_splits ];
-            div [ class_ "split-stat" ] [ txt "%d" overall_stats.top_10_splits ];
+            (* TODO: make these look fine on small screens *)
+            split_stat ~label:t.translations.best_splits
+              overall_stats.top_1_splits total_splits;
+            (* TODO: whats the correct translation of these in lithuanian,
+               current translation is bad *)
+            split_stat ~label:t.translations.top_5_splits
+              overall_stats.top_5_splits total_splits;
+            split_stat ~label:t.translations.top_10_splits
+              overall_stats.top_10_splits total_splits;
+            (* TODO: style the totals *)
             div [ class_ "split-stat" ] [ txt "%d" total_splits ];
           ];
       ];
