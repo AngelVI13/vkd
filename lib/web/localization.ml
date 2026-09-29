@@ -53,6 +53,7 @@ type translations = {
   best_splits : string;
   top_5_splits : string;
   top_10_splits : string;
+  control_points : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -105,6 +106,7 @@ let english =
     best_splits = "Best splits";
     top_5_splits = "Top 5 splits";
     top_10_splits = "Top 10 splits";
+    control_points = "Control points";
   }
 
 let lithuanian =
@@ -156,6 +158,7 @@ let lithuanian =
     best_splits = "greičiausi tarpiniai laikai";
     top_5_splits = "5 greičiausi tarpiniai laikai";
     top_10_splits = "10 greičiausi tarpiniai laikai";
+    control_points = "kontrolės punktai";
   }
 
 let translation_of_language (lang : language) : translations =

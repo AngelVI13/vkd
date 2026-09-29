@@ -478,7 +478,7 @@ let split_stat ~label (value : int) (total : int) =
       div
         [ class_ "split-stat-container" ]
         [
-          div [ class_ "split-stat-value" ] [ txt "%d" value ];
+          div [ class_ "split-stat-value with-percent" ] [ txt "%d" value ];
           div
             [ class_ "split-stat-percent" ]
             [
@@ -488,6 +488,16 @@ let split_stat ~label (value : int) (total : int) =
                     (100. * (of_int value / of_int total)));
             ];
         ];
+    ]
+
+let control_totals ~label (value : int) =
+  div
+    [ class_ "split-stat" ]
+    [
+      div [ class_ "split-stat-label" ] [ txt "%s" label ];
+      div
+        [ class_ "split-stat-container" ]
+        [ div [ class_ "split-stat-value" ] [ txt "%d" value ] ];
     ]
 
 let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
@@ -511,8 +521,7 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
               overall_stats.top_5_splits total_splits;
             split_stat ~label:t.translations.top_10_splits
               overall_stats.top_10_splits total_splits;
-            (* TODO: style the totals *)
-            div [ class_ "split-stat" ] [ txt "%d" total_splits ];
+            control_totals ~label:t.translations.control_points total_splits;
           ];
       ];
   ]

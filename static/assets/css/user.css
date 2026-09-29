@@ -493,7 +493,7 @@ time {
   font-size: 28px;
 }
 
-.split-stat-value:after {
+.with-percent:after {
   content: "\2758";
   padding-left: 5px;
   transform: rotate(25deg);

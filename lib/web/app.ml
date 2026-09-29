@@ -216,15 +216,25 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =
   let current_url = Uri.of_string url in
   let path = Uri.path current_url in
+  Dream.log "%s %s %s" (Uri.to_string current_url) path url;
   let base_url =
-    String.substr_replace_first
-      (Uri.to_string current_url)
-      ~pattern:path ~with_:""
+    String.substr_index_exn (Uri.to_string current_url) ~pattern:path
   in
+
+  (* TODO: this seems to grab the correct url correctly *)
+  (* TODO: Test this in cases where there are no extra params if it works *)
+  (* TODO: We have to capture all other query params and preserve them (except the language param) *)
+  let base_url = String.slice url 0 base_url in
+
+  Dream.log "%s" base_url;
+  (*   |> String.slice (Uri.to_string current_url) 0 *)
+  (* in *)
   let path_no_scope =
     String.substr_replace_first path ~pattern:(sprintf "/%s" curr_lang)
       ~with_:""
   in
+  Dream.log "curr_path=%s base_url=%s new_lang=%s path_no_scope=%s" path
+    base_url new_lang path_no_scope;
   let new_url = sprintf "%s/%s%s" base_url new_lang path_no_scope in
   new_url
 
