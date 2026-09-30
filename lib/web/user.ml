@@ -500,31 +500,65 @@ let control_totals ~label (value : int) =
         [ div [ class_ "split-stat-value" ] [ txt "%d" value ] ];
     ]
 
+let split_stats (t : Page_settings.t) (overall_stats : UserStats.t)
+    (total_splits : int) =
+  div
+    [ class_ "split-stats" ]
+    [
+      (* TODO: make these look fine on small screens *)
+      split_stat ~label:t.translations.best_splits overall_stats.top_1_splits
+        total_splits;
+      (* TODO: whats the correct translation of these in lithuanian,
+               current translation is bad *)
+      split_stat ~label:t.translations.top_5_splits overall_stats.top_5_splits
+        total_splits;
+      split_stat ~label:t.translations.top_10_splits overall_stats.top_10_splits
+        total_splits;
+      control_totals ~label:t.translations.control_points total_splits;
+    ]
+
+type statValues = PerformanceVsWinner | MistakeTime | MistakeNum | TiltRate
+[@@deriving enumerate]
+
+let show_statValues = function
+  | PerformanceVsWinner -> "Performance vs winner"
+  | MistakeTime -> "Total mistake time"
+  | MistakeNum -> "Number of mistakes"
+  | TiltRate -> "Tilt Rate"
+
+let stats_graph (t : Page_settings.t) =
+  let stat_value_options = List.map all_of_statValues ~f:show_statValues in
+  (* TODO: create these as options:
+        option
+          [ value "%s" (show_ratingGroup g); selected_node ]
+          "%s" option_txt)
+          *)
+  let select_form =
+    form
+      [
+        class_ "stat-compare-select";
+        id "stat-compare-form";
+        (* TODO: update these properties below *)
+        path_attr Hx.get Paths.rating_table_w_scope t.translations.lang;
+        Hx.target "#rating-rows";
+        Hx.swap "innerHTML";
+        Hx.include_ "#rating-search";
+        Hx.trigger "change";
+        Hx.indicator ".search-container";
+      ]
+      [
+        label [] [ txt "%s" t.translations.stat_value ];
+        select [ class_ "op-hover"; name "stat-value-1" ] stat_value_options;
+      ]
+  in
+  select_form
+
 let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
     (total_splits : int) =
   let overall_stats =
     List.fold ~init:(UserStats.empty ()) ~f:UserStats.fold_stats result_stats
   in
-  [
-    div
-      [ class_ "user-stats" ]
-      [
-        div
-          [ class_ "split-stats" ]
-          [
-            (* TODO: make these look fine on small screens *)
-            split_stat ~label:t.translations.best_splits
-              overall_stats.top_1_splits total_splits;
-            (* TODO: whats the correct translation of these in lithuanian,
-               current translation is bad *)
-            split_stat ~label:t.translations.top_5_splits
-              overall_stats.top_5_splits total_splits;
-            split_stat ~label:t.translations.top_10_splits
-              overall_stats.top_10_splits total_splits;
-            control_totals ~label:t.translations.control_points total_splits;
-          ];
-      ];
-  ]
+  [ div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ] ]
 
 type userTab = History | Stats
 [@@deriving show { with_path = false }, sexp, enumerate, eq]
