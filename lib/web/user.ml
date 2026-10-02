@@ -517,38 +517,61 @@ let split_stats (t : Page_settings.t) (overall_stats : UserStats.t)
       control_totals ~label:t.translations.control_points total_splits;
     ]
 
-type statValues = PerformanceVsWinner | MistakeTime | MistakeNum | TiltRate
-[@@deriving enumerate]
+type statValues =
+  | NotSelected
+  | PerformanceVsWinner
+  | MistakeTime
+  | MistakeNum
+  | TiltRate
+[@@deriving enumerate, show, eq]
 
-let show_statValues = function
-  | PerformanceVsWinner -> "Performance vs winner"
-  | MistakeTime -> "Total mistake time"
-  | MistakeNum -> "Number of mistakes"
-  | TiltRate -> "Tilt Rate"
+let statValues_to_human_string (t : Page_settings.t) (v : statValues) =
+  match v with
+  | PerformanceVsWinner -> t.translations.stat_performance_vs_winner
+  | MistakeTime -> t.translations.stat_mistake_time
+  | MistakeNum -> t.translations.stat_mistake_num
+  | TiltRate -> t.translations.stat_tilt_rate
+  | NotSelected -> t.translations.not_selected
 
-let stats_graph (t : Page_settings.t) =
-  let stat_value_options = List.map all_of_statValues ~f:show_statValues in
-  (* TODO: create these as options:
+let stat_select (t : Page_settings.t) ?(active = NotSelected)
+    (name_attr : string) =
+  let stat_value_options =
+    List.map all_of_statValues ~f:(fun v ->
         option
-          [ value "%s" (show_ratingGroup g); selected_node ]
-          "%s" option_txt)
-          *)
+          [
+            value "%s" (show_statValues v);
+            (if equal_statValues v active then selected else null_);
+          ]
+          "%s"
+          (statValues_to_human_string t v))
+  in
+  null
+    [
+      label [] [ txt "%s" t.translations.stat_value ];
+      select [ class_ "op-hover"; name "%s" name_attr ] stat_value_options;
+    ]
+
+let stats_graph (t : Page_settings.t)
+    ?(select_stat_1 : statValues = NotSelected)
+    ?(select_stat_2 : statValues = NotSelected)
+    ?(select_stat_3 : statValues = NotSelected) () =
   let select_form =
     form
       [
         class_ "stat-compare-select";
         id "stat-compare-form";
         (* TODO: update these properties below *)
-        path_attr Hx.get Paths.rating_table_w_scope t.translations.lang;
-        Hx.target "#rating-rows";
-        Hx.swap "innerHTML";
-        Hx.include_ "#rating-search";
-        Hx.trigger "change";
-        Hx.indicator ".search-container";
+        (* path_attr Hx.get Paths.rating_table_w_scope t.translations.lang; *)
+        (* Hx.target "#rating-rows"; *)
+        (* Hx.swap "innerHTML"; *)
+        (* Hx.include_ "#rating-search"; *)
+        (* Hx.trigger "change"; *)
+        (* Hx.indicator ".search-container"; *)
       ]
       [
-        label [] [ txt "%s" t.translations.stat_value ];
-        select [ class_ "op-hover"; name "stat-value-1" ] stat_value_options;
+        stat_select t ~active:select_stat_1 "stat-value-1";
+        stat_select t ~active:select_stat_2 "stat-value-2";
+        stat_select t ~active:select_stat_3 "stat-value-3";
       ]
   in
   select_form
@@ -558,7 +581,10 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
   let overall_stats =
     List.fold ~init:(UserStats.empty ()) ~f:UserStats.fold_stats result_stats
   in
-  [ div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ] ]
+  [
+    div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ];
+    stats_graph t ();
+  ]
 
 type userTab = History | Stats
 [@@deriving show { with_path = false }, sexp, enumerate, eq]
