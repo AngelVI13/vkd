@@ -510,6 +510,36 @@ time {
   padding-left: 2px;
 }
 
+.stats-graph {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.stats-graph form .select-label {
+  font-size: 24px;
+  padding-right: 10px;
+}
+
+.stats-graph form select {
+  margin-left: 10px;
+}
+
+.stats-graph .stat-compare-select {
+  display: flex;
+  justify-content: center;
+  flex: 1 100%;
+}
+
+.stats-graph .select-description {
+  display: flex;
+  justify-content: center;
+  flex: 1 100%;
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;

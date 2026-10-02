@@ -54,7 +54,7 @@ type translations = {
   top_5_splits : string;
   top_10_splits : string;
   control_points : string;
-  stat_value : string;
+  stats_analysis : string;
   stat_performance_vs_winner : string;
   stat_mistake_time : string;
   stat_mistake_num : string;
@@ -113,7 +113,7 @@ let english =
     top_5_splits = "Top 5 splits";
     top_10_splits = "Top 10 splits";
     control_points = "Control points";
-    stat_value = "Stat value";
+    stats_analysis = "Stats Analysis";
     stat_performance_vs_winner = "Performance vs winner";
     stat_mistake_time = "Total mistake time";
     stat_mistake_num = "Number of mistakes";
@@ -171,7 +171,7 @@ let lithuanian =
     top_5_splits = "5 greičiausi tarpiniai laikai";
     top_10_splits = "10 greičiausi tarpiniai laikai";
     control_points = "kontrolės punktai";
-    stat_value = "statistinė vertė";
+    stats_analysis = "statistinė analizė";
     stat_performance_vs_winner = "Rezultatas ir nugalėtojas";
     stat_mistake_time = "Visiško klydimo metas";
     stat_mistake_num = "Klaidų skaičius";

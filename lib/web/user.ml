@@ -523,7 +523,7 @@ type statValues =
   | MistakeTime
   | MistakeNum
   | TiltRate
-[@@deriving enumerate, show, eq]
+[@@deriving enumerate, show { with_path = false }, eq]
 
 let statValues_to_human_string (t : Page_settings.t) (v : statValues) =
   match v with
@@ -540,41 +540,44 @@ let stat_select (t : Page_settings.t) ?(active = NotSelected)
         option
           [
             value "%s" (show_statValues v);
+            (* TODO: this if works but the selected attribute doesn't seem to affect what is shown on the web ??? *)
             (if equal_statValues v active then selected else null_);
           ]
           "%s"
           (statValues_to_human_string t v))
   in
-  null
-    [
-      label [] [ txt "%s" t.translations.stat_value ];
-      select [ class_ "op-hover"; name "%s" name_attr ] stat_value_options;
-    ]
+  select [ class_ "op-hover"; name "%s" name_attr ] stat_value_options
 
 let stats_graph (t : Page_settings.t)
-    ?(select_stat_1 : statValues = NotSelected)
-    ?(select_stat_2 : statValues = NotSelected)
+    ?(select_stat_1 : statValues = PerformanceVsWinner)
+    ?(select_stat_2 : statValues = MistakeTime)
     ?(select_stat_3 : statValues = NotSelected) () =
-  let select_form =
-    form
-      [
-        class_ "stat-compare-select";
-        id "stat-compare-form";
-        (* TODO: update these properties below *)
-        (* path_attr Hx.get Paths.rating_table_w_scope t.translations.lang; *)
-        (* Hx.target "#rating-rows"; *)
-        (* Hx.swap "innerHTML"; *)
-        (* Hx.include_ "#rating-search"; *)
-        (* Hx.trigger "change"; *)
-        (* Hx.indicator ".search-container"; *)
-      ]
-      [
-        stat_select t ~active:select_stat_1 "stat-value-1";
-        stat_select t ~active:select_stat_2 "stat-value-2";
-        stat_select t ~active:select_stat_3 "stat-value-3";
-      ]
-  in
-  select_form
+  div
+    [ class_ "stats-graph" ]
+    [
+      form
+        [
+          class_ "stat-compare-select";
+          id "stat-compare-form";
+          (* TODO: update these properties below *)
+          (* path_attr Hx.get Paths.rating_table_w_scope t.translations.lang; *)
+          (* Hx.target "#rating-rows"; *)
+          (* Hx.swap "innerHTML"; *)
+          (* Hx.include_ "#rating-search"; *)
+          (* Hx.trigger "change"; *)
+          (* Hx.indicator ".search-container"; *)
+        ]
+        [
+          label
+            [ class_ "select-label" ]
+            [ txt "%s" t.translations.stats_analysis ];
+          stat_select t ~active:select_stat_1 "stat-value-1";
+          stat_select t ~active:select_stat_2 "stat-value-2";
+          stat_select t ~active:select_stat_3 "stat-value-3";
+        ];
+      (* TODO: make this a translation *)
+      div [ class_ "select-description" ] [ txt "Select stats to show/compare" ];
+    ]
 
 let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
     (total_splits : int) =
@@ -583,6 +586,7 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
   in
   [
     div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ];
+    hr [];
     stats_graph t ();
   ]
 
