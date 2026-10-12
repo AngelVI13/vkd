@@ -154,6 +154,15 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     | Some tab -> User.userTab_of_string tab
   in
 
+  let select_names = [ "stat-value-1"; "stat-value-2"; "stat-value-3" ] in
+  let stat_selects =
+    select_names
+    |> List.map ~f:(fun name ->
+           Dream.query request name |> Option.map ~f:User.statValues_of_string)
+  in
+  (* TODO: finish this here *)
+  let _ = stat_selects in
+
   let ratings = _fetch_recent_ratings ~db ~state runner_id in
 
   (* TODO: currently we are only using these to get the amount of times we have participated in each course. 
