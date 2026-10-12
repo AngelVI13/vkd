@@ -138,7 +138,7 @@ let _tab_section ~(db : Db.t) ~(state : Cache.State.t) ~settings
         User.history_tab settings simple_results result_stats ratings
     | User.Stats ->
         let total_splits = Cache.State.total_splits state db runner_id in
-        User.stats_tab settings result_stats total_splits
+        User.stats_tab settings runner_id result_stats total_splits
   in
 
   User.tab_sections settings ~selected_tab:tab ~runner_id tab_content
@@ -212,6 +212,51 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   Dream_html.respond ~code:200
     ~headers:[ ("HX-Replace-Url", new_url) ]
     tab_section
+
+let handle_user_stats_graph ~(db : Db.t) ~(state : Cache.State.t) ~settings
+    request =
+  let runner_id =
+    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
+  in
+
+  (* TODO: add support for this in the /user/ (handle_user) so that on refresh
+     it still shows the correct selections *)
+  let select_names = [ "stat-value-1"; "stat-value-2"; "stat-value-3" ] in
+  let stat_selects =
+    select_names
+    |> List.map ~f:(fun name ->
+           Dream.query request name |> Option.value_exn
+           |> User.statValues_of_string)
+  in
+
+  let current_url =
+    Dream.header request "HX-Current-URL" |> Option.value_exn |> Uri.of_string
+  in
+
+  let new_url =
+    List.fold (List.zip_exn select_names stat_selects) ~init:current_url
+      ~f:(fun url (select_name, select_value) ->
+        (* Remove previous value of select from URL and then add the current value *)
+        let u = Uri.remove_query_param url select_name in
+        Uri.add_query_param u
+          (select_name, [ User.show_statValues select_value ]))
+    |> Uri.to_string
+  in
+
+  (* TODO: call User.stats_graph here & pass it the needed data *)
+  (* TODO: remove these *)
+  let _ = (db, state) in
+  let stats_graph =
+    User.stats_graph settings runner_id
+      ~select_stat_1:(List.nth_exn stat_selects 0)
+      ~select_stat_2:(List.nth_exn stat_selects 1)
+      ~select_stat_3:(List.nth_exn stat_selects 2)
+      ()
+  in
+
+  Dream_html.respond ~code:200
+    ~headers:[ ("HX-Replace-Url", new_url) ]
+    stats_graph
 
 let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =
   let current_url = Uri.of_string url in
@@ -311,6 +356,8 @@ let run ~(db : Db.t) =
                (with_settings (handle_rating_table ~db ~state));
              Dream_html.post Paths.rating_table
                (with_settings (handle_rating_table_search ~db ~state));
+             Dream_html.get Paths.user_stats_graph
+               (with_settings (handle_user_stats_graph ~db ~state));
            ];
          Dream_html.get Paths.index (fun req -> Dream.redirect req "/en/");
          Static.routes;

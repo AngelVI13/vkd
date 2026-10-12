@@ -523,7 +523,7 @@ type statValues =
   | MistakeTime
   | MistakeNum
   | TiltRate
-[@@deriving enumerate, show { with_path = false }, eq]
+[@@deriving enumerate, show { with_path = false }, eq, sexp]
 
 let statValues_to_human_string (t : Page_settings.t) (v : statValues) =
   match v with
@@ -532,6 +532,8 @@ let statValues_to_human_string (t : Page_settings.t) (v : statValues) =
   | MistakeNum -> t.translations.stat_mistake_num
   | TiltRate -> t.translations.stat_tilt_rate
   | NotSelected -> t.translations.not_selected
+
+let statValues_of_string s = statValues_of_sexp (Sexp.of_string s)
 
 let stat_select (t : Page_settings.t) ?(active = NotSelected)
     (name_attr : string) =
@@ -548,23 +550,24 @@ let stat_select (t : Page_settings.t) ?(active = NotSelected)
   in
   select [ class_ "op-hover"; name "%s" name_attr ] stat_value_options
 
-let stats_graph (t : Page_settings.t)
+let stats_graph (t : Page_settings.t) (runner_id : int)
     ?(select_stat_1 : statValues = PerformanceVsWinner)
     ?(select_stat_2 : statValues = MistakeTime)
     ?(select_stat_3 : statValues = NotSelected) () =
   div
-    [ class_ "stats-graph" ]
+    [ class_ "stats-graph"; id "stats-graph" ]
     [
       form
         [
           class_ "stat-compare-select";
           id "stat-compare-form";
-          (* TODO: update these properties below *)
-          (* path_attr Hx.get Paths.rating_table_w_scope t.translations.lang; *)
-          (* Hx.target "#rating-rows"; *)
-          (* Hx.swap "innerHTML"; *)
-          (* Hx.include_ "#rating-search"; *)
-          (* Hx.trigger "change"; *)
+          path_attr Hx.get Paths.user_stats_graph_w_scope t.translations.lang
+            runner_id;
+          Hx.target "#stats-graph";
+          Hx.swap "outerHTML";
+          Hx.include_ "#stat-compare-form";
+          Hx.trigger "change";
+          (* TODO: support the loading indicator *)
           (* Hx.indicator ".search-container"; *)
         ]
         [
@@ -579,15 +582,15 @@ let stats_graph (t : Page_settings.t)
       div [ class_ "select-description" ] [ txt "Select stats to show/compare" ];
     ]
 
-let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
-    (total_splits : int) =
+let stats_tab (t : Page_settings.t) (runner_id : int)
+    (result_stats : Db.Types.ResultStats.t list) (total_splits : int) =
   let overall_stats =
     List.fold ~init:(UserStats.empty ()) ~f:UserStats.fold_stats result_stats
   in
   [
     div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ];
     hr [];
-    stats_graph t ();
+    stats_graph t runner_id ();
   ]
 
 type userTab = History | Stats
