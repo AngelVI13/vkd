@@ -125,7 +125,8 @@ let _fetch_recent_ratings ~(db : Db.t) ~(state : Cache.State.t) runner_id =
 
 let _tab_section ~(db : Db.t) ~(state : Cache.State.t) ~settings
     ~(tab : User.userTab) ~(runner_id : int)
-    ~(result_stats : Db.Types.ResultStats.t list) =
+    ~(result_stats : Db.Types.ResultStats.t list)
+    ~(stat_selects : User.statValues list option) =
   let tab_content =
     match tab with
     | User.History ->
@@ -138,7 +139,17 @@ let _tab_section ~(db : Db.t) ~(state : Cache.State.t) ~settings
         User.history_tab settings simple_results result_stats ratings
     | User.Stats ->
         let total_splits = Cache.State.total_splits state db runner_id in
-        User.stats_tab settings runner_id result_stats total_splits
+
+        let select_stat_1, select_stat_2, select_stat_3 =
+          match stat_selects with
+          | Some [ select_1; select_2; select_3 ] ->
+              (select_1, select_2, select_3)
+          | None -> (User.PerformanceVsWinner, User.MistakeNum, User.MistakeTime)
+          | _ -> failwith "unexpected number of select stats received"
+        in
+
+        User.stats_tab settings runner_id ~select_stat_1 ~select_stat_2
+          ~select_stat_3 result_stats total_splits
   in
 
   User.tab_sections settings ~selected_tab:tab ~runner_id tab_content
@@ -159,9 +170,10 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     select_names
     |> List.map ~f:(fun name ->
            Dream.query request name |> Option.map ~f:User.statValues_of_string)
+    |> Option.all
   in
-  (* TODO: finish this here *)
-  let _ = stat_selects in
+  (* let s = [%sexp (stat_selects : User.statValues list option)] in *)
+  (* Dream.log "%s" (Sexp.to_string_hum s); *)
 
   let ratings = _fetch_recent_ratings ~db ~state runner_id in
 
@@ -178,6 +190,7 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 
   let tab_section =
     _tab_section ~db ~state ~settings ~tab ~runner_id ~result_stats
+      ~stat_selects
   in
 
   (* TODO: fetch runner info here *)
@@ -190,6 +203,8 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 
 let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   (* Utils.sleep ~s:3; *)
+
+  (* TODO: factor out all the processing of user query params cause it repeats in a lot of places *)
   let runner_id =
     Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
@@ -200,6 +215,14 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   let tab =
     Dream.query request tab_query_name
     |> Option.value_exn |> User.userTab_of_string
+  in
+
+  let select_names = [ "stat-value-1"; "stat-value-2"; "stat-value-3" ] in
+  let stat_selects =
+    select_names
+    |> List.map ~f:(fun name ->
+           Dream.query request name |> Option.map ~f:User.statValues_of_string)
+    |> Option.all
   in
 
   let current_url =
@@ -216,6 +239,7 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 
   let tab_section =
     _tab_section ~db ~state ~settings ~tab ~runner_id ~result_stats
+      ~stat_selects
   in
 
   Dream_html.respond ~code:200
@@ -228,8 +252,6 @@ let handle_user_stats_graph ~(db : Db.t) ~(state : Cache.State.t) ~settings
     Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
 
-  (* TODO: add support for this in the /user/ (handle_user) so that on refresh
-     it still shows the correct selections *)
   let select_names = [ "stat-value-1"; "stat-value-2"; "stat-value-3" ] in
   let stat_selects =
     select_names
@@ -260,7 +282,6 @@ let handle_user_stats_graph ~(db : Db.t) ~(state : Cache.State.t) ~settings
       ~select_stat_1:(List.nth_exn stat_selects 0)
       ~select_stat_2:(List.nth_exn stat_selects 1)
       ~select_stat_3:(List.nth_exn stat_selects 2)
-      ()
   in
 
   Dream_html.respond ~code:200

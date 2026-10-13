@@ -542,18 +542,21 @@ let stat_select (t : Page_settings.t) ?(active = NotSelected)
         option
           [
             value "%s" (show_statValues v);
-            (* TODO: this if works but the selected attribute doesn't seem to affect what is shown on the web ??? *)
             (if equal_statValues v active then selected else null_);
           ]
           "%s"
           (statValues_to_human_string t v))
   in
-  select [ class_ "op-hover"; name "%s" name_attr ] stat_value_options
+  select
+    (* NOTE: the autocomplete `off prevents the browser from storing form state.
+     This is helpfull since we drive the form state from the backend so we
+     don't want the browser to show some old value to the user *)
+    [ class_ "op-hover"; name "%s" name_attr; autocomplete `off ]
+    stat_value_options
 
-let stats_graph (t : Page_settings.t) (runner_id : int)
-    ?(select_stat_1 : statValues = PerformanceVsWinner)
-    ?(select_stat_2 : statValues = MistakeTime)
-    ?(select_stat_3 : statValues = NotSelected) () =
+let stats_graph (t : Page_settings.t) ~(select_stat_1 : statValues)
+    ~(select_stat_2 : statValues) ~(select_stat_3 : statValues)
+    (runner_id : int) =
   div
     [ class_ "stats-graph"; id "stats-graph" ]
     [
@@ -583,14 +586,16 @@ let stats_graph (t : Page_settings.t) (runner_id : int)
     ]
 
 let stats_tab (t : Page_settings.t) (runner_id : int)
-    (result_stats : Db.Types.ResultStats.t list) (total_splits : int) =
+    ~(select_stat_1 : statValues) ~(select_stat_2 : statValues)
+    ~(select_stat_3 : statValues) (result_stats : Db.Types.ResultStats.t list)
+    (total_splits : int) =
   let overall_stats =
     List.fold ~init:(UserStats.empty ()) ~f:UserStats.fold_stats result_stats
   in
   [
     div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ];
     hr [];
-    stats_graph t runner_id ();
+    stats_graph t ~select_stat_1 ~select_stat_2 ~select_stat_3 runner_id;
   ]
 
 type userTab = History | Stats
