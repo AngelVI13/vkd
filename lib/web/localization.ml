@@ -60,6 +60,7 @@ type translations = {
   stat_mistake_num : string;
   stat_tilt_rate : string;
   not_selected : string;
+  select_stats_to_compare : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -119,6 +120,7 @@ let english =
     stat_mistake_num = "Number of mistakes";
     stat_tilt_rate = "Tilt Rate";
     not_selected = "Not Selected";
+    select_stats_to_compare = "Select stats to show/compare";
   }
 
 let lithuanian =
@@ -178,6 +180,8 @@ let lithuanian =
     (* tilt rate - what is correct way to say this in LT *)
     stat_tilt_rate = "pasvirimo greitis";
     not_selected = "Nepasirinkta";
+    select_stats_to_compare =
+      "Pasirinkite statistinius duomenis, kuriuos norite rodyti arba palyginti";
   }
 
 let translation_of_language (lang : language) : translations =

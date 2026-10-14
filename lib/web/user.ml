@@ -234,15 +234,6 @@ let runner_section (t : Page_settings.t) (runner_info : Db.Types.RunnerInfo.t)
         ];
       div
         [ class_ "runner-medals" ]
-        (* -------------- *)
-        (* TODO: aggregated stats - second priority *)
-        (* TODO: number of top1 top5 and top10 controls as % or totals ? *)
-        (* TODO: tilt rate *)
-        (* -------------- *)
-        (* TODO: maybe show the following as graphs *)
-        (* TODO: mistake stats *)
-        (* TODO: performance stats *)
-        (* \2604 ; \2776 *)
         [
           div
             [ class_ "medal-num gold" ]
@@ -570,8 +561,7 @@ let stats_graph (t : Page_settings.t) ~(select_stat_1 : statValues)
           Hx.swap "outerHTML";
           Hx.include_ "#stat-compare-form";
           Hx.trigger "change";
-          (* TODO: support the loading indicator *)
-          (* Hx.indicator ".search-container"; *)
+          Hx.indicator ".stat-compare-select";
         ]
         [
           label
@@ -581,8 +571,9 @@ let stats_graph (t : Page_settings.t) ~(select_stat_1 : statValues)
           stat_select t ~active:select_stat_2 "stat-value-2";
           stat_select t ~active:select_stat_3 "stat-value-3";
         ];
-      (* TODO: make this a translation *)
-      div [ class_ "select-description" ] [ txt "Select stats to show/compare" ];
+      div
+        [ class_ "select-description" ]
+        [ txt "%s" t.translations.select_stats_to_compare ];
     ]
 
 let stats_tab (t : Page_settings.t) (runner_id : int)

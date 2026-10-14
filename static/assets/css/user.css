@@ -540,6 +540,24 @@ time {
   margin-top: 0.5rem;
 }
 
+.stat-compare-select:after {
+  visibility: hidden;
+  content: "\268A";
+  font-size: 22px;
+  margin: 0 0.1rem;
+}
+
+.htmx-request.stat-compare-select:after {
+  visibility: visible;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;
