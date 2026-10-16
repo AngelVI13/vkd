@@ -207,7 +207,7 @@ let rating_graph (t : Page_settings.t)
   null
     [
       div [ id "rating-graph" ] [];
-      script [ type_ "application/json"; id "plot-data" ] "%s" plot_data;
+      script [ type_ "application/json"; id "rating-plot-data" ] "%s" plot_data;
       script [ path_attr src Static.Assets.Js.Scripts.rating_graph_js ] "";
     ]
 
@@ -545,9 +545,53 @@ let stat_select (t : Page_settings.t) ?(active = NotSelected)
     [ class_ "op-hover"; name "%s" name_attr; autocomplete `off ]
     stat_value_options
 
+let stat_trace (t : Page_settings.t) ~(color : string) ~(name : string) =
+  let _ = t in
+  let dates = [] in
+  let data = [] in
+  (* if List.length ratings = 0 then None *)
+  (* else *)
+  (*   let data = *)
+  (*     List.map ratings ~f:(fun rating -> *)
+  (*         [ *)
+  (*           `String rating.event_date; `Int Float.(to_int (round rating.rating)); *)
+  (*         ]) *)
+  (*     |> List.transpose_exn *)
+  (*   in *)
+  (**)
+  (*   let dates = List.nth_exn data 0 in *)
+  (*   let ratings = List.nth_exn data 1 in *)
+
+    Some
+      (`Assoc
+         [
+           ("type", `String "scatter");
+           ("mode", `String "lines+markers");
+           ("name", `String (sprintf "%s" name));
+           ("x", `List dates);
+           ("y", `List data);
+           ("line", `Assoc [ ("color", `String color) ]);
+           ("connectgaps", `Bool true);
+         ])
+
+let stats_plot_data ~(select_stat_1 : statValues) ~(select_stat_2 : statValues)
+    ~(select_stat_3 : statValues) (result_stats : Db.Types.ResultStats.t list) =
+      (* TODO: get all dates for the x axis *)
+      let dates = [] in
+      (* TODO: 1. go through all select_stat 
+         2. filter out any that are equal to NotSelected 
+         3. generate data for each select_stat
+         4. generate trace for each select_stat data 
+         5. filter out any None traces 
+        *)
+  ""
+
 let stats_graph (t : Page_settings.t) ~(select_stat_1 : statValues)
     ~(select_stat_2 : statValues) ~(select_stat_3 : statValues)
-    (runner_id : int) =
+    (runner_id : int) (result_stats : Db.Types.ResultStats.t list) =
+  let plot_data =
+    stats_plot_data ~select_stat_1 ~select_stat_2 ~select_stat_3 result_stats
+  in
   div
     [ class_ "stats-graph"; id "stats-graph" ]
     [
@@ -574,6 +618,15 @@ let stats_graph (t : Page_settings.t) ~(select_stat_1 : statValues)
       div
         [ class_ "select-description" ]
         [ txt "%s" t.translations.select_stats_to_compare ];
+      div
+        [ class_ "stats-graph-wrapper" ]
+        [
+          div [ id "stats-graph-main" ] [];
+          script
+            [ type_ "application/json"; id "stats-plot-data" ]
+            "%s" plot_data;
+          script [ path_attr src Static.Assets.Js.Scripts.stats_graph_js ] "";
+        ];
     ]
 
 let stats_tab (t : Page_settings.t) (runner_id : int)
@@ -586,7 +639,8 @@ let stats_tab (t : Page_settings.t) (runner_id : int)
   [
     div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ];
     hr [];
-    stats_graph t ~select_stat_1 ~select_stat_2 ~select_stat_3 runner_id;
+    stats_graph t ~select_stat_1 ~select_stat_2 ~select_stat_3 runner_id
+      result_stats;
   ]
 
 type userTab = History | Stats

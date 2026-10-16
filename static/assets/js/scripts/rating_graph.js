@@ -1,5 +1,5 @@
 const data = JSON.parse(
-    document.getElementById("plot-data").innerHTML
+    document.getElementById("rating-plot-data").innerHTML
 );
 
 Plotly.newPlot(
