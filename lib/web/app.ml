@@ -252,6 +252,8 @@ let handle_user_stats_graph ~(db : Db.t) ~(state : Cache.State.t) ~settings
     Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
 
+  let result_stats = Cache.State.result_stats_for_runner state db runner_id in
+
   let select_names = [ "stat-value-1"; "stat-value-2"; "stat-value-3" ] in
   let stat_selects =
     select_names
@@ -274,11 +276,8 @@ let handle_user_stats_graph ~(db : Db.t) ~(state : Cache.State.t) ~settings
     |> Uri.to_string
   in
 
-  (* TODO: call User.stats_graph here & pass it the needed data *)
-  (* TODO: remove these *)
-  let _ = (db, state) in
   let stats_graph =
-    User.stats_graph settings runner_id
+    User.stats_graph settings runner_id result_stats
       ~select_stat_1:(List.nth_exn stat_selects 0)
       ~select_stat_2:(List.nth_exn stat_selects 1)
       ~select_stat_3:(List.nth_exn stat_selects 2)

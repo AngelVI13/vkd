@@ -558,27 +558,173 @@ let stat_trace (t : Page_settings.t) ~(color : string) ~(name : string) =
   (*         ]) *)
   (*     |> List.transpose_exn *)
   (*   in *)
-  (**)
   (*   let dates = List.nth_exn data 0 in *)
   (*   let ratings = List.nth_exn data 1 in *)
 
-    Some
-      (`Assoc
-         [
-           ("type", `String "scatter");
-           ("mode", `String "lines+markers");
-           ("name", `String (sprintf "%s" name));
-           ("x", `List dates);
-           ("y", `List data);
-           ("line", `Assoc [ ("color", `String color) ]);
-           ("connectgaps", `Bool true);
-         ])
+  Some
+    (`Assoc
+       [
+         ("type", `String "scatter");
+         ("mode", `String "lines+markers");
+         ("name", `String (sprintf "%s" name));
+         ("x", `List dates);
+         ("y", `List data);
+         ("line", `Assoc [ ("color", `String color) ]);
+         ("connectgaps", `Bool true);
+       ])
+
+module AccumulatedStats = struct
+  type t = {
+    event_date : string list;
+    course_id : string list;
+    mistake_time : int list;
+    mistake_num : int list;
+    small_mistake_time : int list;
+    small_mistake_num : int list;
+    small_mistake_time_ratio : int list;
+    small_mistake_num_ratio : int list;
+    big_mistake_time : int list;
+    big_mistake_num : int list;
+    big_mistake_time_ratio : int list;
+    big_mistake_num_ratio : int list;
+    blunder_mistake_time : int list;
+    blunder_mistake_num : int list;
+    blunder_mistake_time_ratio : int list;
+    blunder_mistake_num_ratio : int list;
+    consecutive_mistakes : int list;
+    tilt_rate : int list;
+    mistake_cluster : Dbsportas.Runner_stats.mistakeCluster option list;
+    mistakes_impact : Dbsportas.Runner_stats.mistakesImpact option list;
+    race_execution : Dbsportas.Runner_stats.raceExecution option list;
+    best_splits : int list;
+    top5_splits : int list;
+    top10_splits : int list;
+    performance : int list;
+    overall_position : int option list;
+    gender_position : int option list;
+    group_position : int option list;
+    potential_time : int option list;
+    potential_position : int option list;
+  }
+  [@@deriving fields]
+
+  let empty () =
+    {
+      event_date = [];
+      course_id = [];
+      mistake_time = [];
+      mistake_num = [];
+      small_mistake_time = [];
+      small_mistake_num = [];
+      small_mistake_time_ratio = [];
+      small_mistake_num_ratio = [];
+      big_mistake_time = [];
+      big_mistake_num = [];
+      big_mistake_time_ratio = [];
+      big_mistake_num_ratio = [];
+      blunder_mistake_time = [];
+      blunder_mistake_num = [];
+      blunder_mistake_time_ratio = [];
+      blunder_mistake_num_ratio = [];
+      consecutive_mistakes = [];
+      tilt_rate = [];
+      mistake_cluster = [];
+      mistakes_impact = [];
+      race_execution = [];
+      best_splits = [];
+      top5_splits = [];
+      top10_splits = [];
+      performance = [];
+      overall_position = [];
+      gender_position = [];
+      group_position = [];
+      potential_time = [];
+      potential_position = [];
+    }
+
+  let add (t : t) (result : Db.Types.ResultStats.t) =
+    {
+      event_date = t.event_date @ [ result.event_date ];
+      course_id = t.course_id @ [ result.course_id ];
+      mistake_time = t.mistake_time @ [ result.mistake_time ];
+      mistake_num = t.mistake_num @ [ result.mistake_num ];
+      small_mistake_time = t.small_mistake_time @ [ result.small_mistake_time ];
+      small_mistake_num = t.small_mistake_num @ [ result.small_mistake_num ];
+      small_mistake_time_ratio =
+        t.small_mistake_time_ratio @ [ result.small_mistake_time_ratio ];
+      small_mistake_num_ratio =
+        t.small_mistake_num_ratio @ [ result.small_mistake_num_ratio ];
+      big_mistake_time = t.big_mistake_time @ [ result.big_mistake_time ];
+      big_mistake_num = t.big_mistake_num @ [ result.big_mistake_num ];
+      big_mistake_time_ratio =
+        t.big_mistake_time_ratio @ [ result.big_mistake_time_ratio ];
+      big_mistake_num_ratio =
+        t.big_mistake_num_ratio @ [ result.big_mistake_num_ratio ];
+      blunder_mistake_time =
+        t.blunder_mistake_time @ [ result.blunder_mistake_time ];
+      blunder_mistake_num =
+        t.blunder_mistake_num @ [ result.blunder_mistake_num ];
+      blunder_mistake_time_ratio =
+        t.blunder_mistake_time_ratio @ [ result.blunder_mistake_time_ratio ];
+      blunder_mistake_num_ratio =
+        t.blunder_mistake_num_ratio @ [ result.blunder_mistake_num_ratio ];
+      consecutive_mistakes =
+        t.consecutive_mistakes @ [ result.consecutive_mistakes ];
+      tilt_rate = t.tilt_rate @ [ result.tilt_rate ];
+      mistake_cluster = t.mistake_cluster @ [ result.mistake_cluster ];
+      mistakes_impact = t.mistakes_impact @ [ result.mistakes_impact ];
+      race_execution = t.race_execution @ [ result.race_execution ];
+      best_splits = t.best_splits @ [ result.best_splits ];
+      top5_splits = t.top5_splits @ [ result.top5_splits ];
+      top10_splits = t.top10_splits @ [ result.top10_splits ];
+      performance = t.performance @ [ result.performance ];
+      overall_position = t.overall_position @ [ result.overall_position ];
+      gender_position = t.gender_position @ [ result.gender_position ];
+      group_position = t.group_position @ [ result.group_position ];
+      potential_time = t.potential_time @ [ result.potential_time ];
+      potential_position = t.potential_position @ [ result.potential_position ];
+    }
+
+  let to_json_string_list (t : t) field =
+    let values = Field.get field t in
+    List.map values ~f:(fun value -> `String value)
+
+  let to_json_int_list (t : t) field =
+    let values = Field.get field t in
+    List.map values ~f:(fun value -> `Int value)
+end
+
+let stats_data_for_select (select : statValues)
+    (accumulated : AccumulatedStats.t) =
+  match select with
+  | NotSelected -> []
+  | PerformanceVsWinner ->
+      AccumulatedStats.to_json_int_list accumulated
+        AccumulatedStats.Fields.performance
+      (* TODO: finish this *)
+  | MistakeTime -> []
+  | MistakeNum -> []
+  | TiltRate -> []
 
 let stats_plot_data ~(select_stat_1 : statValues) ~(select_stat_2 : statValues)
     ~(select_stat_3 : statValues) (result_stats : Db.Types.ResultStats.t list) =
-      (* TODO: get all dates for the x axis *)
-      let dates = [] in
-      (* TODO: 1. go through all select_stat 
+  (* TODO: get all dates for the x axis *)
+  let _ = (select_stat_1, select_stat_2, select_stat_3, result_stats) in
+
+  let accumulated =
+    List.fold result_stats
+      ~init:(AccumulatedStats.empty ())
+      ~f:AccumulatedStats.add
+  in
+
+  let dates =
+    AccumulatedStats.to_json_string_list accumulated
+      AccumulatedStats.Fields.event_date
+  in
+
+  let _ = dates in
+
+  (* TODO: 1. go through all select_stat 
          2. filter out any that are equal to NotSelected 
          3. generate data for each select_stat
          4. generate trace for each select_stat data 
