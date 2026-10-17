@@ -558,6 +558,18 @@ time {
   }
 }
 
+.stats-graph-wrapper {
+  display: flex;
+  justify-content: center;
+  flex: 1 100%;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+#stats-graph-main {
+  width: 95%;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;

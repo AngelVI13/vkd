@@ -545,33 +545,21 @@ let stat_select (t : Page_settings.t) ?(active = NotSelected)
     [ class_ "op-hover"; name "%s" name_attr; autocomplete `off ]
     stat_value_options
 
-let stat_trace (t : Page_settings.t) ~(color : string) ~(name : string) =
-  let _ = t in
-  let dates = [] in
-  let data = [] in
-  (* if List.length ratings = 0 then None *)
-  (* else *)
-  (*   let data = *)
-  (*     List.map ratings ~f:(fun rating -> *)
-  (*         [ *)
-  (*           `String rating.event_date; `Int Float.(to_int (round rating.rating)); *)
-  (*         ]) *)
-  (*     |> List.transpose_exn *)
-  (*   in *)
-  (*   let dates = List.nth_exn data 0 in *)
-  (*   let ratings = List.nth_exn data 1 in *)
-
-  Some
-    (`Assoc
-       [
-         ("type", `String "scatter");
-         ("mode", `String "lines+markers");
-         ("name", `String (sprintf "%s" name));
-         ("x", `List dates);
-         ("y", `List data);
-         ("line", `Assoc [ ("color", `String color) ]);
-         ("connectgaps", `Bool true);
-       ])
+let stat_trace ~(color : string) ~(name : string) ~dates ~data =
+  match data with
+  | [] -> None
+  | _ ->
+      Some
+        (`Assoc
+           [
+             ("type", `String "scatter");
+             ("mode", `String "lines+markers");
+             ("name", `String (sprintf "%s" name));
+             ("x", `List dates);
+             ("y", `List data);
+             ("line", `Assoc [ ("color", `String color) ]);
+             ("connectgaps", `Bool true);
+           ])
 
 module AccumulatedStats = struct
   type t = {
@@ -701,16 +689,19 @@ let stats_data_for_select (select : statValues)
   | PerformanceVsWinner ->
       AccumulatedStats.to_json_int_list accumulated
         AccumulatedStats.Fields.performance
-      (* TODO: finish this *)
-  | MistakeTime -> []
-  | MistakeNum -> []
-  | TiltRate -> []
+  | MistakeTime ->
+      AccumulatedStats.to_json_int_list accumulated
+        AccumulatedStats.Fields.mistake_time
+  | MistakeNum ->
+      AccumulatedStats.to_json_int_list accumulated
+        AccumulatedStats.Fields.mistake_num
+  | TiltRate ->
+      AccumulatedStats.to_json_int_list accumulated
+        AccumulatedStats.Fields.tilt_rate
 
-let stats_plot_data ~(select_stat_1 : statValues) ~(select_stat_2 : statValues)
-    ~(select_stat_3 : statValues) (result_stats : Db.Types.ResultStats.t list) =
-  (* TODO: get all dates for the x axis *)
-  let _ = (select_stat_1, select_stat_2, select_stat_3, result_stats) in
-
+let stats_plot_data (t : Page_settings.t) ~(select_stat_1 : statValues)
+    ~(select_stat_2 : statValues) ~(select_stat_3 : statValues)
+    (result_stats : Db.Types.ResultStats.t list) =
   let accumulated =
     List.fold result_stats
       ~init:(AccumulatedStats.empty ())
@@ -722,21 +713,103 @@ let stats_plot_data ~(select_stat_1 : statValues) ~(select_stat_2 : statValues)
       AccumulatedStats.Fields.event_date
   in
 
-  let _ = dates in
+  let select_1_data = stats_data_for_select select_stat_1 accumulated in
+  let select_2_data = stats_data_for_select select_stat_2 accumulated in
+  let select_3_data = stats_data_for_select select_stat_2 accumulated in
 
-  (* TODO: 1. go through all select_stat 
-         2. filter out any that are equal to NotSelected 
-         3. generate data for each select_stat
-         4. generate trace for each select_stat data 
-         5. filter out any None traces 
-        *)
-  ""
+  let select_1_trace =
+    stat_trace ~color:"red"
+      ~name:(statValues_to_human_string t select_stat_1)
+      ~dates ~data:select_1_data
+  in
+  let select_2_trace =
+    stat_trace ~color:"green"
+      ~name:(statValues_to_human_string t select_stat_2)
+      ~dates ~data:select_2_data
+  in
+  let select_3_trace =
+    stat_trace ~color:"blue"
+      ~name:(statValues_to_human_string t select_stat_3)
+      ~dates ~data:select_3_data
+  in
+
+  let traces_json =
+    `List ([ select_1_trace; select_2_trace; select_3_trace ] |> List.filter_opt)
+  in
+
+  (* TODO: this is exactly the same as the data above, if you dont make any
+     changes -> factor it out *)
+  let bg_color =
+    if String.(t.dark_mode = "1") then "hsl(37, 10%, 8%)"
+    else "hsl(37, 10%, 92%)"
+  in
+  let layout_json =
+    `Assoc
+      [
+        ("hovermode", `String "x unified");
+        ("hoverdistance", `Int 100);
+        ("dragmode", `Bool false);
+        ("scrollZoom", `Bool false);
+        ( "xaxis",
+          `Assoc
+            [
+              ("autorange", `Bool true);
+              ( "rangeselector",
+                `Assoc
+                  [
+                    ( "buttons",
+                      `List
+                        [
+                          `Assoc
+                            [
+                              ("count", `Int 6);
+                              ("label", `String "6m");
+                              ("step", `String "month");
+                              ("stepmode", `String "backward");
+                            ];
+                          `Assoc
+                            [
+                              ("count", `Int 1);
+                              ("label", `String "1y");
+                              ("step", `String "year");
+                              ("stepmode", `String "backward");
+                            ];
+                          `Assoc [ ("step", `String "all") ];
+                        ] );
+                    ("type", `String "date");
+                  ] );
+            ] );
+        ( "yaxis",
+          `Assoc [ ("autorange", `Bool true); ("type", `String "linear") ] );
+        ("height", `Int 250);
+        ( "margin",
+          `Assoc
+            [ ("l", `Int 60); ("r", `Int 60); ("t", `Int 40); ("b", `Int 40) ]
+        );
+        ("autosize", `Bool true);
+        ("plot_bgcolor", `String bg_color);
+        ("paper_bgcolor", `String bg_color);
+      ]
+  in
+  let config_json =
+    `Assoc [ ("responsive", `Bool true); ("displayModeBar", `Bool false) ]
+  in
+  let plot_data =
+    Yojson.Safe.to_string
+      (`Assoc
+         [
+           ("traces", traces_json);
+           ("layout", layout_json);
+           ("config", config_json);
+         ])
+  in
+  plot_data
 
 let stats_graph (t : Page_settings.t) ~(select_stat_1 : statValues)
     ~(select_stat_2 : statValues) ~(select_stat_3 : statValues)
     (runner_id : int) (result_stats : Db.Types.ResultStats.t list) =
   let plot_data =
-    stats_plot_data ~select_stat_1 ~select_stat_2 ~select_stat_3 result_stats
+    stats_plot_data t ~select_stat_1 ~select_stat_2 ~select_stat_3 result_stats
   in
   div
     [ class_ "stats-graph"; id "stats-graph" ]
