@@ -567,7 +567,7 @@ time {
 }
 
 #stats-graph-main {
-  width: 95%;
+  width: 100%;
 }
 
 @media screen and (max-width: 900px) {

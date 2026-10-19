@@ -277,7 +277,7 @@ let handle_user_stats_graph ~(db : Db.t) ~(state : Cache.State.t) ~settings
   in
 
   let stats_graph =
-    User.stats_graph settings runner_id result_stats
+    User.stats_form settings runner_id result_stats
       ~select_stat_1:(List.nth_exn stat_selects 0)
       ~select_stat_2:(List.nth_exn stat_selects 1)
       ~select_stat_3:(List.nth_exn stat_selects 2)

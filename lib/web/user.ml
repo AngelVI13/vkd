@@ -805,47 +805,45 @@ let stats_plot_data (t : Page_settings.t) ~(select_stat_1 : statValues)
   in
   plot_data
 
-let stats_graph (t : Page_settings.t) ~(select_stat_1 : statValues)
+let stats_form (t : Page_settings.t) ~(select_stat_1 : statValues)
     ~(select_stat_2 : statValues) ~(select_stat_3 : statValues)
     (runner_id : int) (result_stats : Db.Types.ResultStats.t list) =
   let plot_data =
     stats_plot_data t ~select_stat_1 ~select_stat_2 ~select_stat_3 result_stats
   in
+
+  form
+    [
+      class_ "stat-compare-select";
+      id "stat-compare-form";
+      path_attr Hx.get Paths.user_stats_graph_w_scope t.translations.lang
+        runner_id;
+      Hx.target "#stat-compare-form";
+      Hx.swap "outerHTML";
+      Hx.include_ "#stat-compare-form";
+      Hx.trigger "change";
+      Hx.indicator ".stat-compare-select";
+    ]
+    [
+      label [ class_ "select-label" ] [ txt "%s" t.translations.stats_analysis ];
+      stat_select t ~active:select_stat_1 "stat-value-1";
+      stat_select t ~active:select_stat_2 "stat-value-2";
+      stat_select t ~active:select_stat_3 "stat-value-3";
+      script [ type_ "application/json"; id "stats-plot-data" ] "%s" plot_data;
+    ]
+
+let stats_graph (t : Page_settings.t) ~(select_stat_1 : statValues)
+    ~(select_stat_2 : statValues) ~(select_stat_3 : statValues)
+    (runner_id : int) (result_stats : Db.Types.ResultStats.t list) =
   div
     [ class_ "stats-graph"; id "stats-graph" ]
     [
-      form
-        [
-          class_ "stat-compare-select";
-          id "stat-compare-form";
-          path_attr Hx.get Paths.user_stats_graph_w_scope t.translations.lang
-            runner_id;
-          Hx.target "#stats-graph";
-          Hx.swap "outerHTML";
-          Hx.include_ "#stat-compare-form";
-          Hx.trigger "change";
-          Hx.indicator ".stat-compare-select";
-        ]
-        [
-          label
-            [ class_ "select-label" ]
-            [ txt "%s" t.translations.stats_analysis ];
-          stat_select t ~active:select_stat_1 "stat-value-1";
-          stat_select t ~active:select_stat_2 "stat-value-2";
-          stat_select t ~active:select_stat_3 "stat-value-3";
-        ];
+      stats_form t ~select_stat_1 ~select_stat_2 ~select_stat_3 runner_id
+        result_stats;
       div
         [ class_ "select-description" ]
         [ txt "%s" t.translations.select_stats_to_compare ];
-      div
-        [ class_ "stats-graph-wrapper" ]
-        [
-          div [ id "stats-graph-main" ] [];
-          script
-            [ type_ "application/json"; id "stats-plot-data" ]
-            "%s" plot_data;
-          script [ path_attr src Static.Assets.Js.Scripts.stats_graph_js ] "";
-        ];
+      div [ class_ "stats-graph-wrapper" ] [ div [ id "stats-graph-main" ] [] ];
     ]
 
 let stats_tab (t : Page_settings.t) (runner_id : int)
@@ -860,6 +858,7 @@ let stats_tab (t : Page_settings.t) (runner_id : int)
     hr [];
     stats_graph t ~select_stat_1 ~select_stat_2 ~select_stat_3 runner_id
       result_stats;
+    script [ path_attr src Static.Assets.Js.Scripts.stats_graph_js ] "";
   ]
 
 type userTab = History | Stats
