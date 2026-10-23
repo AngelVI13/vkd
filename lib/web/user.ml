@@ -628,8 +628,8 @@ module AccumulatedStats = struct
     let values = Field.get field t in
     List.map values ~f:(fun value -> `Int value)
 
-  (** Serialize to json encoded string *)
-  let serialize (t : t) =
+  (** Serialize to json *)
+  let to_json (t : t) =
     `Assoc
       [
         ("dates", `List (to_json_string_list t Fields.event_date));
@@ -639,7 +639,6 @@ module AccumulatedStats = struct
         ("mistake_num", `List (to_json_int_list t Fields.mistake_num));
         ("tilt_rate", `List (to_json_int_list t Fields.tilt_rate));
       ]
-    |> Yojson.Safe.to_string
 end
 
 let stats_plot_data (result_stats : Db.Types.ResultStats.t list) =
@@ -649,10 +648,15 @@ let stats_plot_data (result_stats : Db.Types.ResultStats.t list) =
       ~f:AccumulatedStats.add
   in
 
-  AccumulatedStats.serialize accumulated
+  AccumulatedStats.to_json accumulated
 
-let stats_data (result_stats : Db.Types.ResultStats.t list) =
-  let plot_data = stats_plot_data result_stats in
+let stats_data (t : Page_settings.t)
+    (result_stats : Db.Types.ResultStats.t list) =
+  let stats_data = stats_plot_data result_stats in
+  let plot_data =
+    `Assoc [ ("stats_data", stats_data); ("dark_mode", `String t.dark_mode) ]
+    |> Yojson.Safe.to_string
+  in
 
   script [ type_ "application/json"; id "stats-plot-data" ] "%s" plot_data
 
@@ -664,9 +668,14 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
   [
     div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ];
     hr [];
-    (* TODO: how to pass graph titles from the backend (which has all the localization logic *)
-    div [ class_ "stats-graphs"; id "stats-graphs" ] [];
-    stats_data result_stats;
+    div
+      [ class_ "stats-graphs"; id "stats-graphs" ]
+      [
+        div
+          [ class_ "stats-graph"; id "stats-performance-graph" ]
+          [ txt "%s" t.translations.stat_performance_vs_winner ];
+      ];
+    stats_data t result_stats;
     script [ path_attr src Static.Assets.Js.Scripts.stats_graph_js ] "";
   ]
 
