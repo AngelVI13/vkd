@@ -60,6 +60,7 @@ type translations = {
   stat_mistake_num : string;
   stat_tilt_rate : string;
   not_selected : string;
+  (* TODO: this might not be used anymore - remove *)
   select_stats_to_compare : string;
 }
 [@@deriving show { with_path = false }]

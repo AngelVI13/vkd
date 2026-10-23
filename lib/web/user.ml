@@ -508,59 +508,6 @@ let split_stats (t : Page_settings.t) (overall_stats : UserStats.t)
       control_totals ~label:t.translations.control_points total_splits;
     ]
 
-type statValues =
-  | NotSelected
-  | PerformanceVsWinner
-  | MistakeTime
-  | MistakeNum
-  | TiltRate
-[@@deriving enumerate, show { with_path = false }, eq, sexp]
-
-let statValues_to_human_string (t : Page_settings.t) (v : statValues) =
-  match v with
-  | PerformanceVsWinner -> t.translations.stat_performance_vs_winner
-  | MistakeTime -> t.translations.stat_mistake_time
-  | MistakeNum -> t.translations.stat_mistake_num
-  | TiltRate -> t.translations.stat_tilt_rate
-  | NotSelected -> t.translations.not_selected
-
-let statValues_of_string s = statValues_of_sexp (Sexp.of_string s)
-
-let stat_select (t : Page_settings.t) ?(active = NotSelected)
-    (name_attr : string) =
-  let stat_value_options =
-    List.map all_of_statValues ~f:(fun v ->
-        option
-          [
-            value "%s" (show_statValues v);
-            (if equal_statValues v active then selected else null_);
-          ]
-          "%s"
-          (statValues_to_human_string t v))
-  in
-  select
-    (* NOTE: the autocomplete `off prevents the browser from storing form state.
-     This is helpfull since we drive the form state from the backend so we
-     don't want the browser to show some old value to the user *)
-    [ class_ "op-hover"; name "%s" name_attr; autocomplete `off ]
-    stat_value_options
-
-let stat_trace ~(color : string) ~(name : string) ~dates ~data =
-  match data with
-  | [] -> None
-  | _ ->
-      Some
-        (`Assoc
-           [
-             ("type", `String "scatter");
-             ("mode", `String "lines+markers");
-             ("name", `String (sprintf "%s" name));
-             ("x", `List dates);
-             ("y", `List data);
-             ("line", `Assoc [ ("color", `String color) ]);
-             ("connectgaps", `Bool true);
-           ])
-
 module AccumulatedStats = struct
   type t = {
     event_date : string list;
@@ -680,175 +627,36 @@ module AccumulatedStats = struct
   let to_json_int_list (t : t) field =
     let values = Field.get field t in
     List.map values ~f:(fun value -> `Int value)
+
+  (** Serialize to json encoded string *)
+  let serialize (t : t) =
+    `Assoc
+      [
+        ("dates", `List (to_json_string_list t Fields.event_date));
+        ("performance", `List (to_json_int_list t Fields.performance));
+        (* TODO: how do these handle None *)
+        ("mistake_time", `List (to_json_int_list t Fields.mistake_time));
+        ("mistake_num", `List (to_json_int_list t Fields.mistake_num));
+        ("tilt_rate", `List (to_json_int_list t Fields.tilt_rate));
+      ]
+    |> Yojson.Safe.to_string
 end
 
-let stats_data_for_select (select : statValues)
-    (accumulated : AccumulatedStats.t) =
-  match select with
-  | NotSelected -> []
-  | PerformanceVsWinner ->
-      AccumulatedStats.to_json_int_list accumulated
-        AccumulatedStats.Fields.performance
-  | MistakeTime ->
-      AccumulatedStats.to_json_int_list accumulated
-        AccumulatedStats.Fields.mistake_time
-  | MistakeNum ->
-      AccumulatedStats.to_json_int_list accumulated
-        AccumulatedStats.Fields.mistake_num
-  | TiltRate ->
-      AccumulatedStats.to_json_int_list accumulated
-        AccumulatedStats.Fields.tilt_rate
-
-let stats_plot_data (t : Page_settings.t) ~(select_stat_1 : statValues)
-    ~(select_stat_2 : statValues) ~(select_stat_3 : statValues)
-    (result_stats : Db.Types.ResultStats.t list) =
+let stats_plot_data (result_stats : Db.Types.ResultStats.t list) =
   let accumulated =
     List.fold result_stats
       ~init:(AccumulatedStats.empty ())
       ~f:AccumulatedStats.add
   in
 
-  let dates =
-    AccumulatedStats.to_json_string_list accumulated
-      AccumulatedStats.Fields.event_date
-  in
+  AccumulatedStats.serialize accumulated
 
-  let select_1_data = stats_data_for_select select_stat_1 accumulated in
-  let select_2_data = stats_data_for_select select_stat_2 accumulated in
-  let select_3_data = stats_data_for_select select_stat_2 accumulated in
+let stats_data (result_stats : Db.Types.ResultStats.t list) =
+  let plot_data = stats_plot_data result_stats in
 
-  let select_1_trace =
-    stat_trace ~color:"red"
-      ~name:(statValues_to_human_string t select_stat_1)
-      ~dates ~data:select_1_data
-  in
-  let select_2_trace =
-    stat_trace ~color:"green"
-      ~name:(statValues_to_human_string t select_stat_2)
-      ~dates ~data:select_2_data
-  in
-  let select_3_trace =
-    stat_trace ~color:"blue"
-      ~name:(statValues_to_human_string t select_stat_3)
-      ~dates ~data:select_3_data
-  in
+  script [ type_ "application/json"; id "stats-plot-data" ] "%s" plot_data
 
-  let traces_json =
-    `List ([ select_1_trace; select_2_trace; select_3_trace ] |> List.filter_opt)
-  in
-
-  (* TODO: this is exactly the same as the data above, if you dont make any
-     changes -> factor it out *)
-  let bg_color =
-    if String.(t.dark_mode = "1") then "hsl(37, 10%, 8%)"
-    else "hsl(37, 10%, 92%)"
-  in
-  let layout_json =
-    `Assoc
-      [
-        ("hovermode", `String "x unified");
-        ("hoverdistance", `Int 100);
-        ("dragmode", `Bool false);
-        ("scrollZoom", `Bool false);
-        ( "xaxis",
-          `Assoc
-            [
-              ("autorange", `Bool true);
-              ( "rangeselector",
-                `Assoc
-                  [
-                    ( "buttons",
-                      `List
-                        [
-                          `Assoc
-                            [
-                              ("count", `Int 6);
-                              ("label", `String "6m");
-                              ("step", `String "month");
-                              ("stepmode", `String "backward");
-                            ];
-                          `Assoc
-                            [
-                              ("count", `Int 1);
-                              ("label", `String "1y");
-                              ("step", `String "year");
-                              ("stepmode", `String "backward");
-                            ];
-                          `Assoc [ ("step", `String "all") ];
-                        ] );
-                    ("type", `String "date");
-                  ] );
-            ] );
-        ( "yaxis",
-          `Assoc [ ("autorange", `Bool true); ("type", `String "linear") ] );
-        ("height", `Int 250);
-        ( "margin",
-          `Assoc
-            [ ("l", `Int 60); ("r", `Int 60); ("t", `Int 40); ("b", `Int 40) ]
-        );
-        ("autosize", `Bool true);
-        ("plot_bgcolor", `String bg_color);
-        ("paper_bgcolor", `String bg_color);
-      ]
-  in
-  let config_json =
-    `Assoc [ ("responsive", `Bool true); ("displayModeBar", `Bool false) ]
-  in
-  let plot_data =
-    Yojson.Safe.to_string
-      (`Assoc
-         [
-           ("traces", traces_json);
-           ("layout", layout_json);
-           ("config", config_json);
-         ])
-  in
-  plot_data
-
-let stats_form (t : Page_settings.t) ~(select_stat_1 : statValues)
-    ~(select_stat_2 : statValues) ~(select_stat_3 : statValues)
-    (runner_id : int) (result_stats : Db.Types.ResultStats.t list) =
-  let plot_data =
-    stats_plot_data t ~select_stat_1 ~select_stat_2 ~select_stat_3 result_stats
-  in
-
-  form
-    [
-      class_ "stat-compare-select";
-      id "stat-compare-form";
-      path_attr Hx.get Paths.user_stats_graph_w_scope t.translations.lang
-        runner_id;
-      Hx.target "#stat-compare-form";
-      Hx.swap "outerHTML";
-      Hx.include_ "#stat-compare-form";
-      Hx.trigger "change";
-      Hx.indicator ".stat-compare-select";
-    ]
-    [
-      label [ class_ "select-label" ] [ txt "%s" t.translations.stats_analysis ];
-      stat_select t ~active:select_stat_1 "stat-value-1";
-      stat_select t ~active:select_stat_2 "stat-value-2";
-      stat_select t ~active:select_stat_3 "stat-value-3";
-      script [ type_ "application/json"; id "stats-plot-data" ] "%s" plot_data;
-    ]
-
-let stats_graph (t : Page_settings.t) ~(select_stat_1 : statValues)
-    ~(select_stat_2 : statValues) ~(select_stat_3 : statValues)
-    (runner_id : int) (result_stats : Db.Types.ResultStats.t list) =
-  div
-    [ class_ "stats-graph"; id "stats-graph" ]
-    [
-      stats_form t ~select_stat_1 ~select_stat_2 ~select_stat_3 runner_id
-        result_stats;
-      div
-        [ class_ "select-description" ]
-        [ txt "%s" t.translations.select_stats_to_compare ];
-      div [ class_ "stats-graph-wrapper" ] [ div [ id "stats-graph-main" ] [] ];
-    ]
-
-let stats_tab (t : Page_settings.t) (runner_id : int)
-    ~(select_stat_1 : statValues) ~(select_stat_2 : statValues)
-    ~(select_stat_3 : statValues) (result_stats : Db.Types.ResultStats.t list)
+let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
     (total_splits : int) =
   let overall_stats =
     List.fold ~init:(UserStats.empty ()) ~f:UserStats.fold_stats result_stats
@@ -856,8 +664,9 @@ let stats_tab (t : Page_settings.t) (runner_id : int)
   [
     div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ];
     hr [];
-    stats_graph t ~select_stat_1 ~select_stat_2 ~select_stat_3 runner_id
-      result_stats;
+    (* TODO: how to pass graph titles from the backend (which has all the localization logic *)
+    div [ class_ "stats-graphs"; id "stats-graphs" ] [];
+    stats_data result_stats;
     script [ path_attr src Static.Assets.Js.Scripts.stats_graph_js ] "";
   ]
 

@@ -1,44 +1,47 @@
-const initialStatsData = JSON.parse(
+const statsData = JSON.parse(
     document.getElementById("stats-plot-data").innerHTML
 );
 
+const statsGraph = document.getElementById("stats-graphs");
+
+const perfGraphDiv = document.createElement("div");
+perfGraphDiv.id = "stats-performance-graph";
+perfGraphDiv.classList.add("stats-graph");
+
+statsGraph.appendChild(perfGraphDiv);
+
+// ----------
+
+var trace1 = {
+  x: statsData.dates,
+  y: statsData.performance,
+  type: 'bar',
+  text: statsData.performance.map(String),
+  textposition: 'auto',
+  hoverinfo: 'none',
+  marker: {
+    color: 'rgb(158,202,225)',
+    opacity: 0.6,
+    line: {
+      color: 'rgb(8,48,107)',
+      width: 1.5
+    }
+  }
+};
+
+var data = [trace1];
+
+var layout = {
+  title: {
+    text: 'Performance vs Winner'
+  },
+  barmode: 'stack'
+};
+// ----------
+
 Plotly.newPlot(
-    "stats-graph-main",
-    initialStatsData.traces,
-    initialStatsData.layout,
-    initialStatsData.config
+    perfGraphDiv,
+    data,
+    layout,
 );
 
-
-
-document.body.addEventListener("htmx:afterSwap", function (event) {
-    if (!event.detail.target.matches("#stat-compare-form")) {
-        return;
-    }
-
-    const dataElement = document.getElementById("stats-plot-data");
-    const graphElement = document.getElementById("stats-graph-main");
-
-    if (!dataElement || !graphElement) {
-        return;
-    }
-
-    const statsData = JSON.parse(dataElement.textContent);
-
-    Plotly.react(
-        graphElement,
-        statsData.traces,
-        statsData.layout,
-        statsData.config,
-    )
-    // NOTE: If react is overkill and we only change traces we can just use the fns below
-    // Plotly.deleteTraces(
-    //     graphElement,
-    //     Array.from(Array(graphElement.data.length).keys())
-    // );
-    // Plotly.addTraces(
-    //     graphElement,
-    //     statsData.traces,
-    //     Array.from(Array(statsData.traces.length).keys())
-    // );
-});

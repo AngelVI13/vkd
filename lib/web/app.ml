@@ -125,8 +125,7 @@ let _fetch_recent_ratings ~(db : Db.t) ~(state : Cache.State.t) runner_id =
 
 let _tab_section ~(db : Db.t) ~(state : Cache.State.t) ~settings
     ~(tab : User.userTab) ~(runner_id : int)
-    ~(result_stats : Db.Types.ResultStats.t list)
-    ~(stat_selects : User.statValues list option) =
+    ~(result_stats : Db.Types.ResultStats.t list) =
   let tab_content =
     match tab with
     | User.History ->
@@ -140,16 +139,7 @@ let _tab_section ~(db : Db.t) ~(state : Cache.State.t) ~settings
     | User.Stats ->
         let total_splits = Cache.State.total_splits state db runner_id in
 
-        let select_stat_1, select_stat_2, select_stat_3 =
-          match stat_selects with
-          | Some [ select_1; select_2; select_3 ] ->
-              (select_1, select_2, select_3)
-          | None -> (User.PerformanceVsWinner, User.MistakeNum, User.MistakeTime)
-          | _ -> failwith "unexpected number of select stats received"
-        in
-
-        User.stats_tab settings runner_id ~select_stat_1 ~select_stat_2
-          ~select_stat_3 result_stats total_splits
+        User.stats_tab settings result_stats total_splits
   in
 
   User.tab_sections settings ~selected_tab:tab ~runner_id tab_content
@@ -165,16 +155,8 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     | Some tab -> User.userTab_of_string tab
   in
 
-  let select_names = [ "stat-value-1"; "stat-value-2"; "stat-value-3" ] in
-  let stat_selects =
-    select_names
-    |> List.map ~f:(fun name ->
-           Dream.query request name |> Option.map ~f:User.statValues_of_string)
-    |> Option.all
-  in
   (* let s = [%sexp (stat_selects : User.statValues list option)] in *)
   (* Dream.log "%s" (Sexp.to_string_hum s); *)
-
   let ratings = _fetch_recent_ratings ~db ~state runner_id in
 
   (* TODO: currently we are only using these to get the amount of times we have participated in each course. 
@@ -190,10 +172,8 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 
   let tab_section =
     _tab_section ~db ~state ~settings ~tab ~runner_id ~result_stats
-      ~stat_selects
   in
 
-  (* TODO: fetch runner info here *)
   let page =
     User.page ~tabs:tab_section settings ratings simple_results runner_info
       medals
@@ -203,8 +183,6 @@ let handle_user ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 
 let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   (* Utils.sleep ~s:3; *)
-
-  (* TODO: factor out all the processing of user query params cause it repeats in a lot of places *)
   let runner_id =
     Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
   in
@@ -215,14 +193,6 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
   let tab =
     Dream.query request tab_query_name
     |> Option.value_exn |> User.userTab_of_string
-  in
-
-  let select_names = [ "stat-value-1"; "stat-value-2"; "stat-value-3" ] in
-  let stat_selects =
-    select_names
-    |> List.map ~f:(fun name ->
-           Dream.query request name |> Option.map ~f:User.statValues_of_string)
-    |> Option.all
   in
 
   let current_url =
@@ -239,53 +209,11 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
 
   let tab_section =
     _tab_section ~db ~state ~settings ~tab ~runner_id ~result_stats
-      ~stat_selects
   in
 
   Dream_html.respond ~code:200
     ~headers:[ ("HX-Replace-Url", new_url) ]
     tab_section
-
-let handle_user_stats_graph ~(db : Db.t) ~(state : Cache.State.t) ~settings
-    request =
-  let runner_id =
-    Dream.query request "runner_id" |> Option.value_exn |> Int.of_string
-  in
-
-  let result_stats = Cache.State.result_stats_for_runner state db runner_id in
-
-  let select_names = [ "stat-value-1"; "stat-value-2"; "stat-value-3" ] in
-  let stat_selects =
-    select_names
-    |> List.map ~f:(fun name ->
-           Dream.query request name |> Option.value_exn
-           |> User.statValues_of_string)
-  in
-
-  let current_url =
-    Dream.header request "HX-Current-URL" |> Option.value_exn |> Uri.of_string
-  in
-
-  let new_url =
-    List.fold (List.zip_exn select_names stat_selects) ~init:current_url
-      ~f:(fun url (select_name, select_value) ->
-        (* Remove previous value of select from URL and then add the current value *)
-        let u = Uri.remove_query_param url select_name in
-        Uri.add_query_param u
-          (select_name, [ User.show_statValues select_value ]))
-    |> Uri.to_string
-  in
-
-  let stats_graph =
-    User.stats_form settings runner_id result_stats
-      ~select_stat_1:(List.nth_exn stat_selects 0)
-      ~select_stat_2:(List.nth_exn stat_selects 1)
-      ~select_stat_3:(List.nth_exn stat_selects 2)
-  in
-
-  Dream_html.respond ~code:200
-    ~headers:[ ("HX-Replace-Url", new_url) ]
-    stats_graph
 
 let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =
   let current_url = Uri.of_string url in
@@ -385,8 +313,6 @@ let run ~(db : Db.t) =
                (with_settings (handle_rating_table ~db ~state));
              Dream_html.post Paths.rating_table
                (with_settings (handle_rating_table_search ~db ~state));
-             Dream_html.get Paths.user_stats_graph
-               (with_settings (handle_user_stats_graph ~db ~state));
            ];
          Dream_html.get Paths.index (fun req -> Dream.redirect req "/en/");
          Static.routes;
