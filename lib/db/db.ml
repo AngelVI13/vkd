@@ -921,7 +921,8 @@ let _update_ratings (handle : Turso.conn) ~(event_params : Types.EventParams.t)
 
 (** Add full event info (including results, stats, ratings, medals, etc.)
 
-    NOTE: does not commit *)
+    NOTE: commits!!! This is needed because each event needs to read latest
+    ratings from DB. *)
 let _add_full_event ~(league_id : string) ~(is_part_of_main_league : bool)
     (handle : Turso.conn) (event : Dbsportas.League.LeagueEvent.t) =
   let event_params =
@@ -938,8 +939,10 @@ let _add_full_event ~(league_id : string) ~(is_part_of_main_league : bool)
       _add_course_stats ~event_params handle course;
       _add_results ~event_params ~course_id handle course.results);
 
-  if is_part_of_main_league then _update_ratings ~event_params handle event
-  else ()
+  ignore
+    (if is_part_of_main_league then _update_ratings ~event_params handle event
+     else ());
+  ignore (Turso.send_buffered handle)
 
 let refresh_league_events ?(year : string option = None) handle =
   let now = Time_ns_unix.now () in
@@ -1074,7 +1077,8 @@ let action_refresh_events_and_results ?(year : string option = None)
 
     (* ignore (assert false); *)
 
-    (* send all statements to turso *)
+    (* send all statements to turso -> anything that wasn't already sent from
+       within _add_full_event *)
     ignore (Turso.send_buffered handle)
 
 let test_rating_fn (handle : Turso.conn) =

@@ -510,6 +510,12 @@ time {
   padding-left: 2px;
 }
 
+hr {
+  background-color: var(--c-font);
+  height: 2px;
+  border: 0;
+}
+
 .stats-graphs {
   display: flex;
   flex-wrap: wrap;

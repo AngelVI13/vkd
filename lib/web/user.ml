@@ -148,7 +148,6 @@ let rating_graph (t : Page_settings.t)
         ( "xaxis",
           `Assoc
             [
-              ("autorange", `Bool true);
               ( "rangeselector",
                 `Assoc
                   [
@@ -157,16 +156,16 @@ let rating_graph (t : Page_settings.t)
                         [
                           `Assoc
                             [
-                              ("count", `Int 6);
-                              ("label", `String "6m");
+                              ("count", `Int 3);
+                              ("label", `String "3m");
                               ("step", `String "month");
                               ("stepmode", `String "backward");
                             ];
                           `Assoc
                             [
-                              ("count", `Int 1);
-                              ("label", `String "1y");
-                              ("step", `String "year");
+                              ("count", `Int 6);
+                              ("label", `String "6m");
+                              ("step", `String "month");
                               ("stepmode", `String "backward");
                             ];
                           `Assoc [ ("step", `String "all") ];
@@ -578,46 +577,48 @@ module AccumulatedStats = struct
     }
 
   let add (t : t) (result : Db.Types.ResultStats.t) =
+    (* NOTE: here we prepend values because the values were sorted from newest
+       to oldest and by prepending we make them in the oldest to newest order
+       *)
     {
-      event_date = t.event_date @ [ result.event_date ];
-      course_id = t.course_id @ [ result.course_id ];
-      mistake_time = t.mistake_time @ [ result.mistake_time ];
-      mistake_num = t.mistake_num @ [ result.mistake_num ];
-      small_mistake_time = t.small_mistake_time @ [ result.small_mistake_time ];
-      small_mistake_num = t.small_mistake_num @ [ result.small_mistake_num ];
+      event_date = result.event_date :: t.event_date;
+      course_id = result.course_id :: t.course_id;
+      mistake_time = result.mistake_time :: t.mistake_time;
+      mistake_num = result.mistake_num :: t.mistake_num;
+      small_mistake_time = result.small_mistake_time :: t.small_mistake_time;
+      small_mistake_num = result.small_mistake_num :: t.small_mistake_num;
       small_mistake_time_ratio =
-        t.small_mistake_time_ratio @ [ result.small_mistake_time_ratio ];
+        result.small_mistake_time_ratio :: t.small_mistake_time_ratio;
       small_mistake_num_ratio =
-        t.small_mistake_num_ratio @ [ result.small_mistake_num_ratio ];
-      big_mistake_time = t.big_mistake_time @ [ result.big_mistake_time ];
-      big_mistake_num = t.big_mistake_num @ [ result.big_mistake_num ];
+        result.small_mistake_num_ratio :: t.small_mistake_num_ratio;
+      big_mistake_time = result.big_mistake_time :: t.big_mistake_time;
+      big_mistake_num = result.big_mistake_num :: t.big_mistake_num;
       big_mistake_time_ratio =
-        t.big_mistake_time_ratio @ [ result.big_mistake_time_ratio ];
+        result.big_mistake_time_ratio :: t.big_mistake_time_ratio;
       big_mistake_num_ratio =
-        t.big_mistake_num_ratio @ [ result.big_mistake_num_ratio ];
+        result.big_mistake_num_ratio :: t.big_mistake_num_ratio;
       blunder_mistake_time =
-        t.blunder_mistake_time @ [ result.blunder_mistake_time ];
-      blunder_mistake_num =
-        t.blunder_mistake_num @ [ result.blunder_mistake_num ];
+        result.blunder_mistake_time :: t.blunder_mistake_time;
+      blunder_mistake_num = result.blunder_mistake_num :: t.blunder_mistake_num;
       blunder_mistake_time_ratio =
-        t.blunder_mistake_time_ratio @ [ result.blunder_mistake_time_ratio ];
+        result.blunder_mistake_time_ratio :: t.blunder_mistake_time_ratio;
       blunder_mistake_num_ratio =
-        t.blunder_mistake_num_ratio @ [ result.blunder_mistake_num_ratio ];
+        result.blunder_mistake_num_ratio :: t.blunder_mistake_num_ratio;
       consecutive_mistakes =
-        t.consecutive_mistakes @ [ result.consecutive_mistakes ];
-      tilt_rate = t.tilt_rate @ [ result.tilt_rate ];
-      mistake_cluster = t.mistake_cluster @ [ result.mistake_cluster ];
-      mistakes_impact = t.mistakes_impact @ [ result.mistakes_impact ];
-      race_execution = t.race_execution @ [ result.race_execution ];
-      best_splits = t.best_splits @ [ result.best_splits ];
-      top5_splits = t.top5_splits @ [ result.top5_splits ];
-      top10_splits = t.top10_splits @ [ result.top10_splits ];
-      performance = t.performance @ [ result.performance ];
-      overall_position = t.overall_position @ [ result.overall_position ];
-      gender_position = t.gender_position @ [ result.gender_position ];
-      group_position = t.group_position @ [ result.group_position ];
-      potential_time = t.potential_time @ [ result.potential_time ];
-      potential_position = t.potential_position @ [ result.potential_position ];
+        result.consecutive_mistakes :: t.consecutive_mistakes;
+      tilt_rate = result.tilt_rate :: t.tilt_rate;
+      mistake_cluster = result.mistake_cluster :: t.mistake_cluster;
+      mistakes_impact = result.mistakes_impact :: t.mistakes_impact;
+      race_execution = result.race_execution :: t.race_execution;
+      best_splits = result.best_splits :: t.best_splits;
+      top5_splits = result.top5_splits :: t.top5_splits;
+      top10_splits = result.top10_splits :: t.top10_splits;
+      performance = result.performance :: t.performance;
+      overall_position = result.overall_position :: t.overall_position;
+      gender_position = result.gender_position :: t.gender_position;
+      group_position = result.group_position :: t.group_position;
+      potential_time = result.potential_time :: t.potential_time;
+      potential_position = result.potential_position :: t.potential_position;
     }
 
   let to_json_string_list (t : t) field =
@@ -673,6 +674,8 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
       [
         div
           [ class_ "stats-graph"; id "stats-performance-graph" ]
+          (* TODO: RENAME THIS - this is not correct its not performance vs
+             winner but its performance vs superman *)
           [ txt "%s" t.translations.stat_performance_vs_winner ];
       ];
     stats_data t result_stats;
