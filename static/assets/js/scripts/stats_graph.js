@@ -93,20 +93,8 @@ function createPerfGraph() {
   Plotly.newPlot(perfGraphDiv, data, layout_copy, config_copy);
 }
 
-// TODO: maybe we should just create the whole page and then set one tab content to hidden so the data is always there
 function createStatsGraphs() {
   createPerfGraph();
 }
 
 createStatsGraphs();
-
-document.body.addEventListener("htmx:afterSwap", function (event) {
-  if (!event.detail.target.matches("#tab-section")) {
-    return;
-  }
-
-  if (!document.getElementById("stats-graphs")) {
-    return;
-  }
-  createStatsGraphs();
-});
