@@ -676,6 +676,9 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
         div
           [ class_ "stats-graph"; id "stats-performance-graph" ]
           [ txt "%s" t.translations.stat_performance_vs_superman ];
+        div
+          [ class_ "stats-graph"; id "stats-mistake-num-graph" ]
+          [ txt "%s" t.translations.stat_mistake_num ];
       ];
     stats_data t result_stats;
     script [ path_attr src Static.Assets.Js.Scripts.stats_graph_js ] "";

@@ -122,9 +122,9 @@ nMonthsAgo.setMonth(latest.getMonth() - showLastNMonths);
 layout.xaxis.range = [nMonthsAgo, latest];
 
 function createPerfGraph() {
-  const perfGraphDiv = document.getElementById("stats-performance-graph");
-  const perfGraphTitle = perfGraphDiv.textContent;
-  perfGraphDiv.textContent = "";
+  const graphDiv = document.getElementById("stats-performance-graph");
+  const graphTitle = graphDiv.textContent;
+  graphDiv.textContent = "";
 
   var trace1 = {
     x: statsData.dates,
@@ -146,17 +146,54 @@ function createPerfGraph() {
 
   const layout_copy = JSON.parse(JSON.stringify(layout));
 
-  layout_copy.title.text = perfGraphTitle;
+  layout_copy.title.text = graphTitle;
   layout_copy.barmode = "stack";
   layout_copy.yaxis.showticklabels = false;
 
   const config_copy = JSON.parse(JSON.stringify(config));
 
-  Plotly.newPlot(perfGraphDiv, data, layout_copy, config_copy);
+  Plotly.newPlot(graphDiv, data, layout_copy, config_copy);
+}
+
+function createMistakeNumGraph() {
+  const graphDiv = document.getElementById("stats-mistake-num-graph");
+  const graphTitle = graphDiv.textContent;
+  graphDiv.textContent = "";
+
+  var trace1 = {
+    x: statsData.dates,
+    y: statsData.mistake_num,
+    type: "bar",
+    text: statsData.mistake_num.map(String),
+    textposition: "auto",
+    hoverinfo: "x+y",
+    marker: {
+      color: "indianred",
+      line: {
+        color: fontColor,
+        width: 1.5,
+      },
+    },
+  };
+
+  var data = [trace1];
+
+  const layout_copy = JSON.parse(JSON.stringify(layout));
+
+  layout_copy.title.text = graphTitle;
+  layout_copy.barmode = "stack";
+  layout_copy.yaxis.showticklabels = false;
+
+  const config_copy = JSON.parse(JSON.stringify(config));
+
+  Plotly.newPlot(graphDiv, data, layout_copy, config_copy);
 }
 
 function createStatsGraphs() {
+  // TODO: maybe create these as subplots or something so that we can have
+  // unified hover accross all of them
   createPerfGraph();
+  createMistakeNumGraph();
 }
 
 createStatsGraphs();
