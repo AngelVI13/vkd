@@ -198,6 +198,7 @@ let rating_graph (t : Page_settings.t)
     Yojson.Safe.to_string
       (`Assoc
          [
+           ("dark_mode", `String t.dark_mode);
            ("traces", traces_json);
            ("layout", layout_json);
            ("config", config_json);

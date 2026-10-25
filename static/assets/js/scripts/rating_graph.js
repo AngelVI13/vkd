@@ -1,6 +1,13 @@
+function getFontColor(darkMode) {
+  return darkMode ? "hsl(0, 0%, 73%)" : "hsl(0, 0%, 30%)";
+}
+
 const rating_data = JSON.parse(
   document.getElementById("rating-plot-data").innerHTML,
 );
+
+var darkMode = rating_data.dark_mode === "1";
+var fontColor = getFontColor(darkMode);
 
 //adjust layout margin if we are on small screens
 const screenWidth = window.innerWidth;
@@ -24,6 +31,23 @@ if (lastDate) {
   threeMonthsBeforeLastDate.setMonth(lastDate.getMonth() - 3);
   rating_data.layout.xaxis.range = [threeMonthsBeforeLastDate, lastDate];
 }
+
+rating_data.layout.hoverlabel = {
+  font: {
+    color: fontColor,
+  },
+};
+
+rating_data.layout.xaxis = {
+  tickfont: {
+    color: fontColor,
+  },
+};
+rating_data.layout.yaxis = {
+  tickfont: {
+    color: fontColor,
+  },
+};
 
 Plotly.newPlot(
   "rating-graph",
