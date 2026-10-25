@@ -467,9 +467,16 @@ time {
 
 .split-stats {
   display: flex;
+  flex-flow: row wrap;
   justify-content: space-around;
   margin-top: 1rem;
   margin-bottom: 1rem;
+}
+
+.split-stat {
+  display: flex;
+  flex-flow: column;
+  flex: 25%;
 }
 
 .split-stat-label {
@@ -477,7 +484,6 @@ time {
   text-align: center;
   font-weight: bold;
   font-size: 14px;
-  width: 150px;
 }
 
 .split-stat-container {
@@ -632,6 +638,14 @@ hr {
     width: 20px;
     height: 20px;
   }
+
+  .split-stat-label {
+    font-size: 12px;
+  }
+
+  .split-stat-value {
+    font-size: 22px;
+  }
 }
 
 @media screen and (max-width: 700px) {
@@ -679,6 +693,14 @@ hr {
   .activity .positions {
     gap: 4px;
   }
+
+  .split-stat-label {
+    font-size: 11px;
+  }
+
+  .split-stat-value {
+    font-size: 18px;
+  }
 }
 
 @media screen and (max-width: 500px) {
@@ -688,6 +710,14 @@ hr {
 
   .runner-join-date {
     display: none;
+  }
+  .split-stat {
+    flex: 50%;
+    margin-bottom: 10px;
+  }
+
+  .split-stat-container {
+    margin-top: 0;
   }
 }
 

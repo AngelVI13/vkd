@@ -472,7 +472,7 @@ let split_stat ~label (value : int) (total : int) =
           div
             [ class_ "split-stat-percent" ]
             [
-              txt "%.3f"
+              txt "%.2f"
                 Float.(
                   round_decimal ~decimal_digits:3
                     (100. * (of_int value / of_int total)));
