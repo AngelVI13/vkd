@@ -674,9 +674,7 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
       [
         div
           [ class_ "stats-graph"; id "stats-performance-graph" ]
-          (* TODO: RENAME THIS - this is not correct its not performance vs
-             winner but its performance vs superman *)
-          [ txt "%s" t.translations.stat_performance_vs_winner ];
+          [ txt "%s" t.translations.stat_performance_vs_superman ];
       ];
     stats_data t result_stats;
     script [ path_attr src Static.Assets.Js.Scripts.stats_graph_js ] "";
@@ -724,8 +722,6 @@ let profile (t : Page_settings.t) ~(tabs : node)
     (ratings : Glicko2.Rating.Info.t list)
     (simple_results : Db.Types.SimpleResult.t list)
     (runner_info : Db.Types.RunnerInfo.t) (medals : Db.Types.Medals.t) =
-  (* TODO: add hovers with description *)
-  (* TODO: add totals to page *)
   div
     [ class_ "profile-container page-small box" ]
     [

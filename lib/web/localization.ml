@@ -55,13 +55,11 @@ type translations = {
   top_10_splits : string;
   control_points : string;
   stats_analysis : string;
-  stat_performance_vs_winner : string;
+  stat_performance_vs_superman : string;
   stat_mistake_time : string;
   stat_mistake_num : string;
   stat_tilt_rate : string;
   not_selected : string;
-  (* TODO: this might not be used anymore - remove *)
-  select_stats_to_compare : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -116,12 +114,11 @@ let english =
     top_10_splits = "Top 10 splits";
     control_points = "Control points";
     stats_analysis = "Stats Analysis";
-    stat_performance_vs_winner = "Performance vs winner";
+    stat_performance_vs_superman = "Performance vs Superman";
     stat_mistake_time = "Total mistake time";
     stat_mistake_num = "Number of mistakes";
-    stat_tilt_rate = "Tilt Rate";
+    stat_tilt_rate = "Error-Caused Instability";
     not_selected = "Not Selected";
-    select_stats_to_compare = "Select stats to show/compare";
   }
 
 let lithuanian =
@@ -175,14 +172,11 @@ let lithuanian =
     top_10_splits = "10 greičiausi tarpiniai laikai";
     control_points = "kontrolės punktai";
     stats_analysis = "statistinė analizė";
-    stat_performance_vs_winner = "Rezultatas ir nugalėtojas";
+    stat_performance_vs_superman = "Rezultatas prieš Antžmogis";
     stat_mistake_time = "Visiško klydimo metas";
     stat_mistake_num = "Klaidų skaičius";
-    (* tilt rate - what is correct way to say this in LT *)
-    stat_tilt_rate = "pasvirimo greitis";
+    stat_tilt_rate = "Klaidų sukeltas nestabilumas";
     not_selected = "Nepasirinkta";
-    select_stats_to_compare =
-      "Pasirinkite statistinius duomenis, kuriuos norite rodyti arba palyginti";
   }
 
 let translation_of_language (lang : language) : translations =

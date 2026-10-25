@@ -77,6 +77,7 @@ end
 
 module State = struct
   type t = {
+    debug : bool; [@default false]
     filename : string;
     mutable latest_league_events : Db.Types.EventInfoExtra.t list; [@default []]
     mutable all_latest_ratings : Glicko2.Rating.Info.t list; [@default []]
@@ -87,17 +88,22 @@ module State = struct
   }
   [@@deriving yojson]
 
-  let save (t : t) = Yojson.Safe.to_file t.filename (yojson_of_t t)
+  (** Save cache to file if debug flag is true, otherwise does nothing *)
+  let save (t : t) =
+    if t.debug then Yojson.Safe.to_file t.filename (yojson_of_t t) else ()
 
-  let load (filename : string) =
+  let load ?(debug : bool = false) (filename : string) =
     match Yojson.Safe.from_file filename with
-    | t -> t_of_yojson t
+    | t ->
+        let t = t_of_yojson t in
+        { t with debug }
     | exception exc ->
         printf
           "Failed to load cache from file (%s): %s . Initializing an empty \
            cache..."
           filename (Exn.to_string exc);
         {
+          debug;
           filename;
           latest_league_events = [];
           all_latest_ratings = [];
@@ -188,42 +194,36 @@ module State = struct
   let ratings_for_runner (t : t) (db : Db.t) ?(since : string = "2020-01-01")
       (runner_id : int) =
     let user_state = _user_state t ~runner_id in
-    (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let ratings = UserState.ratings user_state db ~since in
     save t;
     ratings
 
   let simple_results_for_runner (t : t) (db : Db.t) (runner_id : int) =
     let user_state = _user_state t ~runner_id in
-    (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let results = UserState.simple_results user_state db in
     save t;
     results
 
   let result_stats_for_runner (t : t) (db : Db.t) (runner_id : int) =
     let user_state = _user_state t ~runner_id in
-    (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let results = UserState.result_stats user_state db in
     save t;
     results
 
   let runner_info (t : t) (db : Db.t) (runner_id : int) =
     let user_state = _user_state t ~runner_id in
-    (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let info = UserState.runner_info user_state db in
     save t;
     info
 
   let medals (t : t) (db : Db.t) (runner_id : int) =
     let user_state = _user_state t ~runner_id in
-    (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let medals = UserState.medals user_state db in
     save t;
     medals
 
   let total_splits (t : t) (db : Db.t) (runner_id : int) =
     let user_state = _user_state t ~runner_id in
-    (* TODO: for deployment, disable all this saving cause it will be very slow *)
     let total_splits = UserState.total_splits user_state db in
     save t;
     total_splits

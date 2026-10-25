@@ -292,7 +292,7 @@ let lang_middleware inner_handler req =
   inner_handler req
 
 let run ~(db : Db.t) =
-  let state = Cache.State.load "state.json" in
+  let state = Cache.State.load ~debug:db.debug "state.json" in
   (* NOTE: rotate cookie secret about once per year, you can use the code bellow to generate it  *)
   (* let secret = Dream.to_base64url (Dream.random 32) in *)
   let secret = "9RV8f8QqR6foKzdX51ZMXB68C9apHx8VNkbEmJ17nWE" in
