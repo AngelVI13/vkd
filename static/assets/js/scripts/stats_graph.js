@@ -155,6 +155,14 @@ function createPerfGraph() {
   }
   layout_copy.xaxis.tickfont.color = fontColor;
 
+  if (!layout_copy.hoverlabel) {
+    layout_copy.hoverlabel = {};
+    if (!layout_copy.hoverlabel.font) {
+      layout_copy.hoverlabel.font = {};
+    }
+  }
+  layout_copy.hoverlabel.font.color = fontColor;
+
   const config_copy = JSON.parse(JSON.stringify(config));
 
   Plotly.newPlot(perfGraphDiv, data, layout_copy, config_copy);
