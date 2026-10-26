@@ -121,128 +121,139 @@ var nMonthsAgo = new Date(mostRecentEventDate);
 nMonthsAgo.setMonth(latest.getMonth() - showLastNMonths);
 layout.xaxis.range = [nMonthsAgo, latest];
 
-function createPerfGraph() {
-  const graphDiv = document.getElementById("stats-performance-graph");
-  const graphTitle = graphDiv.textContent;
+function createStatsGraphs() {
+  const graphDivs = [
+    document.getElementById("stats-performance-graph"),
+    document.getElementById("stats-mistake-num-graph"),
+    document.getElementById("stats-mistake-time-graph"),
+  ];
+
+  const titles = graphDivs.map((div) => div.textContent.trim());
+  const graphDiv = graphDivs[0];
+
   graphDiv.textContent = "";
-
-  var trace1 = {
-    x: statsData.dates,
-    y: statsData.performance,
-    type: "bar",
-    text: statsData.performance.map(String),
-    textposition: "auto",
-    hoverinfo: "x+y",
-    marker: {
-      color: "darkcyan",
-      line: {
-        color: fontColor,
-        width: 1.5,
-      },
-    },
-  };
-
-  var data = [trace1];
-
-  const layout_copy = JSON.parse(JSON.stringify(layout));
-
-  layout_copy.title.text = graphTitle;
-  layout_copy.barmode = "stack";
-  layout_copy.yaxis.showticklabels = false;
-
-  const config_copy = JSON.parse(JSON.stringify(config));
-
-  Plotly.newPlot(graphDiv, data, layout_copy, config_copy);
-}
-
-function createMistakeNumGraph() {
-  const graphDiv = document.getElementById("stats-mistake-num-graph");
-  const graphTitle = graphDiv.textContent;
-  graphDiv.textContent = "";
-
-  var trace1 = {
-    x: statsData.dates,
-    y: statsData.mistake_num,
-    type: "bar",
-    text: statsData.mistake_num.map(String),
-    textposition: "outside",
-    hoverinfo: "x+y",
-    marker: {
-      color: "indianred",
-      line: {
-        color: fontColor,
-        width: 1.5,
-      },
-    },
-    textfont: {
-      color: fontColor,
-    },
-  };
-
-  var data = [trace1];
-
-  const layout_copy = JSON.parse(JSON.stringify(layout));
-
-  layout_copy.title.text = graphTitle;
-  layout_copy.barmode = "stack";
-  layout_copy.yaxis.showticklabels = false;
-
-  const config_copy = JSON.parse(JSON.stringify(config));
-
-  Plotly.newPlot(graphDiv, data, layout_copy, config_copy);
-}
-
-function createMistakeTimeGraph() {
-  const graphDiv = document.getElementById("stats-mistake-time-graph");
-  const graphTitle = graphDiv.textContent;
-  graphDiv.textContent = "";
+  graphDivs.slice(1).forEach((div) => {
+    div.hidden = true;
+  });
 
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${String(minutes)}:${String(remainingSeconds).padStart(2, "0")}`;
+    return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
   };
 
-  var trace1 = {
-    x: statsData.dates,
-    y: statsData.mistake_time,
-    type: "bar",
-    text: statsData.mistake_time.map(formatTime),
-    textposition: "outside",
-    hoverinfo: "x+y",
-    customdata: statsData.mistake_time.map(formatTime),
-    hovertemplate: "%{customdata}<extra></extra>",
-    marker: {
-      color: "indianred",
-      line: {
-        color: fontColor,
-        width: 1.5,
+  const data = [
+    {
+      name: titles[0],
+      x: statsData.dates,
+      y: statsData.performance,
+      xaxis: "x",
+      yaxis: "y",
+      type: "bar",
+      text: statsData.performance.map(String),
+      textposition: "auto",
+      hovertemplate: `${titles[0]}: %{y}<extra></extra>`,
+      marker: {
+        color: "darkcyan",
+        line: { color: fontColor, width: 1.5 },
       },
     },
-    textfont: {
-      color: fontColor,
+    {
+      name: titles[1],
+      x: statsData.dates,
+      y: statsData.mistake_num,
+      xaxis: "x",
+      yaxis: "y2",
+      type: "bar",
+      text: statsData.mistake_num.map(String),
+      textposition: "outside",
+      hovertemplate: `${titles[1]}: %{y}<extra></extra>`,
+      marker: {
+        color: "indianred",
+        line: { color: fontColor, width: 1.5 },
+      },
+      textfont: { color: fontColor },
+    },
+    {
+      name: titles[2],
+      x: statsData.dates,
+      y: statsData.mistake_time,
+      customdata: statsData.mistake_time.map(formatTime),
+      xaxis: "x",
+      yaxis: "y3",
+      type: "bar",
+      text: statsData.mistake_time.map(formatTime),
+      textposition: "outside",
+      hovertemplate: `${titles[2]}: %{customdata}<extra></extra>`,
+      marker: {
+        color: "indianred",
+        line: { color: fontColor, width: 1.5 },
+      },
+      textfont: { color: fontColor },
+    },
+  ];
+
+  const combinedLayout = JSON.parse(JSON.stringify(layout));
+  delete combinedLayout.title;
+
+  // TODO: calculate height based on number of graphs
+  combinedLayout.height = 560;
+  combinedLayout.hovermode = "x unified";
+  combinedLayout.hoversubplots = "axis";
+  combinedLayout.showlegend = false;
+  combinedLayout.margin.t = 10;
+  combinedLayout.margin.b = 30;
+
+  // All traces use this one x-axis, so the range buttons affect every subplot.
+  combinedLayout.xaxis = {
+    ...combinedLayout.xaxis,
+    anchor: "y3",
+    rangeselector: {
+      ...combinedLayout.xaxis.rangeselector,
+      y: 1.03,
     },
   };
 
-  var data = [trace1];
+  // TODO: calculate domains automatically based on number of graphs
+  // TODO: on small screens don't show tick labels for y axis but on bigger screens DO
+  combinedLayout.yaxis = {
+    autorange: true,
+    type: "linear",
+    showticklabels: false,
+    domain: [0.68, 0.94],
+    anchor: "x",
+  };
 
-  const layout_copy = JSON.parse(JSON.stringify(layout));
+  combinedLayout.yaxis2 = {
+    autorange: true,
+    type: "linear",
+    showticklabels: false,
+    domain: [0.35, 0.61],
+    anchor: "x",
+  };
 
-  layout_copy.title.text = graphTitle;
-  layout_copy.barmode = "stack";
-  layout_copy.yaxis.showticklabels = false;
+  combinedLayout.yaxis3 = {
+    autorange: true,
+    type: "linear",
+    showticklabels: false,
+    domain: [0.02, 0.28],
+    anchor: "x",
+  };
 
-  const config_copy = JSON.parse(JSON.stringify(config));
+  // TODO: calculate y positions automatically based on number of graphs
+  // TODO: Change title font size based on window size
+  combinedLayout.annotations = titles.map((title, index) => ({
+    text: title,
+    x: 0.5,
+    xref: "paper",
+    y: [0.95, 0.62, 0.28][index],
+    yref: "paper",
+    yanchor: "bottom",
+    showarrow: false,
+    font: { color: fontColor },
+  }));
 
-  Plotly.newPlot(graphDiv, data, layout_copy, config_copy);
-}
-
-function createStatsGraphs() {
-  // TODO: maybe create these as subplots or something so that we can have
-  // unified hover accross all of them
-  createPerfGraph();
-  createMistakeNumGraph();
-  createMistakeTimeGraph();
+  Plotly.newPlot(graphDiv, data, combinedLayout, config);
 }
 
 createStatsGraphs();
