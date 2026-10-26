@@ -165,7 +165,7 @@ function createMistakeNumGraph() {
     y: statsData.mistake_num,
     type: "bar",
     text: statsData.mistake_num.map(String),
-    textposition: "auto",
+    textposition: "outside",
     hoverinfo: "x+y",
     marker: {
       color: "indianred",
@@ -173,6 +173,54 @@ function createMistakeNumGraph() {
         color: fontColor,
         width: 1.5,
       },
+    },
+    textfont: {
+      color: fontColor,
+    },
+  };
+
+  var data = [trace1];
+
+  const layout_copy = JSON.parse(JSON.stringify(layout));
+
+  layout_copy.title.text = graphTitle;
+  layout_copy.barmode = "stack";
+  layout_copy.yaxis.showticklabels = false;
+
+  const config_copy = JSON.parse(JSON.stringify(config));
+
+  Plotly.newPlot(graphDiv, data, layout_copy, config_copy);
+}
+
+function createMistakeTimeGraph() {
+  const graphDiv = document.getElementById("stats-mistake-time-graph");
+  const graphTitle = graphDiv.textContent;
+  graphDiv.textContent = "";
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes)}:${String(remainingSeconds).padStart(2, "0")}`;
+  };
+
+  var trace1 = {
+    x: statsData.dates,
+    y: statsData.mistake_time,
+    type: "bar",
+    text: statsData.mistake_time.map(formatTime),
+    textposition: "outside",
+    hoverinfo: "x+y",
+    customdata: statsData.mistake_time.map(formatTime),
+    hovertemplate: "%{customdata}<extra></extra>",
+    marker: {
+      color: "indianred",
+      line: {
+        color: fontColor,
+        width: 1.5,
+      },
+    },
+    textfont: {
+      color: fontColor,
     },
   };
 
@@ -194,6 +242,7 @@ function createStatsGraphs() {
   // unified hover accross all of them
   createPerfGraph();
   createMistakeNumGraph();
+  createMistakeTimeGraph();
 }
 
 createStatsGraphs();
