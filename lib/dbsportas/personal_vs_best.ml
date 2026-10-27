@@ -44,7 +44,7 @@ let rec filter_outliers (t : t) =
        5. This means that for the next split your ratio is unaffected by
           that substantial mistake
        6. After you have done this for all controls, if there were any substantial mistakes 
-          remove them from the split list, and then return the whole
+          remove them from the split list, and then rerun the whole
           algorithm (with the updated sums for personal and best times. 
        7. Recursion stops if there aren't any substantial mistakes.
    *)

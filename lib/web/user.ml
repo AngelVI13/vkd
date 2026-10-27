@@ -631,30 +631,55 @@ module AccumulatedStats = struct
     List.map values ~f:(fun value -> `Int value)
 
   (** Serialize to json *)
-  let to_json (t : t) =
+  let to_json (t : t) (translations : Localization.translations) =
     `Assoc
       [
         ("dates", `List (to_json_string_list t Fields.event_date));
-        ("performance", `List (to_json_int_list t Fields.performance));
-        (* TODO: how do these handle None *)
-        ("mistake_time", `List (to_json_int_list t Fields.mistake_time));
-        ("mistake_num", `List (to_json_int_list t Fields.mistake_num));
-        ("tilt_rate", `List (to_json_int_list t Fields.tilt_rate));
+        ( "performance",
+          `Assoc
+            [
+              ("data", `List (to_json_int_list t Fields.performance));
+              ("title", `String translations.stat_performance_vs_superman);
+              ( "description",
+                `String translations.stat_performance_vs_superman_description );
+            ] );
+        ( "mistake_time",
+          `Assoc
+            [
+              ("data", `List (to_json_int_list t Fields.mistake_time));
+              ("title", `String translations.stat_mistake_time);
+              ("description", `String translations.stat_mistake_time_description);
+            ] );
+        ( "mistake_num",
+          `Assoc
+            [
+              ("data", `List (to_json_int_list t Fields.mistake_num));
+              ("title", `String translations.stat_mistake_num);
+              ("description", `String translations.stat_mistake_num_description);
+            ] );
+        ( "tilt_rate",
+          `Assoc
+            [
+              ("data", `List (to_json_int_list t Fields.tilt_rate));
+              ("title", `String translations.stat_tilt_rate);
+              ("description", `String translations.stat_tilt_rate_description);
+            ] );
       ]
 end
 
-let stats_plot_data (result_stats : Db.Types.ResultStats.t list) =
+let stats_plot_data (translations : Localization.translations)
+    (result_stats : Db.Types.ResultStats.t list) =
   let accumulated =
     List.fold result_stats
       ~init:(AccumulatedStats.empty ())
       ~f:AccumulatedStats.add
   in
 
-  AccumulatedStats.to_json accumulated
+  AccumulatedStats.to_json accumulated translations
 
 let stats_data (t : Page_settings.t)
     (result_stats : Db.Types.ResultStats.t list) =
-  let stats_data = stats_plot_data result_stats in
+  let stats_data = stats_plot_data t.translations result_stats in
   let plot_data =
     `Assoc [ ("stats_data", stats_data); ("dark_mode", `String t.dark_mode) ]
     |> Yojson.Safe.to_string

@@ -59,6 +59,10 @@ type translations = {
   stat_mistake_time : string;
   stat_mistake_num : string;
   stat_tilt_rate : string;
+  stat_performance_vs_superman_description : string;
+  stat_mistake_time_description : string;
+  stat_mistake_num_description : string;
+  stat_tilt_rate_description : string;
   not_selected : string;
 }
 [@@deriving show { with_path = false }]
@@ -118,6 +122,36 @@ let english =
     stat_mistake_time = "Total mistake time (minutes)";
     stat_mistake_num = "Number of mistakes";
     stat_tilt_rate = "Error-Caused Instability (%)";
+    stat_performance_vs_superman_description =
+      "Your performance compared to the best split times for each control \
+       excluding any significant mistakes. For example, if your \"Performance \
+       vs Superman\" is 50% this means that if the best split for a control is \
+       1:00 then you ran that split for ~1:30";
+    stat_mistake_time_description =
+      "The sum of all your mistakes throughout the course. The mistake time \
+       for each control is calculated based on your \"Performance vs \
+       Superman\" percentage. First we determine what your control split time \
+       should be by taking the best time for that split and normalizing it by \
+       your performance percentage. The mistake time is the difference between \
+       that estimated time and your actual split time. For example, if your \
+       split time to control 1 is 0:57 and the best split is 0:30. If your \
+       performance percentage is 50% then your estimated split time for that \
+       control is 0:45 and mistake time will be 0:12 (0:57-0:45). Differences \
+       of less than 10 seconds are not counted as mistakes";
+    stat_mistake_num_description =
+      "The total number of mistakes for the whole course. Any mistake of 10 \
+       seconds or more is counted.";
+    stat_tilt_rate_description =
+      "The tendency to make a mistake right after making a mistake. For \
+       example, if you make a mistake at control 3 and then also make a \
+       mistake at control 4, but managed to find control 5 without mistakes - \
+       your \"Error-Caused Instability\" would be 50%. In other words, this \
+       stat tells you that one mistake makes you 50% more likely to make \
+       another mistake straight after. If, however, after making a mistake at \
+       control 3 then you recover and find control 4 without making a mistake \
+       then your \"Error-Caused Instability\" would be 0%. Another example is \
+       if you make 3 mistakes in a row and find the rest of the controls \
+       without a mistake, then your \"Error-Caused Instability\" will be 75%.";
     not_selected = "Not Selected";
   }
 
@@ -176,6 +210,38 @@ let lithuanian =
     stat_mistake_time = "Visiško klydimo metas (minutės)";
     stat_mistake_num = "Klaidų skaičius";
     stat_tilt_rate = "Klaidų sukeltas nestabilumas (%)";
+    stat_performance_vs_superman_description =
+      "Jūsų pasirodymas, palygintas su geriausiais tarpiniais laikais \
+       kiekviename kontroliniame punkte (neskaičiuojant didelių klaidų). \
+       Pavyzdžiui, jei jūsų rodiklis \"Rezultatas prieš Antžmogis\" yra 50%, \
+       tai reiškia, kad jei geriausias laikas pasiekti 7-ąjį kontrolinį punktą \
+       buvo 1:00, jūs šią atkarpą įveikėte per ~1:30.";
+    stat_mistake_time_description =
+      "Visų jūsų per trasoje padarytų klaidų suma. Klaidoms sugaištas laikas \
+       kiekviename kontroliniame punkte apskaičiuojamas remiantis jūsų \
+       \"Rezultatas prieš Antžmogis\" rodikliu. Pirmiausia nustatome, koks \
+       turėtų būti jūsų laikas iki konkretaus kontrolinio punkto: paimame \
+       geriausią laiką tame etape ir pakoreguojame jį pagal jūsų rezultatyvumo \
+       procentą. Klaidoms sugaištas laikas – tai skirtumas tarp šio \
+       apskaičiuoto laiko ir jūsų realiai užtrukto laiko. Pavyzdžiui, jei jūsų \
+       laikas iki 1-ojo kontrolinio punkto yra 0:57, o geriausias laikas tame \
+       etape – 0:30, o jūsų rezultatyvumo rodiklis yra 50 %, tai apskaičiuotas \
+       laikas iki šio punkto būtų 0:45, o klaidoms sugaištas laikas – 0:12 \
+       (0:57 – 0:45). Mažesni nei 10 sekundžių skirtumai klaidomis nelaikomi. ";
+    stat_mistake_num_description =
+      "Bendras klaidų skaičius visoje trasoje. Įskaitoma bet kuri klaida, \
+       trunkanti 10 sekundžių ar ilgiau.";
+    stat_tilt_rate_description =
+      "Tai polinkis padaryti klaidą iškart po to, kai jau buvo padaryta \
+       klaida. Pavyzdžiui, jei padarote klaidą prie 3-iojo kontrolinio punkto, \
+       o paskui – ir prie 4-ojo, tačiau 5-ąjį punktą randate be klaidų, jūsų \
+       \"Klaidų sukeltas nestabilumas\" sieks 50%. Kitaip tariant, šis \
+       rodiklis rodo, kad padarius vieną klaidą, tikimybė iškart po jos \
+       padaryti dar vieną klaidą padidėja 50%. Tačiau jei, padarę klaidą prie \
+       3-iojo punkto, susikaupiate ir 4-ąjį punktą randate be klaidų, jūsų \
+       \"Klaidų sukeltas nestabilumas\" bus 0%. Kitas pavyzdys: jei padarote 3 \
+       klaidas iš eilės, o likusius punktus randate be klaidų, jūsų \"Klaidų \
+       sukeltas nestabilumas\" bus 75%.";
     not_selected = "Nepasirinkta";
   }
 

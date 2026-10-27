@@ -132,30 +132,32 @@ function getGraphTitle(elementId) {
   return document.getElementById(elementId)?.textContent.trim() || "";
 }
 
+// TODO: send the title and description text via the json plotData instead of
+// reading from the div elements
 const statsGraphDefinitions = [
   {
     elementId: "stats-performance-graph",
-    title: getGraphTitle("stats-performance-graph"),
-    description: "very long long long description",
-    values: statsData.performance,
+    title: statsData.performance.title,
+    description: statsData.performance.description,
+    values: statsData.performance.data,
     type: "bar",
     color: "darkcyan",
     textposition: "auto",
   },
   {
     elementId: "stats-mistake-num-graph",
-    title: getGraphTitle("stats-mistake-num-graph"),
-    description: "very long long long description",
-    values: statsData.mistake_num,
+    title: statsData.mistake_num.title,
+    description: statsData.mistake_num.description,
+    values: statsData.mistake_num.data,
     type: "bar",
     color: "indianred",
     textposition: "outside",
   },
   {
     elementId: "stats-mistake-time-graph",
-    title: getGraphTitle("stats-mistake-time-graph"),
-    description: "very long long long description",
-    values: statsData.mistake_time,
+    title: statsData.mistake_time.title,
+    description: statsData.mistake_time.description,
+    values: statsData.mistake_time.data,
     type: "bar",
     color: "indianred",
     formatter: formatTime,
@@ -167,13 +169,9 @@ const statsGraphDefinitions = [
   },
   {
     elementId: "stats-tilt-rate-graph",
-    title: getGraphTitle("stats-tilt-rate-graph"),
-    description:
-      "The tendency to make a mistake right after making a mistake. " +
-      "For example, you made a mistake at control 3 and then at control 4, " +
-      "but managed to find control 5 without mistakes. In this case your " +
-      "Error-Caused Instability would be 50%.",
-    values: statsData.tilt_rate,
+    title: statsData.tilt_rate.title,
+    description: statsData.tilt_rate.description,
+    values: statsData.tilt_rate.data,
     type: "bar",
     color: "chocolate",
     textposition: "auto",
