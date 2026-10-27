@@ -136,6 +136,7 @@ const statsGraphDefinitions = [
   {
     elementId: "stats-performance-graph",
     title: getGraphTitle("stats-performance-graph"),
+    description: "very long long long description",
     values: statsData.performance,
     type: "bar",
     color: "darkcyan",
@@ -144,6 +145,7 @@ const statsGraphDefinitions = [
   {
     elementId: "stats-mistake-num-graph",
     title: getGraphTitle("stats-mistake-num-graph"),
+    description: "very long long long description",
     values: statsData.mistake_num,
     type: "bar",
     color: "indianred",
@@ -152,6 +154,7 @@ const statsGraphDefinitions = [
   {
     elementId: "stats-mistake-time-graph",
     title: getGraphTitle("stats-mistake-time-graph"),
+    description: "very long long long description",
     values: statsData.mistake_time,
     type: "bar",
     color: "indianred",
@@ -165,6 +168,11 @@ const statsGraphDefinitions = [
   {
     elementId: "stats-tilt-rate-graph",
     title: getGraphTitle("stats-tilt-rate-graph"),
+    description:
+      "The tendency to make a mistake right after making a mistake. " +
+      "For example, you made a mistake at control 3 and then at control 4, " +
+      "but managed to find control 5 without mistakes. In this case your " +
+      "Error-Caused Instability would be 50%.",
     values: statsData.tilt_rate,
     type: "bar",
     color: "chocolate",
@@ -196,6 +204,7 @@ function getResponsiveGraphSettings(width) {
       showYAxisTickLabels: false,
       leftMargin: 10,
       rightMargin: 10,
+      descriptionMargin: 20,
     };
   }
 
@@ -208,6 +217,7 @@ function getResponsiveGraphSettings(width) {
       showYAxisTickLabels: true,
       leftMargin: 40,
       rightMargin: 20,
+      descriptionMargin: 30,
     };
   }
 
@@ -219,6 +229,7 @@ function getResponsiveGraphSettings(width) {
     showYAxisTickLabels: true,
     leftMargin: 60,
     rightMargin: 60,
+    descriptionMargin: 60,
   };
 }
 
@@ -353,6 +364,50 @@ function createTrace(graph, index) {
   };
 }
 
+function createStatsDescriptionPanel(graphDiv) {
+  const panelId = `${graphDiv.id}-descriptions`;
+  document.getElementById(panelId)?.remove();
+
+  const graphsWithDescriptions = statsGraphDefinitions.filter((graph) =>
+    graph.description?.trim(),
+  );
+
+  if (graphsWithDescriptions.length === 0) {
+    return;
+  }
+  const width = window.innerWidth;
+  const settings = getResponsiveGraphSettings(width);
+
+  const details = document.createElement("details");
+  details.id = panelId;
+  details.className = "stats-descriptions";
+
+  const summary = document.createElement("summary");
+  summary.textContent = "About these statistics";
+  details.appendChild(summary);
+
+  const content = document.createElement("div");
+  content.className = "stats-descriptions__content";
+  content.style.marginLeft = `${settings.descriptionMargin}px`;
+  content.style.marginRight = `${settings.descriptionMargin}px`;
+
+  graphsWithDescriptions.forEach((graph) => {
+    const section = document.createElement("section");
+
+    const heading = document.createElement("h3");
+    heading.textContent = graph.title;
+
+    const description = document.createElement("p");
+    description.textContent = graph.description;
+
+    section.append(heading, description);
+    content.appendChild(section);
+  });
+
+  details.appendChild(content);
+  graphDiv.insertAdjacentElement("afterend", details);
+}
+
 function createStatsGraphs() {
   const graphCount = statsGraphDefinitions.length;
 
@@ -456,6 +511,7 @@ function createStatsGraphs() {
   const data = statsGraphDefinitions.map(createTrace);
 
   Plotly.newPlot(graphDiv, data, combinedLayout, config);
+  createStatsDescriptionPanel(graphDiv);
 }
 
 createStatsGraphs();

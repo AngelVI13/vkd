@@ -532,6 +532,34 @@ hr {
   width: 100%;
 }
 
+.stats-descriptions {
+  margin: 1rem 0;
+  color: inherit;
+}
+
+.stats-descriptions > summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+.stats-descriptions[open] > summary {
+  margin-left: 10px;
+}
+
+.stats-descriptions__content section + section {
+  margin-top: 1rem;
+}
+
+.stats-descriptions__content h3 {
+  margin-bottom: 0.25rem;
+}
+
+.stats-descriptions__content p {
+  margin: 0;
+  line-height: 1.5;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;
