@@ -128,14 +128,14 @@ function formatTime(seconds) {
   return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
-function getGraphTitle(elementId, fallback) {
-  return document.getElementById(elementId)?.textContent.trim() || fallback;
+function getGraphTitle(elementId) {
+  return document.getElementById(elementId)?.textContent.trim() || "";
 }
 
 const statsGraphDefinitions = [
   {
     elementId: "stats-performance-graph",
-    title: getGraphTitle("stats-performance-graph", "Performance"),
+    title: getGraphTitle("stats-performance-graph"),
     values: statsData.performance,
     type: "bar",
     color: "darkcyan",
@@ -143,7 +143,7 @@ const statsGraphDefinitions = [
   },
   {
     elementId: "stats-mistake-num-graph",
-    title: getGraphTitle("stats-mistake-num-graph", "Mistakes"),
+    title: getGraphTitle("stats-mistake-num-graph"),
     values: statsData.mistake_num,
     type: "bar",
     color: "indianred",
@@ -151,7 +151,7 @@ const statsGraphDefinitions = [
   },
   {
     elementId: "stats-mistake-time-graph",
-    title: getGraphTitle("stats-mistake-time-graph", "Mistake Time"),
+    title: getGraphTitle("stats-mistake-time-graph"),
     values: statsData.mistake_time,
     type: "bar",
     color: "indianred",
@@ -162,6 +162,15 @@ const statsGraphDefinitions = [
       includeZero: false,
     },
   },
+  {
+    elementId: "stats-tilt-rate-graph",
+    title: getGraphTitle("stats-tilt-rate-graph"),
+    values: statsData.tilt_rate,
+    type: "bar",
+    color: "chocolate",
+    textposition: "auto",
+  },
+  //
 
   // Example scatter graph:
   // {

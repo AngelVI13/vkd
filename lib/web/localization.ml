@@ -117,7 +117,7 @@ let english =
     stat_performance_vs_superman = "Performance vs Superman (%)";
     stat_mistake_time = "Total mistake time (minutes)";
     stat_mistake_num = "Number of mistakes";
-    stat_tilt_rate = "Error-Caused Instability";
+    stat_tilt_rate = "Error-Caused Instability (%)";
     not_selected = "Not Selected";
   }
 
@@ -175,7 +175,7 @@ let lithuanian =
     stat_performance_vs_superman = "Rezultatas prieš Antžmogis (%)";
     stat_mistake_time = "Visiško klydimo metas (minutės)";
     stat_mistake_num = "Klaidų skaičius";
-    stat_tilt_rate = "Klaidų sukeltas nestabilumas";
+    stat_tilt_rate = "Klaidų sukeltas nestabilumas (%)";
     not_selected = "Nepasirinkta";
   }
 
