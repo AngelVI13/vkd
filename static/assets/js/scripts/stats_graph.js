@@ -121,137 +121,330 @@ var nMonthsAgo = new Date(mostRecentEventDate);
 nMonthsAgo.setMonth(latest.getMonth() - showLastNMonths);
 layout.xaxis.range = [nMonthsAgo, latest];
 
-function createStatsGraphs() {
-  const graphDivs = [
-    document.getElementById("stats-performance-graph"),
-    document.getElementById("stats-mistake-num-graph"),
-    document.getElementById("stats-mistake-time-graph"),
-  ];
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
 
-  const titles = graphDivs.map((div) => div.textContent.trim());
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+function getGraphTitle(elementId, fallback) {
+  return document.getElementById(elementId)?.textContent.trim() || fallback;
+}
+
+const statsGraphDefinitions = [
+  {
+    elementId: "stats-performance-graph",
+    title: getGraphTitle("stats-performance-graph", "Performance"),
+    values: statsData.performance,
+    type: "bar",
+    color: "darkcyan",
+    textposition: "auto",
+  },
+  {
+    elementId: "stats-mistake-num-graph",
+    title: getGraphTitle("stats-mistake-num-graph", "Mistakes"),
+    values: statsData.mistake_num,
+    type: "bar",
+    color: "indianred",
+    textposition: "outside",
+  },
+  {
+    elementId: "stats-mistake-time-graph",
+    title: getGraphTitle("stats-mistake-time-graph", "Mistake Time"),
+    values: statsData.mistake_time,
+    type: "bar",
+    color: "indianred",
+    formatter: formatTime,
+    textposition: "outside",
+    yaxisTicks: {
+      formatter: formatTime,
+      includeZero: false,
+    },
+  },
+
+  // Example scatter graph:
+  // {
+  //   elementId: "stats-example-scatter-graph",
+  //   title: getGraphTitle(
+  //     "stats-example-scatter-graph",
+  //     "Example Scatter",
+  //   ),
+  //   values: statsData.example_values,
+  //   type: "scatter",
+  //   mode: "lines+markers",
+  //   color: "royalblue",
+  // },
+];
+
+function getResponsiveGraphSettings(width) {
+  if (width < smallScreenThreshold) {
+    return {
+      plotHeight: 110,
+      titleHeight: 24,
+      subplotGap: 10,
+      titleFontSize: 13,
+      showYAxisTickLabels: false,
+      leftMargin: 10,
+      rightMargin: 10,
+    };
+  }
+
+  if (width < midScreenThreshold) {
+    return {
+      plotHeight: 125,
+      titleHeight: 26,
+      subplotGap: 12,
+      titleFontSize: 14,
+      showYAxisTickLabels: true,
+      leftMargin: 40,
+      rightMargin: 20,
+    };
+  }
+
+  return {
+    plotHeight: 145,
+    titleHeight: 28,
+    subplotGap: 14,
+    titleFontSize: 16,
+    showYAxisTickLabels: true,
+    leftMargin: 60,
+    rightMargin: 60,
+  };
+}
+
+function getNiceTickStep(range, tickCount) {
+  const roughStep = range / Math.max(1, tickCount - 1);
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const fraction = roughStep / magnitude;
+
+  const niceFraction =
+    fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+
+  return niceFraction * magnitude;
+}
+
+function createTickValues(values, tickCount, includeZero) {
+  const numericValues = values.filter(Number.isFinite);
+
+  if (numericValues.length === 0) {
+    return [];
+  }
+
+  let minimum = Math.min(...numericValues);
+  let maximum = Math.max(...numericValues);
+
+  if (includeZero) {
+    minimum = Math.min(minimum, 0);
+    maximum = Math.max(maximum, 0);
+  }
+
+  if (minimum === maximum) {
+    return [minimum];
+  }
+
+  const step = getNiceTickStep(maximum - minimum, tickCount);
+  const firstTick = Math.ceil(minimum / step) * step;
+  const lastTick = Math.floor(maximum / step) * step;
+  const ticks = [];
+
+  for (let value = firstTick; value <= lastTick + step * 1e-9; value += step) {
+    // Avoid floating-point values such as 0.30000000000000004.
+    ticks.push(Number(value.toPrecision(12)));
+  }
+
+  return ticks;
+}
+
+function getYAxisTickOptions(graph) {
+  const settings = graph.yaxisTicks;
+
+  if (!settings?.formatter) {
+    return {};
+  }
+
+  const configuredValues =
+    typeof settings.values === "function"
+      ? settings.values(graph.values, graph)
+      : settings.values;
+
+  const tickValues =
+    configuredValues ??
+    createTickValues(
+      graph.values,
+      settings.count ?? 5,
+      settings.includeZero ?? graph.type === "bar",
+    );
+
+  return {
+    tickmode: "array",
+    tickvals: tickValues,
+    ticktext: tickValues.map((value, index) =>
+      String(settings.formatter(value, index, tickValues)),
+    ),
+  };
+}
+
+function getYAxisId(index) {
+  return index === 0 ? "y" : `y${index + 1}`;
+}
+
+function getYAxisLayoutName(index) {
+  return index === 0 ? "yaxis" : `yaxis${index + 1}`;
+}
+
+function createTrace(graph, index) {
+  const formatter = graph.formatter || String;
+  const formattedValues = graph.values.map(formatter);
+
+  const trace = {
+    name: graph.title,
+    x: statsData.dates,
+    y: graph.values,
+    xaxis: "x",
+    yaxis: getYAxisId(index),
+    type: graph.type,
+    customdata: formattedValues,
+    hovertemplate: `${graph.title}: %{customdata}<extra></extra>`,
+    text: formattedValues,
+    textfont: {
+      color: fontColor,
+    },
+    marker: {
+      color: graph.color,
+      line: {
+        color: fontColor,
+        width: 1.5,
+      },
+    },
+  };
+
+  if (graph.type === "bar") {
+    trace.textposition = graph.textposition || "outside";
+  }
+
+  if (graph.type === "scatter") {
+    trace.mode = graph.mode || "lines+markers";
+    trace.line = {
+      color: graph.color,
+    };
+  }
+
+  return {
+    ...trace,
+    ...graph.traceOptions,
+    marker: {
+      ...trace.marker,
+      ...graph.traceOptions?.marker,
+    },
+    line: {
+      ...trace.line,
+      ...graph.traceOptions?.line,
+    },
+  };
+}
+
+function createStatsGraphs() {
+  const graphCount = statsGraphDefinitions.length;
+
+  if (graphCount === 0) {
+    return;
+  }
+
+  const width = window.innerWidth;
+  const settings = getResponsiveGraphSettings(width);
+  const graphDivs = statsGraphDefinitions.map(({ elementId }) =>
+    document.getElementById(elementId),
+  );
   const graphDiv = graphDivs[0];
 
   graphDiv.textContent = "";
+
   graphDivs.slice(1).forEach((div) => {
     div.hidden = true;
   });
 
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
-  };
+  /*
+   * Domains use the drawable paper height rather than hardcoded percentages.
+   * Each subplot gets a fixed pixel height, making the resulting normalized
+   * domains independent of the number of graphs.
+   */
+  const paperHeight =
+    graphCount * (settings.titleHeight + settings.plotHeight) +
+    (graphCount - 1) * settings.subplotGap;
 
-  const data = [
-    {
-      name: titles[0],
-      x: statsData.dates,
-      y: statsData.performance,
-      xaxis: "x",
-      yaxis: "y",
-      type: "bar",
-      text: statsData.performance.map(String),
-      textposition: "auto",
-      hovertemplate: `${titles[0]}: %{y}<extra></extra>`,
-      marker: {
-        color: "darkcyan",
-        line: { color: fontColor, width: 1.5 },
-      },
-    },
-    {
-      name: titles[1],
-      x: statsData.dates,
-      y: statsData.mistake_num,
-      xaxis: "x",
-      yaxis: "y2",
-      type: "bar",
-      text: statsData.mistake_num.map(String),
-      textposition: "outside",
-      hovertemplate: `${titles[1]}: %{y}<extra></extra>`,
-      marker: {
-        color: "indianred",
-        line: { color: fontColor, width: 1.5 },
-      },
-      textfont: { color: fontColor },
-    },
-    {
-      name: titles[2],
-      x: statsData.dates,
-      y: statsData.mistake_time,
-      customdata: statsData.mistake_time.map(formatTime),
-      xaxis: "x",
-      yaxis: "y3",
-      type: "bar",
-      text: statsData.mistake_time.map(formatTime),
-      textposition: "outside",
-      hovertemplate: `${titles[2]}: %{customdata}<extra></extra>`,
-      marker: {
-        color: "indianred",
-        line: { color: fontColor, width: 1.5 },
-      },
-      textfont: { color: fontColor },
-    },
-  ];
+  const marginTop = 55;
+  const marginBottom = 35;
 
   const combinedLayout = JSON.parse(JSON.stringify(layout));
   delete combinedLayout.title;
 
-  // TODO: calculate height based on number of graphs
-  combinedLayout.height = 560;
+  combinedLayout.height = marginTop + paperHeight + marginBottom;
   combinedLayout.hovermode = "x unified";
   combinedLayout.hoversubplots = "axis";
   combinedLayout.showlegend = false;
-  combinedLayout.margin.t = 10;
-  combinedLayout.margin.b = 30;
 
-  // All traces use this one x-axis, so the range buttons affect every subplot.
+  combinedLayout.margin = {
+    l: settings.leftMargin,
+    r: settings.rightMargin,
+    t: marginTop,
+    b: marginBottom,
+  };
+
   combinedLayout.xaxis = {
     ...combinedLayout.xaxis,
-    anchor: "y3",
+    anchor: getYAxisId(graphCount - 1),
     rangeselector: {
-      ...combinedLayout.xaxis.rangeselector,
-      y: 1.03,
+      ...(width < smallScreenThreshold ? rangeselector_small : rangeselector),
+      // Keep the selector a consistent number of pixels above the paper.
+      y: 1 + 8 / paperHeight,
     },
   };
 
-  // TODO: calculate domains automatically based on number of graphs
-  // TODO: on small screens don't show tick labels for y axis but on bigger screens DO
-  combinedLayout.yaxis = {
-    autorange: true,
-    type: "linear",
-    showticklabels: false,
-    domain: [0.68, 0.94],
-    anchor: "x",
-  };
+  const annotations = [];
+  let rowTop = paperHeight;
 
-  combinedLayout.yaxis2 = {
-    autorange: true,
-    type: "linear",
-    showticklabels: false,
-    domain: [0.35, 0.61],
-    anchor: "x",
-  };
+  statsGraphDefinitions.forEach((graph, index) => {
+    const domainTop = rowTop - settings.titleHeight;
+    const domainBottom = domainTop - settings.plotHeight;
+    const yaxisName = getYAxisLayoutName(index);
 
-  combinedLayout.yaxis3 = {
-    autorange: true,
-    type: "linear",
-    showticklabels: false,
-    domain: [0.02, 0.28],
-    anchor: "x",
-  };
+    combinedLayout[yaxisName] = {
+      autorange: true,
+      type: "linear",
+      showticklabels:
+        graph.yaxisOptions?.showticklabels ?? settings.showYAxisTickLabels,
+      tickfont: {
+        color: fontColor,
+      },
+      gridcolor: darkMode ? "hsl(0, 0%, 25%)" : "hsl(0, 0%, 85%)",
+      ...graph.yaxisOptions,
+      ...getYAxisTickOptions(graph),
+      domain: [domainBottom / paperHeight, domainTop / paperHeight],
+      anchor: "x",
+    };
 
-  // TODO: calculate y positions automatically based on number of graphs
-  // TODO: Change title font size based on window size
-  combinedLayout.annotations = titles.map((title, index) => ({
-    text: title,
-    x: 0.5,
-    xref: "paper",
-    y: [0.95, 0.62, 0.28][index],
-    yref: "paper",
-    yanchor: "bottom",
-    showarrow: false,
-    font: { color: fontColor },
-  }));
+    annotations.push({
+      text: graph.title,
+      x: 0.5,
+      xref: "paper",
+      y: rowTop / paperHeight,
+      yref: "paper",
+      xanchor: "center",
+      yanchor: "top",
+      showarrow: false,
+      font: {
+        color: fontColor,
+        size: settings.titleFontSize,
+      },
+    });
+
+    rowTop = domainBottom - settings.subplotGap;
+  });
+
+  combinedLayout.annotations = annotations;
+
+  const data = statsGraphDefinitions.map(createTrace);
 
   Plotly.newPlot(graphDiv, data, combinedLayout, config);
 }
