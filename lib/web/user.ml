@@ -622,6 +622,19 @@ module AccumulatedStats = struct
       potential_position = result.potential_position :: t.potential_position;
     }
 
+  let most_occuring (t : t) field show_fn =
+    let values = Field.get field t in
+    let sorted =
+      values |> List.filter_opt
+      |> List.fold ~init:String.Map.empty ~f:(fun m value ->
+             Map.update m (show_fn value) ~f:(fun occurance ->
+                 match occurance with None -> 1 | Some occ -> occ + 1))
+      |> Map.to_alist
+      |> List.sort ~compare:(fun (_, occ1) (_, occ2) -> Int.compare occ1 occ2)
+    in
+    let lst, lst_occ = List.last_exn sorted in
+    (lst, lst_occ)
+
   let to_json_string_list (t : t) field =
     let values = Field.get field t in
     List.map values ~f:(fun value -> `String value)
@@ -667,38 +680,92 @@ module AccumulatedStats = struct
       ]
 end
 
-let stats_plot_data (translations : Localization.translations)
-    (result_stats : Db.Types.ResultStats.t list) =
-  let accumulated =
-    List.fold result_stats
-      ~init:(AccumulatedStats.empty ())
-      ~f:AccumulatedStats.add
-  in
-
-  AccumulatedStats.to_json accumulated translations
-
-let stats_data (t : Page_settings.t)
-    (result_stats : Db.Types.ResultStats.t list) =
-  let stats_data = stats_plot_data t.translations result_stats in
+let stats_data (t : Page_settings.t) (accumulated_stats : AccumulatedStats.t) =
+  let stats_data = AccumulatedStats.to_json accumulated_stats t.translations in
   let plot_data =
-    `Assoc [ ("stats_data", stats_data); ("dark_mode", `String t.dark_mode) ]
+    `Assoc
+      [
+        ("stats_data", stats_data);
+        ("dark_mode", `String t.dark_mode);
+        ("about_stats_translation", `String t.translations.about_stats);
+      ]
     |> Yojson.Safe.to_string
   in
 
   script [ type_ "application/json"; id "stats-plot-data" ] "%s" plot_data
+
+let extra_stats (t : Page_settings.t) (stats : AccumulatedStats.t) =
+  let _ = t in
+  let race_execution, race_execution_occ =
+    AccumulatedStats.most_occuring stats AccumulatedStats.Fields.race_execution
+      Dbsportas.Runner_stats.show_raceExecution
+  in
+  let mistake_cluster, mistake_cluster_occ =
+    AccumulatedStats.most_occuring stats AccumulatedStats.Fields.mistake_cluster
+      Dbsportas.Runner_stats.show_mistakeCluster
+  in
+  let mistakes_impact, mistakes_impact_occ =
+    AccumulatedStats.most_occuring stats AccumulatedStats.Fields.mistakes_impact
+      Dbsportas.Runner_stats.show_mistakesImpact
+  in
+  (* TODO: here make it as split_stats where we look at the following 
+
+                            Mistakes Impact
+     NoImpact       MinorImpact        MajorImpact         Events 
+     3 / 50%        2 / 34%            1 / 16%              6
+
+                            Mistake clusters 
+    Scattered       Beginning          End           Middle
+    2 / 33%         2 / 33%            1 / 16%       1/ 16%
+
+                            Race Execution
+    LateFade       EvenSplit          KickAndHold    LateKick
+    2 / 33%         2 / 33%            1 / 16%       1/ 16%
+     *)
+
+  (* TODO: Investigate why Beliūnas Vytautas has a mistake time of 723 minutes on July 9th *)
+  div
+    [ class_ "extra-stats" ]
+    [
+      div []
+        [
+          txt "%s %d %d" race_execution race_execution_occ
+            (List.length stats.race_execution);
+        ];
+      div []
+        [
+          txt "%s %d %d" mistake_cluster mistake_cluster_occ
+            (List.length stats.mistake_cluster);
+        ];
+      div []
+        [
+          txt "%s %d %d" mistakes_impact mistakes_impact_occ
+            (List.length stats.mistakes_impact);
+        ];
+    ]
 
 let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
     (total_splits : int) =
   let overall_stats =
     List.fold ~init:(UserStats.empty ()) ~f:UserStats.fold_stats result_stats
   in
+  let accumulated_stats =
+    List.fold result_stats
+      ~init:(AccumulatedStats.empty ())
+      ~f:AccumulatedStats.add
+  in
   [
-    div [ class_ "user-stats" ] [ split_stats t overall_stats total_splits ];
+    div
+      [ class_ "user-stats" ]
+      [
+        split_stats t overall_stats total_splits;
+        extra_stats t accumulated_stats;
+      ];
     hr [];
     div
       [ class_ "stats-graphs"; id "stats-graphs" ]
       [ div [ class_ "stats-graph"; id "stats-graph" ] [] ];
-    stats_data t result_stats;
+    stats_data t accumulated_stats;
     script [ path_attr src Static.Assets.Js.Scripts.stats_graph_js ] "";
   ]
 

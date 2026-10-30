@@ -381,7 +381,7 @@ function createStatsDescriptionPanel(graphDiv) {
   details.className = "stats-descriptions";
 
   const summary = document.createElement("summary");
-  summary.textContent = "About these statistics";
+  summary.textContent = plotData.about_stats_translation;
   details.appendChild(summary);
 
   const content = document.createElement("div");

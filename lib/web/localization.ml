@@ -63,7 +63,7 @@ type translations = {
   stat_mistake_time_description : string;
   stat_mistake_num_description : string;
   stat_tilt_rate_description : string;
-  not_selected : string;
+  about_stats : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -152,7 +152,7 @@ let english =
        then your \"Error-Caused Instability\" would be 0%. Another example is \
        if you make 3 mistakes in a row and find the rest of the controls \
        without a mistake, then your \"Error-Caused Instability\" will be 75%.";
-    not_selected = "Not Selected";
+    about_stats = "About these statistics";
   }
 
 let lithuanian =
@@ -242,7 +242,7 @@ let lithuanian =
        \"Klaidų sukeltas nestabilumas\" bus 0%. Kitas pavyzdys: jei padarote 3 \
        klaidas iš eilės, o likusius punktus randate be klaidų, jūsų \"Klaidų \
        sukeltas nestabilumas\" bus 75%.";
-    not_selected = "Nepasirinkta";
+    about_stats = "Apie šią statistiką";
   }
 
 let translation_of_language (lang : language) : translations =
