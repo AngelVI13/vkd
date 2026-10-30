@@ -415,16 +415,7 @@ function createStatsGraphs() {
 
   const width = window.innerWidth;
   const settings = getResponsiveGraphSettings(width);
-  const graphDivs = statsGraphDefinitions.map(({ elementId }) =>
-    document.getElementById(elementId),
-  );
-  const graphDiv = graphDivs[0];
-
-  graphDiv.textContent = "";
-
-  graphDivs.slice(1).forEach((div) => {
-    div.hidden = true;
-  });
+  const graphDiv = document.getElementById("stats-graph");
 
   /*
    * Domains use the drawable paper height rather than hardcoded percentages.

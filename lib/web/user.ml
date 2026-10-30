@@ -697,20 +697,7 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
     hr [];
     div
       [ class_ "stats-graphs"; id "stats-graphs" ]
-      [
-        div
-          [ class_ "stats-graph"; id "stats-performance-graph" ]
-          [ txt "%s" t.translations.stat_performance_vs_superman ];
-        div
-          [ class_ "stats-graph"; id "stats-mistake-num-graph" ]
-          [ txt "%s" t.translations.stat_mistake_num ];
-        div
-          [ class_ "stats-graph"; id "stats-mistake-time-graph" ]
-          [ txt "%s" t.translations.stat_mistake_time ];
-        div
-          [ class_ "stats-graph"; id "stats-tilt-rate-graph" ]
-          [ txt "%s" t.translations.stat_tilt_rate ];
-      ];
+      [ div [ class_ "stats-graph"; id "stats-graph" ] [] ];
     stats_data t result_stats;
     script [ path_attr src Static.Assets.Js.Scripts.stats_graph_js ] "";
   ]
