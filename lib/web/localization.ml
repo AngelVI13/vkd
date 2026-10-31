@@ -86,6 +86,24 @@ type translations = {
   late_kick_desc : string;
   even_split : string;
   even_split_desc : string;
+  (* mistakes impact *)
+  no_impact : string;
+  no_impact_desc : string;
+  minor_impact : string;
+  minor_impact_desc : string;
+  significant_impact : string;
+  significant_impact_desc : string;
+  huge_impact : string;
+  huge_impact_desc : string;
+  (* mistake cluster *)
+  scattered_cluster : string;
+  scattered_cluster_desc : string;
+  beginning_cluster : string;
+  beginning_cluster_desc : string;
+  middle_cluster : string;
+  middle_cluster_desc : string;
+  end_cluster : string;
+  end_cluster_desc : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -199,7 +217,25 @@ let english =
     late_kick_desc = "Late Kick";
     even_split = "Even Split";
     even_split_desc = "Even Split";
-    (* --- *)
+    (* mistakes impact *)
+    (* TODO: update descriptions *)
+    no_impact = "No Impact";
+    no_impact_desc = "No Impact";
+    minor_impact = "Minor Impact";
+    minor_impact_desc = "Minor Impact";
+    significant_impact = "Significant Impact";
+    significant_impact_desc = "Significant Impact";
+    huge_impact = "Huge Impact";
+    huge_impact_desc = "Huge Impact";
+    (* mistake cluster *)
+    scattered_cluster = "Scattered";
+    scattered_cluster_desc = "Scattered";
+    beginning_cluster = "Beginning";
+    beginning_cluster_desc = "Beginning";
+    middle_cluster = "Middle";
+    middle_cluster_desc = "Middle";
+    end_cluster = "End";
+    end_cluster_desc = "End";
   }
 
 let lithuanian =
@@ -315,7 +351,25 @@ let lithuanian =
     late_kick_desc = "Late Kick";
     even_split = "Even Split";
     even_split_desc = "Even Split";
-    (* --- *)
+    (* mistakes impact *)
+    (* TODO: update descriptions *)
+    no_impact = "No Impact";
+    no_impact_desc = "No Impact";
+    minor_impact = "Minor Impact";
+    minor_impact_desc = "Minor Impact";
+    significant_impact = "Significant Impact";
+    significant_impact_desc = "Significant Impact";
+    huge_impact = "Huge Impact";
+    huge_impact_desc = "Huge Impact";
+    (* mistake cluster *)
+    scattered_cluster = "Scattered";
+    scattered_cluster_desc = "Scattered";
+    beginning_cluster = "Beginning";
+    beginning_cluster_desc = "Beginning";
+    middle_cluster = "Middle";
+    middle_cluster_desc = "Middle";
+    end_cluster = "End";
+    end_cluster_desc = "End";
   }
 
 let translation_of_language (lang : language) : translations =

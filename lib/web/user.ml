@@ -714,13 +714,22 @@ let raceExecution_to_title_and_desc (t : Localization.translations) execution =
 
 let mistakesImpact_to_title_and_desc (t : Localization.translations) impact =
   match impact with
-  (* TODO: use the correct title and description values *)
-  | Dbsportas.Runner_stats.NoImpact -> (t.even_split, t.even_split_desc)
-  | Dbsportas.Runner_stats.MinorImpact -> (t.even_split, t.even_split_desc)
-  | Dbsportas.Runner_stats.SignificatImpact -> (t.even_split, t.even_split_desc)
-  | Dbsportas.Runner_stats.HugeImpact -> (t.even_split, t.even_split_desc)
+  | Dbsportas.Runner_stats.NoImpact -> (t.no_impact, t.no_impact_desc)
+  | Dbsportas.Runner_stats.MinorImpact -> (t.minor_impact, t.minor_impact_desc)
+  | Dbsportas.Runner_stats.SignificatImpact ->
+      (t.significant_impact, t.significant_impact_desc)
+  | Dbsportas.Runner_stats.HugeImpact -> (t.huge_impact, t.huge_impact_desc)
 
-(* TODO: parameterize this and use it for raceExecution, mistakeImpact, mistakeCluster *)
+let mistakeCluster_to_title_and_desc (t : Localization.translations) cluster =
+  match cluster with
+  | Dbsportas.Runner_stats.Scattered ->
+      (t.scattered_cluster, t.scattered_cluster_desc)
+  | Dbsportas.Runner_stats.BeginningCluster ->
+      (t.beginning_cluster, t.beginning_cluster_desc)
+  | Dbsportas.Runner_stats.MiddleCluster ->
+      (t.middle_cluster, t.middle_cluster_desc)
+  | Dbsportas.Runner_stats.EndCluster -> (t.end_cluster, t.end_cluster_desc)
+
 let extra_stats (t : Page_settings.t) ~(stats : AccumulatedStats.t)
     ~(stats_title : string) ~title_and_desc_fn ~field =
   let hash_fn value =
@@ -738,29 +747,6 @@ let extra_stats (t : Page_settings.t) ~(stats : AccumulatedStats.t)
            let label, description = title_and_desc_fn t.translations value in
            number_stat ~label ~description occ total_stat_values)
   in
-
-  (* let mistake_cluster = *)
-  (*   AccumulatedStats.most_occuring stats AccumulatedStats.Fields.mistake_cluster *)
-  (*     Dbsportas.Runner_stats.show_mistakeCluster *)
-  (* in *)
-  (* let mistakes_impact = *)
-  (*   AccumulatedStats.most_occuring stats AccumulatedStats.Fields.mistakes_impact *)
-  (*     Dbsportas.Runner_stats.show_mistakesImpact *)
-  (* in *)
-  (* TODO: here make it as split_stats where we look at the following 
-
-                            Mistakes Impact
-     NoImpact       MinorImpact        MajorImpact         Events 
-     3 / 50%        2 / 34%            1 / 16%              6
-
-                            Mistake clusters 
-    Scattered       Beginning          End           Middle
-    2 / 33%         2 / 33%            1 / 16%       1/ 16%
-
-                            Race Execution
-    LateFade       EvenSplit          KickAndHold    LateKick
-    2 / 33%         2 / 33%            1 / 16%       1/ 16%
-     *)
 
   (* TODO: Investigate why Beliūnas Vytautas has a mistake time of 723 minutes on July 9th *)
   null
@@ -784,7 +770,9 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
     div
       [ class_ "user-stats" ]
       [
+        (* TODO: add title before all stats that says stats are for N events *)
         split_stats t overall_stats total_splits;
+        (* TODO: change color for different stats *)
         extra_stats t ~stats:accumulated_stats
           ~stats_title:t.translations.race_execution
           ~title_and_desc_fn:raceExecution_to_title_and_desc
@@ -793,6 +781,10 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
           ~stats_title:t.translations.mistakes_impact
           ~title_and_desc_fn:mistakesImpact_to_title_and_desc
           ~field:AccumulatedStats.Fields.mistakes_impact;
+        extra_stats t ~stats:accumulated_stats
+          ~stats_title:t.translations.mistake_cluster
+          ~title_and_desc_fn:mistakeCluster_to_title_and_desc
+          ~field:AccumulatedStats.Fields.mistake_cluster;
       ];
     hr [];
     div
