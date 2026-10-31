@@ -465,7 +465,14 @@ time {
   width: 100%;
 }
 
-.split-stats {
+.extra-stats-title {
+  font-weight: bold;
+  font-size: 18px;
+  text-align: center;
+}
+
+.split-stats,
+.extra-stats {
   display: flex;
   flex-flow: row wrap;
   justify-content: space-around;
@@ -473,20 +480,20 @@ time {
   margin-bottom: 1rem;
 }
 
-.split-stat {
+.text-stat {
   display: flex;
   flex-flow: column;
   flex: 25%;
 }
 
-.split-stat-label {
+.text-stat-label {
   text-transform: uppercase;
   text-align: center;
   font-weight: bold;
   font-size: 14px;
 }
 
-.split-stat-container {
+.text-stat-container {
   display: flex;
   gap: 5px;
   align-items: baseline;
@@ -494,7 +501,7 @@ time {
   margin-top: 5px;
 }
 
-.split-stat-value {
+.text-stat-value {
   font-weight: bold;
   font-size: 28px;
 }
@@ -506,12 +513,12 @@ time {
   display: inline-flex;
 }
 
-.split-stat-percent {
+.text-stat-percent {
   font-size: 14px;
   color: darkcyan;
 }
 
-.split-stat-percent:after {
+.text-stat-percent:after {
   content: "%";
   padding-left: 2px;
 }
@@ -666,11 +673,11 @@ hr {
     height: 20px;
   }
 
-  .split-stat-label {
+  .text-stat-label {
     font-size: 12px;
   }
 
-  .split-stat-value {
+  .text-stat-value {
     font-size: 22px;
   }
 }
@@ -721,11 +728,11 @@ hr {
     gap: 4px;
   }
 
-  .split-stat-label {
+  .text-stat-label {
     font-size: 11px;
   }
 
-  .split-stat-value {
+  .text-stat-value {
     font-size: 18px;
   }
 }
@@ -738,12 +745,12 @@ hr {
   .runner-join-date {
     display: none;
   }
-  .split-stat {
+  .text-stat {
     flex: 50%;
     margin-bottom: 10px;
   }
 
-  .split-stat-container {
+  .text-stat-container {
     margin-top: 0;
   }
 }

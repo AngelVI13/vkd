@@ -461,34 +461,36 @@ module UserStats = struct
     }
 end
 
-let split_stat ~label (value : int) (total : int) =
+let text_stat ~label ?(description = "") (value : string) (percent : string) =
   div
-    [ class_ "split-stat" ]
     [
-      div [ class_ "split-stat-label" ] [ txt "%s" label ];
+      class_ "text-stat";
+      (if String.is_empty description then null_ else title_ "%s" description);
+    ]
+    [
+      div [ class_ "text-stat-label" ] [ txt "%s" label ];
       div
-        [ class_ "split-stat-container" ]
+        [ class_ "text-stat-container" ]
         [
-          div [ class_ "split-stat-value with-percent" ] [ txt "%d" value ];
-          div
-            [ class_ "split-stat-percent" ]
-            [
-              txt "%.2f"
-                Float.(
-                  round_decimal ~decimal_digits:3
-                    (100. * (of_int value / of_int total)));
-            ];
+          div [ class_ "text-stat-value with-percent" ] [ txt "%s" value ];
+          div [ class_ "text-stat-percent" ] [ txt "%s" percent ];
         ];
     ]
 
-let control_totals ~label (value : int) =
+let number_stat ~label ?description (value : int) (total : int) =
+  text_stat ~label ?description (Int.to_string value)
+    (sprintf "%.2f"
+       Float.(
+         round_decimal ~decimal_digits:3 (100. * (of_int value / of_int total))))
+
+let text_totals ~label (value : int) =
   div
-    [ class_ "split-stat" ]
+    [ class_ "text-stat" ]
     [
-      div [ class_ "split-stat-label" ] [ txt "%s" label ];
+      div [ class_ "text-stat-label" ] [ txt "%s" label ];
       div
-        [ class_ "split-stat-container" ]
-        [ div [ class_ "split-stat-value" ] [ txt "%d" value ] ];
+        [ class_ "text-stat-container" ]
+        [ div [ class_ "text-stat-value" ] [ txt "%d" value ] ];
     ]
 
 let split_stats (t : Page_settings.t) (overall_stats : UserStats.t)
@@ -496,16 +498,15 @@ let split_stats (t : Page_settings.t) (overall_stats : UserStats.t)
   div
     [ class_ "split-stats" ]
     [
-      (* TODO: make these look fine on small screens *)
-      split_stat ~label:t.translations.best_splits overall_stats.top_1_splits
+      number_stat ~label:t.translations.best_splits overall_stats.top_1_splits
         total_splits;
       (* TODO: whats the correct translation of these in lithuanian,
                current translation is bad *)
-      split_stat ~label:t.translations.top_5_splits overall_stats.top_5_splits
+      number_stat ~label:t.translations.top_5_splits overall_stats.top_5_splits
         total_splits;
-      split_stat ~label:t.translations.top_10_splits overall_stats.top_10_splits
-        total_splits;
-      control_totals ~label:t.translations.control_points total_splits;
+      number_stat ~label:t.translations.top_10_splits
+        overall_stats.top_10_splits total_splits;
+      text_totals ~label:t.translations.control_points total_splits;
     ]
 
 module AccumulatedStats = struct
@@ -628,12 +629,15 @@ module AccumulatedStats = struct
       values |> List.filter_opt
       |> List.fold ~init:String.Map.empty ~f:(fun m value ->
              Map.update m (show_fn value) ~f:(fun occurance ->
-                 match occurance with None -> 1 | Some occ -> occ + 1))
+                 match occurance with
+                 | None -> (1, value)
+                 | Some (occ, _) -> (occ + 1, value)))
       |> Map.to_alist
-      |> List.sort ~compare:(fun (_, occ1) (_, occ2) -> Int.compare occ1 occ2)
+      |> List.map ~f:(fun (_, (occ, raw_value)) -> (raw_value, occ))
+      (* sort in descending order that why we compare occ2 to occ1 *)
+      |> List.sort ~compare:(fun (_, occ1) (_, occ2) -> Int.compare occ2 occ1)
     in
-    let lst, lst_occ = List.last_exn sorted in
-    (lst, lst_occ)
+    sorted
 
   let to_json_string_list (t : t) field =
     let values = Field.get field t in
@@ -694,20 +698,55 @@ let stats_data (t : Page_settings.t) (accumulated_stats : AccumulatedStats.t) =
 
   script [ type_ "application/json"; id "stats-plot-data" ] "%s" plot_data
 
-let extra_stats (t : Page_settings.t) (stats : AccumulatedStats.t) =
-  let _ = t in
-  let race_execution, race_execution_occ =
-    AccumulatedStats.most_occuring stats AccumulatedStats.Fields.race_execution
-      Dbsportas.Runner_stats.show_raceExecution
+let raceExecution_to_title_and_desc (t : Localization.translations) execution =
+  match execution with
+  | Dbsportas.Runner_stats.EvenSplit -> (t.even_split, t.even_split_desc)
+  | Dbsportas.Runner_stats.PositiveSplit ->
+      (t.positive_split, t.positive_split_desc)
+  | Dbsportas.Runner_stats.FadeAndKick -> (t.fade_and_kick, t.fade_and_kick_desc)
+  | Dbsportas.Runner_stats.FadeAndHold -> (t.fade_and_hold, t.fade_and_hold_desc)
+  | Dbsportas.Runner_stats.NegativeSplit ->
+      (t.negative_split, t.negative_split_desc)
+  | Dbsportas.Runner_stats.KickAndFade -> (t.kick_and_fade, t.kick_and_fade_desc)
+  | Dbsportas.Runner_stats.KickAndHold -> (t.kick_and_hold, t.kick_and_hold_desc)
+  | Dbsportas.Runner_stats.LateFade -> (t.late_fade, t.late_fade_desc)
+  | Dbsportas.Runner_stats.LateKick -> (t.late_kick, t.late_kick_desc)
+
+let mistakesImpact_to_title_and_desc (t : Localization.translations) impact =
+  match impact with
+  (* TODO: use the correct title and description values *)
+  | Dbsportas.Runner_stats.NoImpact -> (t.even_split, t.even_split_desc)
+  | Dbsportas.Runner_stats.MinorImpact -> (t.even_split, t.even_split_desc)
+  | Dbsportas.Runner_stats.SignificatImpact -> (t.even_split, t.even_split_desc)
+  | Dbsportas.Runner_stats.HugeImpact -> (t.even_split, t.even_split_desc)
+
+(* TODO: parameterize this and use it for raceExecution, mistakeImpact, mistakeCluster *)
+let extra_stats (t : Page_settings.t) ~(stats : AccumulatedStats.t)
+    ~(stats_title : string) ~title_and_desc_fn ~field =
+  let hash_fn value =
+    let title_str, _ = title_and_desc_fn t.translations value in
+    title_str
   in
-  let mistake_cluster, mistake_cluster_occ =
-    AccumulatedStats.most_occuring stats AccumulatedStats.Fields.mistake_cluster
-      Dbsportas.Runner_stats.show_mistakeCluster
+
+  let stat_value_occurances =
+    AccumulatedStats.most_occuring stats field hash_fn
   in
-  let mistakes_impact, mistakes_impact_occ =
-    AccumulatedStats.most_occuring stats AccumulatedStats.Fields.mistakes_impact
-      Dbsportas.Runner_stats.show_mistakesImpact
+  let total_stat_values = List.length (Field.get field stats) in
+  let stat_value_nodes =
+    List.take stat_value_occurances 4
+    |> List.map ~f:(fun (value, occ) ->
+           let label, description = title_and_desc_fn t.translations value in
+           number_stat ~label ~description occ total_stat_values)
   in
+
+  (* let mistake_cluster = *)
+  (*   AccumulatedStats.most_occuring stats AccumulatedStats.Fields.mistake_cluster *)
+  (*     Dbsportas.Runner_stats.show_mistakeCluster *)
+  (* in *)
+  (* let mistakes_impact = *)
+  (*   AccumulatedStats.most_occuring stats AccumulatedStats.Fields.mistakes_impact *)
+  (*     Dbsportas.Runner_stats.show_mistakesImpact *)
+  (* in *)
   (* TODO: here make it as split_stats where we look at the following 
 
                             Mistakes Impact
@@ -724,24 +763,11 @@ let extra_stats (t : Page_settings.t) (stats : AccumulatedStats.t) =
      *)
 
   (* TODO: Investigate why Beliūnas Vytautas has a mistake time of 723 minutes on July 9th *)
-  div
-    [ class_ "extra-stats" ]
+  null
     [
-      div []
-        [
-          txt "%s %d %d" race_execution race_execution_occ
-            (List.length stats.race_execution);
-        ];
-      div []
-        [
-          txt "%s %d %d" mistake_cluster mistake_cluster_occ
-            (List.length stats.mistake_cluster);
-        ];
-      div []
-        [
-          txt "%s %d %d" mistakes_impact mistakes_impact_occ
-            (List.length stats.mistakes_impact);
-        ];
+      (* TODO: make the title look good on small screens *)
+      div [ class_ "extra-stats-title" ] [ txt "%s" stats_title ];
+      div [ class_ "extra-stats" ] stat_value_nodes;
     ]
 
 let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
@@ -759,7 +785,14 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
       [ class_ "user-stats" ]
       [
         split_stats t overall_stats total_splits;
-        extra_stats t accumulated_stats;
+        extra_stats t ~stats:accumulated_stats
+          ~stats_title:t.translations.race_execution
+          ~title_and_desc_fn:raceExecution_to_title_and_desc
+          ~field:AccumulatedStats.Fields.race_execution;
+        extra_stats t ~stats:accumulated_stats
+          ~stats_title:t.translations.mistakes_impact
+          ~title_and_desc_fn:mistakesImpact_to_title_and_desc
+          ~field:AccumulatedStats.Fields.mistakes_impact;
       ];
     hr [];
     div

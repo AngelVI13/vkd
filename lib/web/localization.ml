@@ -64,6 +64,28 @@ type translations = {
   stat_mistake_num_description : string;
   stat_tilt_rate_description : string;
   about_stats : string;
+  mistakes_impact : string;
+  mistake_cluster : string;
+  race_execution : string;
+  (* race execution strategies *)
+  positive_split : string;
+  positive_split_desc : string;
+  fade_and_kick : string;
+  fade_and_kick_desc : string;
+  fade_and_hold : string;
+  fade_and_hold_desc : string;
+  negative_split : string;
+  negative_split_desc : string;
+  kick_and_fade : string;
+  kick_and_fade_desc : string;
+  kick_and_hold : string;
+  kick_and_hold_desc : string;
+  late_fade : string;
+  late_fade_desc : string;
+  late_kick : string;
+  late_kick_desc : string;
+  even_split : string;
+  even_split_desc : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -153,6 +175,31 @@ let english =
        if you make 3 mistakes in a row and find the rest of the controls \
        without a mistake, then your \"Error-Caused Instability\" will be 75%.";
     about_stats = "About these statistics";
+    mistakes_impact = "Mistakes Impact";
+    mistake_cluster = "Mistake Cluster";
+    race_execution = "Race Execution";
+    (* race execution strategies *)
+    (* TODO: maybe rename Kick -> Surge *)
+    (* TODO: update descriptions *)
+    positive_split = "Positive Split";
+    positive_split_desc = "Positive Split";
+    fade_and_kick = "Fade and Kick";
+    fade_and_kick_desc = "Fade and Kick";
+    fade_and_hold = "Fade and Hold";
+    fade_and_hold_desc = "Fade and Hold";
+    negative_split = "Negative Split";
+    negative_split_desc = "Negative Split";
+    kick_and_fade = "Kick and Fade";
+    kick_and_fade_desc = "Kick and Fade";
+    kick_and_hold = "Kick and Hold";
+    kick_and_hold_desc = "Kick and Hold";
+    late_fade = "Late Fade";
+    late_fade_desc = "Late Fade";
+    late_kick = "Late Kick";
+    late_kick_desc = "Late Kick";
+    even_split = "Even Split";
+    even_split_desc = "Even Split";
+    (* --- *)
   }
 
 let lithuanian =
@@ -243,6 +290,32 @@ let lithuanian =
        klaidas iš eilės, o likusius punktus randate be klaidų, jūsų \"Klaidų \
        sukeltas nestabilumas\" bus 75%.";
     about_stats = "Apie šią statistiką";
+    mistakes_impact = "Klaidų Poveikis";
+    mistake_cluster = "Klaidų Sankaupa";
+    race_execution = "Lenktynių Vykdymas";
+    (* race execution strategies *)
+    (* TODO: maybe rename Kick -> Surge *)
+    (* TODO: update descriptions *)
+    positive_split = "Teigiamas Splitas";
+    positive_split_desc = "Teigiamas Splitas";
+    fade_and_kick = "Fade and Kick";
+    fade_and_kick_desc = "Fade and Kick";
+    (* TODO: fade is maybe - silpnėti *)
+    fade_and_hold = "Fade and Hold";
+    fade_and_hold_desc = "Fade and Hold";
+    negative_split = "Neigiamas splitas";
+    negative_split_desc = "Neigiamas splitas";
+    kick_and_fade = "Kick and Fade";
+    kick_and_fade_desc = "Kick and Fade";
+    kick_and_hold = "Kick and Hold";
+    kick_and_hold_desc = "Kick and Hold";
+    late_fade = "Late Fade";
+    late_fade_desc = "Late Fade";
+    late_kick = "Late Kick";
+    late_kick_desc = "Late Kick";
+    even_split = "Even Split";
+    even_split_desc = "Even Split";
+    (* --- *)
   }
 
 let translation_of_language (lang : language) : translations =
