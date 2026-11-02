@@ -760,10 +760,8 @@ let extra_stats (t : Page_settings.t) ~(stats : AccumulatedStats.t)
     else sprintf "%s %s" stats_class extra_class
   in
 
-  (* TODO: Investigate why Beliūnas Vytautas has a mistake time of 723 minutes on July 9th *)
   null
     [
-      (* TODO: make the title look good on small screens *)
       div [ class_ "extra-stats-title" ] [ txt "%s" stats_title ];
       div [ class_ "%s" stats_class ] stat_value_nodes;
     ]
