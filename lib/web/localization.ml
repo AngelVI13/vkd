@@ -50,6 +50,7 @@ type translations = {
   gender_position : string;
   group_position : string;
   first_event : string;
+  splits_stats : string;
   best_splits : string;
   top_5_splits : string;
   top_10_splits : string;
@@ -153,6 +154,7 @@ let english =
     gender_position = "Position by gender";
     group_position = "Position by group (V-21, M-45, etc)";
     first_event = "First event";
+    splits_stats = "Splits";
     best_splits = "Best splits";
     top_5_splits = "Top 5 splits";
     top_10_splits = "Top 10 splits";
@@ -284,6 +286,7 @@ let lithuanian =
     gender_position = "Pozicija pagal lytį";
     group_position = "Pozicija pagal grupę (V-21, M-45, etc)";
     first_event = "Pirmasis etapas";
+    splits_stats = "Tarpiniai laikai";
     best_splits = "greičiausi tarpiniai laikai";
     top_5_splits = "5 greičiausi tarpiniai laikai";
     top_10_splits = "10 greičiausi tarpiniai laikai";

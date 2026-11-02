@@ -465,6 +465,11 @@ time {
   width: 100%;
 }
 
+.split-stats-title {
+  margin-top: 1rem;
+}
+
+.split-stats-title,
 .extra-stats-title {
   font-weight: bold;
   font-size: 18px;
@@ -516,6 +521,14 @@ time {
 .text-stat-percent {
   font-size: 14px;
   color: darkcyan;
+}
+
+.extra-stats.race-exec .text-stat-percent {
+  color: darkolivegreen;
+}
+
+.extra-stats.mistake .text-stat-percent {
+  color: indianred;
 }
 
 .text-stat-percent:after {
@@ -726,6 +739,11 @@ hr {
 
   .activity .positions {
     gap: 4px;
+  }
+
+  .split-stats-title,
+  .extra-stats-title {
+    font-size: 16px;
   }
 
   .text-stat-label {

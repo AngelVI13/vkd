@@ -495,18 +495,24 @@ let text_totals ~label (value : int) =
 
 let split_stats (t : Page_settings.t) (overall_stats : UserStats.t)
     (total_splits : int) =
-  div
-    [ class_ "split-stats" ]
+  null
     [
-      number_stat ~label:t.translations.best_splits overall_stats.top_1_splits
-        total_splits;
-      (* TODO: whats the correct translation of these in lithuanian,
+      div
+        [ class_ "split-stats-title" ]
+        [ txt "%s" t.translations.splits_stats ];
+      div
+        [ class_ "split-stats" ]
+        [
+          number_stat ~label:t.translations.best_splits
+            overall_stats.top_1_splits total_splits;
+          (* TODO: whats the correct translation of these in lithuanian,
                current translation is bad *)
-      number_stat ~label:t.translations.top_5_splits overall_stats.top_5_splits
-        total_splits;
-      number_stat ~label:t.translations.top_10_splits
-        overall_stats.top_10_splits total_splits;
-      text_totals ~label:t.translations.control_points total_splits;
+          number_stat ~label:t.translations.top_5_splits
+            overall_stats.top_5_splits total_splits;
+          number_stat ~label:t.translations.top_10_splits
+            overall_stats.top_10_splits total_splits;
+          text_totals ~label:t.translations.control_points total_splits;
+        ];
     ]
 
 module AccumulatedStats = struct
@@ -731,7 +737,7 @@ let mistakeCluster_to_title_and_desc (t : Localization.translations) cluster =
   | Dbsportas.Runner_stats.EndCluster -> (t.end_cluster, t.end_cluster_desc)
 
 let extra_stats (t : Page_settings.t) ~(stats : AccumulatedStats.t)
-    ~(stats_title : string) ~title_and_desc_fn ~field =
+    ~(stats_title : string) ~title_and_desc_fn ~field ?(extra_class = "") () =
   let hash_fn value =
     let title_str, _ = title_and_desc_fn t.translations value in
     title_str
@@ -748,12 +754,18 @@ let extra_stats (t : Page_settings.t) ~(stats : AccumulatedStats.t)
            number_stat ~label ~description occ total_stat_values)
   in
 
+  let stats_class = "extra-stats" in
+  let stats_class =
+    if String.is_empty extra_class then stats_class
+    else sprintf "%s %s" stats_class extra_class
+  in
+
   (* TODO: Investigate why Beliūnas Vytautas has a mistake time of 723 minutes on July 9th *)
   null
     [
       (* TODO: make the title look good on small screens *)
       div [ class_ "extra-stats-title" ] [ txt "%s" stats_title ];
-      div [ class_ "extra-stats" ] stat_value_nodes;
+      div [ class_ "%s" stats_class ] stat_value_nodes;
     ]
 
 let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
@@ -772,19 +784,21 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
       [
         (* TODO: add title before all stats that says stats are for N events *)
         split_stats t overall_stats total_splits;
-        (* TODO: change color for different stats *)
         extra_stats t ~stats:accumulated_stats
           ~stats_title:t.translations.race_execution
           ~title_and_desc_fn:raceExecution_to_title_and_desc
-          ~field:AccumulatedStats.Fields.race_execution;
+          ~field:AccumulatedStats.Fields.race_execution ~extra_class:"race-exec"
+          ();
         extra_stats t ~stats:accumulated_stats
           ~stats_title:t.translations.mistakes_impact
           ~title_and_desc_fn:mistakesImpact_to_title_and_desc
-          ~field:AccumulatedStats.Fields.mistakes_impact;
+          ~field:AccumulatedStats.Fields.mistakes_impact ~extra_class:"mistake"
+          ();
         extra_stats t ~stats:accumulated_stats
           ~stats_title:t.translations.mistake_cluster
           ~title_and_desc_fn:mistakeCluster_to_title_and_desc
-          ~field:AccumulatedStats.Fields.mistake_cluster;
+          ~field:AccumulatedStats.Fields.mistake_cluster ~extra_class:"mistake"
+          ();
       ];
     hr [];
     div
