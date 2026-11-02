@@ -132,9 +132,7 @@ function getGraphTitle(elementId) {
   return document.getElementById(elementId)?.textContent.trim() || "";
 }
 
-// TODO: send the title and description text via the json plotData instead of
-// reading from the div elements
-const statsGraphDefinitions = [
+var statsGraphDefinitions = [
   {
     elementId: "stats-performance-graph",
     title: statsData.performance.title,
