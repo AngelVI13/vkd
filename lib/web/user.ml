@@ -270,8 +270,6 @@ let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
            in
            (course_id, latest_rating))
   in
-  (* TODO: maybe add a button to only show courses which we have rating for and
-     have a 'Show All' button to reveal otherwise ? *)
   let rating_info =
     List.map sorted_ratings_per_course ~f:(fun (course_id, ratings) ->
         let num_events =
@@ -454,7 +452,6 @@ module UserStats = struct
   let fold_stats (t : t) (stats : Db.Types.ResultStats.t) =
     {
       t with
-      (* TODO: do we need all_splits in this record *)
       top_1_splits = t.top_1_splits + stats.best_splits;
       top_5_splits = t.top_5_splits + stats.top5_splits;
       top_10_splits = t.top_10_splits + stats.top10_splits;
@@ -505,8 +502,6 @@ let split_stats (t : Page_settings.t) (overall_stats : UserStats.t)
         [
           number_stat ~label:t.translations.best_splits
             overall_stats.top_1_splits total_splits;
-          (* TODO: whats the correct translation of these in lithuanian,
-               current translation is bad *)
           number_stat ~label:t.translations.top_5_splits
             overall_stats.top_5_splits total_splits;
           number_stat ~label:t.translations.top_10_splits
@@ -787,7 +782,6 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
     div
       [ class_ "user-stats" ]
       [
-        (* TODO: add title before all stats that says stats are for N events *)
         split_stats t overall_stats total_splits;
         extra_stats t ~stats:accumulated_stats
           ~stats_title:t.translations.race_execution
