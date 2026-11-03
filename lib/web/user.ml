@@ -763,6 +763,13 @@ let extra_stats (t : Page_settings.t) ~(stats : AccumulatedStats.t)
   null
     [
       div [ class_ "extra-stats-title" ] [ txt "%s" stats_title ];
+      div
+        [ class_ "extra-stats-subtitle" ]
+        [
+          txt "%s 4, %d %s" t.translations.stats_subtitle_prefix
+            (List.length stats.event_date)
+            t.translations.events;
+        ];
       div [ class_ "%s" stats_class ] stat_value_nodes;
     ]
 

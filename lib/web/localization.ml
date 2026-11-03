@@ -65,6 +65,7 @@ type translations = {
   stat_mistake_num_description : string;
   stat_tilt_rate_description : string;
   about_stats : string;
+  stats_subtitle_prefix : string;
   mistakes_impact : string;
   mistake_cluster : string;
   race_execution : string;
@@ -195,6 +196,7 @@ let english =
        if you make 3 mistakes in a row and find the rest of the controls \
        without a mistake, then your \"Error-Caused Instability\" will be 75%.";
     about_stats = "About these statistics";
+    stats_subtitle_prefix = "Top";
     mistakes_impact = "Mistakes Impact";
     mistake_cluster = "Mistake Cluster";
     race_execution = "Race Execution";
@@ -288,8 +290,8 @@ let lithuanian =
     first_event = "Pirmasis etapas";
     splits_stats = "Tarpiniai laikai";
     best_splits = "greičiausi tarpiniai laikai";
-    top_5_splits = "5 greičiausi tarpiniai laikai";
-    top_10_splits = "10 greičiausi tarpiniai laikai";
+    top_5_splits = "Top 5 tarpiniai laikai";
+    top_10_splits = "Top 10 tarpiniai laikai";
     control_points = "kontrolės punktai";
     stats_analysis = "statistinė analizė";
     stat_performance_vs_superman = "Rezultatas prieš Antžmogis (%)";
@@ -329,6 +331,7 @@ let lithuanian =
        klaidas iš eilės, o likusius punktus randate be klaidų, jūsų \"Klaidų \
        sukeltas nestabilumas\" bus 75%.";
     about_stats = "Apie šią statistiką";
+    stats_subtitle_prefix = "Dažniausiai";
     mistakes_impact = "Klaidų Poveikis";
     mistake_cluster = "Klaidų Sankaupa";
     race_execution = "Lenktynių Vykdymas";

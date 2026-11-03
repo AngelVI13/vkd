@@ -476,6 +476,13 @@ time {
   text-align: center;
 }
 
+.extra-stats-subtitle {
+  font-style: italic;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 3px;
+}
+
 .split-stats,
 .extra-stats {
   display: flex;
@@ -698,6 +705,10 @@ hr {
 @media screen and (max-width: 700px) {
   .course-rating {
     flex: 50%;
+  }
+
+  .extra-stats-subtitle {
+    font-size: 12px;
   }
 }
 
