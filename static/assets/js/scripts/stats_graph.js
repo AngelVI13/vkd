@@ -121,7 +121,12 @@ var nMonthsAgo = new Date(mostRecentEventDate);
 nMonthsAgo.setMonth(latest.getMonth() - showLastNMonths);
 layout.xaxis.range = [nMonthsAgo, latest];
 
+var maxMistakeMinThreshold = 45;
+
 function formatTime(seconds) {
+  if (seconds >= maxMistakeMinThreshold * 60) {
+    return `${maxMistakeMinThreshold}:00+`;
+  }
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
 
@@ -155,7 +160,9 @@ var statsGraphDefinitions = [
     elementId: "stats-mistake-time-graph",
     title: statsData.mistake_time.title,
     description: statsData.mistake_time.description,
-    values: statsData.mistake_time.data,
+    values: statsData.mistake_time.data.map((value) =>
+      Math.min(value, maxMistakeMinThreshold * 60),
+    ), // clamp to maximum of 45 minutes
     type: "bar",
     color: "indianred",
     formatter: formatTime,
