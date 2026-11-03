@@ -15,7 +15,7 @@ let head_elems (t : Page_settings.t) =
     ]
 
 let rating_section (t : Page_settings.t) (course_id : string)
-    (rating : Glicko2.Rating.Info.t option) (num_events : int) =
+    (rating : Glicko2.Rating.Info.t) (num_events : int) =
   let course_icon =
     match Common.ratingCourse_of_string course_id with
     | Course1 -> Icons.course1
@@ -32,49 +32,36 @@ let rating_section (t : Page_settings.t) (course_id : string)
     else null []
   in
   let rating_details =
-    match rating with
-    | None ->
+    let r = rating in
+    let rating_change_extra =
+      if Float.(r.rating_diff > 0.0) then "good"
+      else if Float.(r.rating_diff < 0.0) then "bad"
+      else "line"
+    in
+    (* TODO: if RD is still high then show the rating as uncertain *)
+    div
+      [ class_ "rating-details" ]
+      [
         div
-          [ class_ "rating-details" ]
           [
-            div
-              [
-                class_ "%s rating-unknown" rating_value_class;
-                title_ "%s" t.translations.rating_description;
-              ]
-              [ txt "?" ];
-            div [ class_ "rating-extra" ] [ event_info ];
+            class_ "%s" rating_value_class;
+            title_ "%s" t.translations.rating_description;
           ]
-    | Some r ->
-        let rating_change_extra =
-          if Float.(r.rating_diff > 0.0) then "good"
-          else if Float.(r.rating_diff < 0.0) then "bad"
-          else "line"
-        in
-        (* TODO: if RD is still high then show the rating as uncertain *)
+          [ txt "%.0f" r.rating ];
         div
-          [ class_ "rating-details" ]
+          [ class_ "rating-extra" ]
           [
-            div
-              [
-                class_ "%s" rating_value_class;
-                title_ "%s" t.translations.rating_description;
-              ]
-              [ txt "%.0f" r.rating ];
-            div
-              [ class_ "rating-extra" ]
-              [
-                (if Float.(r.rating_diff = 0.0) then null []
-                 else
-                   span
-                     [
-                       class_ "rating-change %s" rating_change_extra;
-                       title_ "%s" t.translations.rating_change_description;
-                     ]
-                     [ txt "%.0f" r.rating_diff ]);
-                event_info;
-              ];
-          ]
+            (if Float.(r.rating_diff = 0.0) then null []
+             else
+               span
+                 [
+                   class_ "rating-change %s" rating_change_extra;
+                   title_ "%s" t.translations.rating_change_description;
+                 ]
+                 [ txt "%.0f" r.rating_diff ]);
+            event_info;
+          ];
+      ]
   in
   div
     [ class_ "course-rating" ]
@@ -277,7 +264,9 @@ let ratings_section (t : Page_settings.t) (ratings : Glicko2.Rating.Info.t list)
               String.equal r.course_id course_id)
           |> List.length
         in
-        rating_section t course_id (List.last ratings) num_events)
+        match List.last ratings with
+        | None -> null []
+        | Some last_rating -> rating_section t course_id last_rating num_events)
   in
 
   null
