@@ -210,51 +210,85 @@ let english =
        potential position in the results if you didn't make any mistakes. The \
        difference between this potential position and your actual position is \
        what this statistic measures.";
-    (* TODO: add description for each mistake impact value *)
     mistake_cluster = "Mistake Cluster";
-    mistake_cluster_desc = "Mistake Cluster";
+    mistake_cluster_desc =
+      "Shows which part of the course you made the majority of your mistakes. \
+       To calculate this we first split the course in 3 parts based on the \
+       number of controls. The mistake cluster is then determined by checking \
+       if any of these parts contains more than 50% of you overall number of \
+       mistakes. If that is not the case, the mistake cluster is deemed as \
+       \"Scattered\"";
     race_execution = "Race Execution";
-    race_execution_desc = "Race Execution";
+    race_execution_desc =
+      "Shows how you executed your race. To calculate this we first split the \
+       course in 3 parts based on the number of controls. Then we determine \
+       the trend in your overall position between the course beginning and the \
+       course middle, as well as your trend between the course middle and the \
+       finish. These 2 trends are what makes up your race execution. Each \
+       trend can be going up, going down or holding steady. Position changes \
+       of +/- 1 position are considered as holding steady. Here is an example \
+       of how this is calculate in practice - for a course with 18 controls, \
+       we look at your position trends between controls 6 - 12 and 12 - \
+       Finish. If at control 6 you were 3rd and at control 12th you were 10th \
+       and then you finished 11th, your trends are \"Fade\" (dropped down \
+       positions) and \"Hold\" (kept steady the last part of the course).";
     (* race execution strategies *)
-    (* TODO: maybe rename Kick -> Surge *)
-    (* TODO: update descriptions *)
     positive_split = "Positive Split";
-    positive_split_desc = "Positive Split";
-    fade_and_kick = "Fade and Kick";
-    fade_and_kick_desc = "Fade and Kick";
+    positive_split_desc =
+      "You started strong and then continued to slow down throughout the rest \
+       of the course.";
+    fade_and_kick = "Fade and Surge";
+    fade_and_kick_desc =
+      "You started strong, slowed down in the middle and then picked up the \
+       pace in the last part of the course.";
     fade_and_hold = "Fade and Hold";
-    fade_and_hold_desc = "Fade and Hold";
+    fade_and_hold_desc =
+      "You started strong, slowed down in the middle but managed to hold the \
+       pace steady in the last part of the course.";
     negative_split = "Negative Split";
-    negative_split_desc = "Negative Split";
-    kick_and_fade = "Kick and Fade";
-    kick_and_fade_desc = "Kick and Fade";
-    kick_and_hold = "Kick and Hold";
-    kick_and_hold_desc = "Kick and Hold";
+    negative_split_desc =
+      "You started conservatively and then continued to increase the pace \
+       throughout the rest of the course.";
+    kick_and_fade = "Surge and Fade";
+    kick_and_fade_desc =
+      "You started conservatively, then increased the pace in the middle but \
+       ultimately slowed down in the end.";
+    kick_and_hold = "Surge and Hold";
+    kick_and_hold_desc =
+      "You started conservatively, then increased the pace in the middle and \
+       managed to hold it till the end.";
     late_fade = "Late Fade";
-    late_fade_desc = "Late Fade";
-    late_kick = "Late Kick";
-    late_kick_desc = "Late Kick";
+    late_fade_desc =
+      "You started strong, held the pace steady throughout the middle but \
+       slowed down in the end.";
+    late_kick = "Late Surge";
+    late_kick_desc =
+      "You started conservatively, held the pace steady throughout the middle \
+       and increased the pace in the end.";
     even_split = "Even Split";
-    even_split_desc = "Even Split";
+    even_split_desc = "You held an even pace throughout the whole course.";
     (* mistakes impact *)
-    (* TODO: update descriptions *)
     no_impact = "No Impact";
-    no_impact_desc = "No Impact";
+    no_impact_desc = "Your mistakes did not impact your final position.";
     minor_impact = "Minor Impact";
-    minor_impact_desc = "Minor Impact";
+    minor_impact_desc = "Your mistakes cost you 1-2 positions.";
     significant_impact = "Significant Impact";
-    significant_impact_desc = "Significant Impact";
+    significant_impact_desc = "Your mistakes cost you 3-4 positions.";
     huge_impact = "Huge Impact";
-    huge_impact_desc = "Huge Impact";
+    huge_impact_desc = "Your mistakes cost you more than 4 positions.";
     (* mistake cluster *)
     scattered_cluster = "Scattered";
-    scattered_cluster_desc = "Scattered";
+    scattered_cluster_desc =
+      "Your mistakes were evenly distributed during the course.";
     beginning_cluster = "Beginning";
-    beginning_cluster_desc = "Beginning";
+    beginning_cluster_desc =
+      "Majority (>50%) of your mistakes were in the beginning of the course.";
     middle_cluster = "Middle";
-    middle_cluster_desc = "Middle";
+    middle_cluster_desc =
+      "Majority (>50%) of your mistakes were in the middle of the course.";
     end_cluster = "End";
-    end_cluster_desc = "End";
+    end_cluster_desc =
+      "Majority (>50%) of your mistakes were in the end of the course.";
   }
 
 let lithuanian =
@@ -349,52 +383,90 @@ let lithuanian =
     about_graphs = "Apie šiuos grafikus";
     stats_subtitle_prefix = "Dažniausiai";
     mistakes_impact = "Klaidų Poveikis";
-    mistakes_impact_desc = "Klaidų Poveikis";
+    mistakes_impact_desc =
+      "Parodo, kokią įtaką jūsų klaidos turėjo galutinei užimtai vietai. \
+       Norint apskaičiuoti šią įtaką, nustatomas idealus finišo laikas – iš \
+       galutinio rezultato atimamas laikas, prarastas dėl visų padarytų \
+       klaidų. Tuomet nustatoma, kokią vietą būtumėte užėmę, jei nebūtumėte \
+       padarę jokių klaidų. Ši statistika atspindi skirtumą tarp šios \
+       potencialios vietos ir jūsų faktiškai užimtos vietos.";
     mistake_cluster = "Klaidų Sankaupa";
-    mistake_cluster_desc = "Klaidų Sankaupa";
+    mistake_cluster_desc =
+      "Parodo, kurioje trasos dalyje padarėte daugumą klaidų. Norint tai \
+       nustatyti, trasa pirmiausia padalijama į 3 dalis, atsižvelgiant į \
+       kontrolinių punktų skaičių. Tuomet nustatoma klaidų sankaupa: \
+       tikrinama, ar kurioje nors iš šių dalių yra daugiau nei 50% visų jūsų \
+       padarytų klaidų. Jei taip nėra, klaidų pasiskirstymas laikomas \
+       \"išsibarsčiusiu\".";
     race_execution = "Lenktynių Vykdymas";
-    race_execution_desc = "Lenktynių Vykdymas";
+    race_execution_desc =
+      "Tai parodo, kaip įveikėte distanciją. Norint tai apskaičiuoti, trasa \
+       pirmiausia padalijama į 3 dalis, atsižvelgiant į kontrolinių punktų \
+       skaičių. Tuomet nustatoma jūsų užimamos vietos kitimo tendencija nuo \
+       trasos pradžios iki vidurio bei nuo vidurio iki finišo. Šios dvi \
+       tendencijos ir apibūdina jūsų pasirodymą distancijoje. Tendencija gali \
+       būti kylanti, krentanti arba stabili. Vietos pokytis per +/- 1 poziciją \
+       laikomas stabilumu. Štai pavyzdys, kaip tai skaičiuojama praktiškai: \
+       jei trasoje yra 18 kontrolinių punktų, nagrinėjame jūsų vietos pokyčius \
+       tarp 6–12 punktų bei nuo 12-ojo punkto iki finišo. Jei ties 6-uoju \
+       punktu buvote 3-ias, ties 12-uoju – 10-as, o finišavote 11-as, jūsų \
+       tendencijos bus \"Fade\" (pozicijos praradimas) ir \"Hold\" (pozicijos \
+       išlaikymas paskutinėje trasos dalyje).";
     (* race execution strategies *)
-    (* TODO: maybe rename Kick -> Surge *)
-    (* TODO: update descriptions *)
     positive_split = "Teigiamas Splitas";
-    positive_split_desc = "Teigiamas Splitas";
-    fade_and_kick = "Fade and Kick";
-    fade_and_kick_desc = "Fade and Kick";
-    (* TODO: fade is maybe - silpnėti *)
+    positive_split_desc =
+      "Pradėjote stipriai, o vėliau, likusioje trasos dalyje, ėmėte lėtėti.";
+    fade_and_kick = "Fade and Surge";
+    fade_and_kick_desc =
+      "Pradėjote stipriai, viduryje sulėtėjote, o paskutinėje trasos dalyje \
+       vėl padidinote tempą.";
     fade_and_hold = "Fade and Hold";
-    fade_and_hold_desc = "Fade and Hold";
+    fade_and_hold_desc =
+      "Pradėjote stipriai, viduryje sulėtėjote, tačiau paskutinėje trasos \
+       dalyje pavyko išlaikyti stabilų tempą.";
     negative_split = "Neigiamas splitas";
-    negative_split_desc = "Neigiamas splitas";
-    kick_and_fade = "Kick and Fade";
-    kick_and_fade_desc = "Kick and Fade";
-    kick_and_hold = "Kick and Hold";
-    kick_and_hold_desc = "Kick and Hold";
+    negative_split_desc =
+      "Pradėjote atsargiai, o vėliau, likusioje trasos dalyje, vis didinote \
+       tempą.";
+    kick_and_fade = "Surge and Fade";
+    kick_and_fade_desc =
+      "Pradėjote atsargiai, viduryje padidinote tempą, tačiau pabaigoje \
+       galiausiai sulėtėjote.";
+    kick_and_hold = "Surge and Hold";
+    kick_and_hold_desc =
+      "Pradėjote atsargiai, vėliau, viduryje, padidinote tempą ir sugebėjote \
+       jį išlaikyti iki pat pabaigos.";
     late_fade = "Late Fade";
-    late_fade_desc = "Late Fade";
-    late_kick = "Late Kick";
-    late_kick_desc = "Late Kick";
+    late_fade_desc =
+      "Pradėjote stipriai, visą vidurinę dalį išlaikėte stabilų tempą, tačiau \
+       pabaigoje sulėtėjote.";
+    late_kick = "Late Surge";
+    late_kick_desc =
+      "Pradėjote atsargiai, visą vidurinę dalį išlaikėte stabilų tempą, o \
+       pabaigoje jį padidinote.";
     even_split = "Even Split";
-    even_split_desc = "Even Split";
+    even_split_desc = "Visoje trasoje išlaikei tolygų tempą.";
     (* mistakes impact *)
-    (* TODO: update descriptions *)
     no_impact = "Jokio poveikio";
-    no_impact_desc = "Jokio poveikio";
+    no_impact_desc = "Jūsų klaidos neturėjo įtakos jūsų galutinei pozicijai.";
     minor_impact = "Nedidelis poveikis";
-    minor_impact_desc = "Nedidelis poveikis";
+    minor_impact_desc = "Jūsų klaidos kainavo jums 1–2 pozicijas.";
     significant_impact = "Reikšmingas poveikis";
-    significant_impact_desc = "Reikšmingas poveikis";
+    significant_impact_desc = "Jūsų klaidos kainavo jums 3–4 pozicijas.";
     huge_impact = "Didžiulis poveikis";
-    huge_impact_desc = "Didžiulis poveikis";
+    huge_impact_desc = "Jūsų klaidos jums kainavo daugiau nei 4 pozicijas.";
     (* mistake cluster *)
     scattered_cluster = "Išsklaidytas";
-    scattered_cluster_desc = "Išsklaidytas";
+    scattered_cluster_desc = "Jūsų klaidos kurso metu pasiskirstė tolygiai.";
     beginning_cluster = "Pradžia";
-    beginning_cluster_desc = "Pradžia";
+    beginning_cluster_desc =
+      "Didžioji dalis (>50 %) jūsų klaidų buvo kurso pradžioje.";
     middle_cluster = "Vidurys";
-    middle_cluster_desc = "Vidurys";
+    middle_cluster_desc =
+      "Didžioji dalis (>50 %) jūsų klaidų buvo kurso viduryje.";
     end_cluster = "Pabaiga";
-    end_cluster_desc = "Pabaiga";
+    end_cluster_desc =
+      "Didžioji dalis (>50 %) jūsų klaidų buvo kurso pabaigoje.";
   }
 
 let translation_of_language (lang : language) : translations =

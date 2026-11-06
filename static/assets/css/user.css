@@ -589,6 +589,10 @@ hr {
   margin-top: 1rem;
 }
 
+.stats-data-descriptions__content span {
+  font-weight: bold;
+}
+
 .stats-data-descriptions__content h3,
 .graph-descriptions__content h3 {
   margin-bottom: 0.25rem;

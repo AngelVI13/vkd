@@ -769,16 +769,110 @@ let stats_description (t : Localization.translations) =
             [
               h3 [] [ txt "%s" t.race_execution ];
               p [] [ txt "%s" t.race_execution_desc ];
+              ul []
+                [
+                  li []
+                    [
+                      span [] [ txt "%s" t.even_split ];
+                      txt " - %s" t.even_split_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.positive_split ];
+                      txt " - %s" t.positive_split_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.negative_split ];
+                      txt " - %s" t.negative_split_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.fade_and_kick ];
+                      txt " - %s" t.fade_and_kick_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.fade_and_hold ];
+                      txt " - %s" t.fade_and_hold_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.kick_and_fade ];
+                      txt " - %s" t.kick_and_fade_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.kick_and_hold ];
+                      txt " - %s" t.kick_and_hold_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.late_fade ];
+                      txt " - %s" t.late_fade_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.late_kick ];
+                      txt " - %s" t.late_kick_desc;
+                    ];
+                ];
             ];
           section []
             [
               h3 [] [ txt "%s" t.mistakes_impact ];
               p [] [ txt "%s" t.mistakes_impact_desc ];
+              ul []
+                [
+                  li []
+                    [
+                      span [] [ txt "%s" t.no_impact ];
+                      txt " - %s" t.no_impact_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.minor_impact ];
+                      txt " - %s" t.minor_impact_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.significant_impact ];
+                      txt " - %s" t.significant_impact_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.huge_impact ];
+                      txt " - %s" t.huge_impact_desc;
+                    ];
+                ];
             ];
           section []
             [
               h3 [] [ txt "%s" t.mistake_cluster ];
               p [] [ txt "%s" t.mistake_cluster_desc ];
+              ul []
+                [
+                  li []
+                    [
+                      span [] [ txt "%s" t.scattered_cluster ];
+                      txt " - %s" t.scattered_cluster_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.beginning_cluster ];
+                      txt " - %s" t.beginning_cluster_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.middle_cluster ];
+                      txt " - %s" t.middle_cluster_desc;
+                    ];
+                  li []
+                    [
+                      span [] [ txt "%s" t.end_cluster ];
+                      txt " - %s" t.end_cluster_desc;
+                    ];
+                ];
             ];
         ];
     ]
