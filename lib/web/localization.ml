@@ -65,10 +65,14 @@ type translations = {
   stat_mistake_num_description : string;
   stat_tilt_rate_description : string;
   about_stats : string;
+  about_graphs : string;
   stats_subtitle_prefix : string;
   mistakes_impact : string;
+  mistakes_impact_desc : string;
   mistake_cluster : string;
+  mistake_cluster_desc : string;
   race_execution : string;
+  race_execution_desc : string;
   (* race execution strategies *)
   positive_split : string;
   positive_split_desc : string;
@@ -196,10 +200,21 @@ let english =
        if you make 3 mistakes in a row and find the rest of the controls \
        without a mistake, then your \"Error-Caused Instability\" will be 75%.";
     about_stats = "About these statistics";
+    about_graphs = "About these graphs";
     stats_subtitle_prefix = "Top";
     mistakes_impact = "Mistakes Impact";
+    mistakes_impact_desc =
+      "Shows what impact your mistakes had on your final position. To \
+       calculate the impact we find your ideal finish time by removing all of \
+       your mistake times from your final result. We then determine your \
+       potential position in the results if you didn't make any mistakes. The \
+       difference between this potential position and your actual position is \
+       what this statistic measures.";
+    (* TODO: add description for each mistake impact value *)
     mistake_cluster = "Mistake Cluster";
+    mistake_cluster_desc = "Mistake Cluster";
     race_execution = "Race Execution";
+    race_execution_desc = "Race Execution";
     (* race execution strategies *)
     (* TODO: maybe rename Kick -> Surge *)
     (* TODO: update descriptions *)
@@ -331,10 +346,14 @@ let lithuanian =
        klaidas iš eilės, o likusius punktus randate be klaidų, jūsų \"Klaidų \
        sukeltas nestabilumas\" bus 75%.";
     about_stats = "Apie šią statistiką";
+    about_graphs = "Apie šiuos grafikus";
     stats_subtitle_prefix = "Dažniausiai";
     mistakes_impact = "Klaidų Poveikis";
+    mistakes_impact_desc = "Klaidų Poveikis";
     mistake_cluster = "Klaidų Sankaupa";
+    mistake_cluster_desc = "Klaidų Sankaupa";
     race_execution = "Lenktynių Vykdymas";
+    race_execution_desc = "Lenktynių Vykdymas";
     (* race execution strategies *)
     (* TODO: maybe rename Kick -> Surge *)
     (* TODO: update descriptions *)
@@ -359,23 +378,23 @@ let lithuanian =
     even_split_desc = "Even Split";
     (* mistakes impact *)
     (* TODO: update descriptions *)
-    no_impact = "No Impact";
-    no_impact_desc = "No Impact";
-    minor_impact = "Minor Impact";
-    minor_impact_desc = "Minor Impact";
-    significant_impact = "Significant Impact";
-    significant_impact_desc = "Significant Impact";
-    huge_impact = "Huge Impact";
-    huge_impact_desc = "Huge Impact";
+    no_impact = "Jokio poveikio";
+    no_impact_desc = "Jokio poveikio";
+    minor_impact = "Nedidelis poveikis";
+    minor_impact_desc = "Nedidelis poveikis";
+    significant_impact = "Reikšmingas poveikis";
+    significant_impact_desc = "Reikšmingas poveikis";
+    huge_impact = "Didžiulis poveikis";
+    huge_impact_desc = "Didžiulis poveikis";
     (* mistake cluster *)
-    scattered_cluster = "Scattered";
-    scattered_cluster_desc = "Scattered";
-    beginning_cluster = "Beginning";
-    beginning_cluster_desc = "Beginning";
-    middle_cluster = "Middle";
-    middle_cluster_desc = "Middle";
-    end_cluster = "End";
-    end_cluster_desc = "End";
+    scattered_cluster = "Išsklaidytas";
+    scattered_cluster_desc = "Išsklaidytas";
+    beginning_cluster = "Pradžia";
+    beginning_cluster_desc = "Pradžia";
+    middle_cluster = "Vidurys";
+    middle_cluster_desc = "Vidurys";
+    end_cluster = "Pabaiga";
+    end_cluster_desc = "Pabaiga";
   }
 
 let translation_of_language (lang : language) : translations =

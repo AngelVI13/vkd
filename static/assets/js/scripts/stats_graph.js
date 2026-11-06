@@ -207,7 +207,6 @@ function getResponsiveGraphSettings(width) {
       showYAxisTickLabels: false,
       leftMargin: 10,
       rightMargin: 10,
-      descriptionMargin: 20,
     };
   }
 
@@ -220,7 +219,6 @@ function getResponsiveGraphSettings(width) {
       showYAxisTickLabels: true,
       leftMargin: 40,
       rightMargin: 20,
-      descriptionMargin: 30,
     };
   }
 
@@ -232,7 +230,6 @@ function getResponsiveGraphSettings(width) {
     showYAxisTickLabels: true,
     leftMargin: 60,
     rightMargin: 60,
-    descriptionMargin: 60,
   };
 }
 
@@ -383,16 +380,14 @@ function createStatsDescriptionPanel(graphDiv) {
 
   const details = document.createElement("details");
   details.id = panelId;
-  details.className = "stats-descriptions";
+  details.className = "graph-descriptions";
 
   const summary = document.createElement("summary");
   summary.textContent = plotData.about_stats_translation;
   details.appendChild(summary);
 
   const content = document.createElement("div");
-  content.className = "stats-descriptions__content";
-  content.style.marginLeft = `${settings.descriptionMargin}px`;
-  content.style.marginRight = `${settings.descriptionMargin}px`;
+  content.className = "graph-descriptions__content";
 
   graphsWithDescriptions.forEach((graph) => {
     const section = document.createElement("section");

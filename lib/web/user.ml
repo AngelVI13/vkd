@@ -681,7 +681,7 @@ let stats_data (t : Page_settings.t) (accumulated_stats : AccumulatedStats.t) =
       [
         ("stats_data", stats_data);
         ("dark_mode", `String t.dark_mode);
-        ("about_stats_translation", `String t.translations.about_stats);
+        ("about_stats_translation", `String t.translations.about_graphs);
       ]
     |> Yojson.Safe.to_string
   in
@@ -757,6 +757,32 @@ let extra_stats (t : Page_settings.t) ~(stats : AccumulatedStats.t)
       div [ class_ "%s" stats_class ] stat_value_nodes;
     ]
 
+let stats_description (t : Localization.translations) =
+  details
+    [ class_ "stats-data-descriptions" ]
+    [
+      summary [] [ txt "%s" t.about_stats ];
+      div
+        [ class_ "stats-data-descriptions__content" ]
+        [
+          section []
+            [
+              h3 [] [ txt "%s" t.race_execution ];
+              p [] [ txt "%s" t.race_execution_desc ];
+            ];
+          section []
+            [
+              h3 [] [ txt "%s" t.mistakes_impact ];
+              p [] [ txt "%s" t.mistakes_impact_desc ];
+            ];
+          section []
+            [
+              h3 [] [ txt "%s" t.mistake_cluster ];
+              p [] [ txt "%s" t.mistake_cluster_desc ];
+            ];
+        ];
+    ]
+
 let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
     (total_splits : int) =
   let overall_stats =
@@ -787,6 +813,7 @@ let stats_tab (t : Page_settings.t) (result_stats : Db.Types.ResultStats.t list)
           ~title_and_desc_fn:mistakeCluster_to_title_and_desc
           ~field:AccumulatedStats.Fields.mistake_cluster ~extra_class:"mistake"
           ();
+        stats_description t.translations;
       ];
     hr [];
     div
