@@ -3,7 +3,7 @@ open Dream_html
 open HTML
 
 let nav_section text path =
-  section [] [ a [ path_attr href path ] [ span [] [ txt "%s" text ] ] ]
+  section [] [ a [ path ] [ span [] [ txt "%s" text ] ] ]
 
 let lang_select ~(selected_lang : Localization.language) =
   let flag = Localization.language_flag selected_lang in
@@ -81,9 +81,12 @@ let elements (t : Page_settings.t) =
           nav
             [ id "topnav"; class_ "hover" ]
             [
-              nav_section t.translations.events Paths.index;
-              nav_section t.translations.leagues Paths.index;
-              nav_section t.translations.runners Paths.index;
+              nav_section t.translations.events
+                (path_attr href Paths.events_w_scope t.translations.lang);
+              nav_section t.translations.leagues
+                (path_attr href Paths.index_w_scope t.translations.lang);
+              nav_section t.translations.runners
+                (path_attr href Paths.index_w_scope t.translations.lang);
             ];
         ];
       div

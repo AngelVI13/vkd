@@ -215,6 +215,17 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     ~headers:[ ("HX-Replace-Url", new_url) ]
     tab_section
 
+let handle_events ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
+  let _ = (request, db, state) in
+  (* let events = Cache.State.latest_league_events state db in *)
+  (* let ratings = *)
+  (*   filtered_ratings ~db ~state ~page_num:1 ~course:Common.Course1 *)
+  (*     ~group:GroupAll () *)
+  (* in *)
+
+  let page = Events.page settings in
+  Dream_html.respond page
+
 let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =
   let current_url = Uri.of_string url in
   let modified_url = Uri.remove_query_param current_url "language" in
@@ -313,6 +324,8 @@ let run ~(db : Db.t) =
                (with_settings (handle_rating_table ~db ~state));
              Dream_html.post Paths.rating_table
                (with_settings (handle_rating_table_search ~db ~state));
+             Dream_html.get Paths.events
+               (with_settings (handle_events ~db ~state));
            ];
          Dream_html.get Paths.index (fun req -> Dream.redirect req "/en/");
          Static.routes;
