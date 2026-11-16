@@ -110,6 +110,7 @@ type translations = {
   middle_cluster_desc : string;
   end_cluster : string;
   end_cluster_desc : string;
+  all_leagues : string;
 }
 [@@deriving show { with_path = false }]
 
@@ -289,6 +290,7 @@ let english =
     end_cluster = "End";
     end_cluster_desc =
       "Majority (>50%) of your mistakes were in the end of the course.";
+    all_leagues = "All Leagues";
   }
 
 let lithuanian =
@@ -467,6 +469,7 @@ let lithuanian =
     end_cluster = "Pabaiga";
     end_cluster_desc =
       "Didžioji dalis (>50 %) jūsų klaidų buvo kurso pabaigoje.";
+    all_leagues = "Visos Lygos";
   }
 
 let translation_of_language (lang : language) : translations =
