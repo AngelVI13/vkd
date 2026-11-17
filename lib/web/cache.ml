@@ -79,7 +79,11 @@ module State = struct
   type t = {
     debug : bool; [@default false]
     filename : string;
+    (* TODO: latest_league_events is no longer needed maybe because we can just take the events from league_events_for_year *)
     mutable latest_league_events : Db.Types.EventInfoExtra.t list; [@default []]
+    mutable league_events_for_year :
+      (string * Db.Types.EventInfoExtra.t list) list;
+        [@default []]
     mutable all_latest_ratings : Glicko2.Rating.Info.t list; [@default []]
     mutable all_league_events : Db.Types.LeagueEvent.t list; [@default []]
     (* this includes all leagues *)
@@ -106,6 +110,7 @@ module State = struct
           debug;
           filename;
           latest_league_events = [];
+          league_events_for_year = [];
           all_latest_ratings = [];
           all_league_events = [];
           all_events = [];
@@ -129,6 +134,16 @@ module State = struct
       t.latest_league_events <- events;
       save t;
       events)
+
+  let league_events_for_year (t : t) (db : Db.t) (year : string) =
+    match List.Assoc.find t.league_events_for_year ~equal:String.equal year with
+    | None ->
+        Dream.log "Fetching event data from DB";
+        let events = Db.league_events_for_year db year in
+        t.league_events_for_year <- (year, events) :: t.league_events_for_year;
+        save t;
+        events
+    | Some events -> events
 
   let all_league_events (t : t) (db : Db.t) =
     if List.length t.all_league_events > 0 then t.all_league_events

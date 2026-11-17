@@ -216,14 +216,36 @@ let handle_user_tab ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
     tab_section
 
 let handle_events ~(db : Db.t) ~(state : Cache.State.t) ~settings request =
-  let _ = (request, db, state) in
-  (* let events = Cache.State.latest_league_events state db in *)
-  (* let ratings = *)
-  (*   filtered_ratings ~db ~state ~page_num:1 ~course:Common.Course1 *)
-  (*     ~group:GroupAll () *)
-  (* in *)
+  let current_year =
+    let now = Time_ns_unix.now () in
+    Time_ns_unix.format ~zone:Timezone.utc now "%Y"
+  in
+  let all_leagues = "all" in
 
-  let page = Events.page settings in
+  let year =
+    let year =
+      Dream.query request "year" |> Option.value ~default:current_year
+    in
+    match Int.of_string_opt year with None -> current_year | Some _ -> year
+  in
+  let league =
+    Dream.query request "league" |> Option.value ~default:all_leagues
+  in
+
+  let vkd_selected =
+    String.equal league Dbsportas.League.LeagueInfo.main_league_name
+  in
+
+  let events =
+    let events = Cache.State.league_events_for_year state db year in
+    if vkd_selected then
+      List.filter events ~f:(fun ev -> String.equal ev.league_name league)
+    else events
+  in
+
+  let page =
+    Events.page settings ~year_selected:year ~league_selected:league events
+  in
   Dream_html.respond page
 
 let change_url_lang (url : string) ~(curr_lang : string) ~(new_lang : string) =

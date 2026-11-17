@@ -141,6 +141,22 @@ SELECT * FROM before
 UNION ALL
 SELECT * FROM after_or_eq;
 
+-- @league_events_for_year
+SELECT 
+    le.*,
+    l.name        AS league_name,
+    ed.event_link,
+    ed.thumbnail,
+    ed.map_info,
+    ed.location AS official_location,
+    ls.links
+FROM league_events le
+JOIN leagues          l  ON le.league_id  = l.id
+LEFT JOIN event_details   ed ON le.event_date = ed.event_date
+LEFT JOIN event_map_links ls ON le.event_date = ls.event_date
+WHERE strftime('%Y', le.event_date) == @year
+ORDER BY le.event_date DESC;
+
 -- @event_details_for_year
 SELECT 
     e.*,

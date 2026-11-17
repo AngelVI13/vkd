@@ -17,3 +17,4 @@ let%path rating_table_w_scope_w_page = "/%s/rating_table?page=%d"
 (* -- *)
 let%path events = "/events"
 let%path events_w_scope = "/%s/events"
+let%path events_w_scope_w_params = "/%s/events?year=%s&league=%s"

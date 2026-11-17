@@ -229,6 +229,29 @@ let latest_league_events (handle : Turso.conn) (date : string) =
     ~compare:(fun e1 e2 -> String.compare e2.event_date e1.event_date)
     !results
 
+let league_events_for_year (handle : Turso.conn) (year : string) =
+  let results = ref [] in
+  DB.league_events_for_year handle ~year
+    (fun
+      ~id
+      ~league_id
+      ~event_nr
+      ~event_date
+      ~location
+      ~league_name
+      ~event_link
+      ~thumbnail
+      ~map_info
+      ~official_location
+      ~links
+    ->
+      results :=
+        Types.EventInfoExtra.t_of_db_row ~id ~league_id ~event_nr ~event_date
+          ~location ~league_name ~event_link ~thumbnail ~map_info
+          ~official_location ~links
+        :: !results);
+  List.rev !results
+
 let all_league_events (handle : Turso.conn) =
   let results = ref [] in
   DB.all_league_events handle
