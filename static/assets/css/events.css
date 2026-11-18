@@ -54,28 +54,43 @@
   all: unset;
 }
 
-/* TODO: finish this */
 .year-btns button,
 .league-btns button {
-  background-color: var(--c-datetime);
-  color: var(--c-font);
+  cursor: pointer;
   padding: 5px;
   border-radius: 8px;
+  box-shadow: 2px 2px var(--c-datetime);
+}
+
+.year-btns button,
+.league-btns button {
+  background-color: var(--c-bg-page);
+  color: var(--c-font);
+  border: 1px solid var(--c-datetime);
+  margin: 3px;
+}
+
+.year-btns button:hover,
+.league-btns button:hover {
+  background-color: var(--c-datetime);
+  color: var(--c-font);
   border: 1px solid var(--c-font);
+  box-shadow: 2px 2px var(--c-font);
 }
 
 .year-btns .selected,
 .league-btns .selected {
+  cursor: default;
   background-color: var(--c-datetime);
   color: var(--c-font);
-  padding: 5px;
-  border-radius: 8px;
   border: 1px solid var(--c-font);
+  font-weight: bold;
+  box-shadow: 2px 2px var(--c-font);
 }
 
 @media screen and (max-width: 900px) {
   .box-contents {
-    padding: 2vh 0;
+    padding: 2vh 1rem;
   }
 }
 
