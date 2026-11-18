@@ -73,7 +73,23 @@ let container (t : Page_settings.t) ~(year_selected : string)
   let event_rows =
     events
     |> List.map ~f:(fun event ->
-           div [] [ txt "%s %s" event.event_date event.location ])
+           let date = event.event_date in
+           let thumbnail = event.thumbnail in
+           div []
+             [
+               img
+                 [
+                   class_ "event-img";
+                   (if Option.is_some thumbnail then
+                      src "data:image/jpg;base64,%s"
+                        (Option.value_exn thumbnail)
+                    else path_attr src Static.Assets.Images.map_placeholder_jpg);
+                 ];
+               time
+                 [ class_ "event-date"; datetime "%s" date; title_ "%s" date ]
+                 [ txt "%s" date ];
+               span [ class_ "event-location" ] [ txt "%s" event.location ];
+             ])
   in
   div
     [ class_ "profile-container page-small box" ]

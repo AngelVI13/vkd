@@ -88,14 +88,47 @@
   box-shadow: 2px 2px var(--c-font);
 }
 
+.event-img {
+  /* TODO: should we be changing the
+   * height since in this page we are
+   * just scrolling down, reducing the
+   * height just crops down the image
+   * */
+  --event-img-height: 100%;
+  width: 200px;
+  height: var(--event-img-height);
+  object-fit: cover;
+  background: var(--c-font-dimmer);
+  color: var(--c-font-dim);
+
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.event-date {
+  font-size: 90%;
+  white-space: nowrap;
+  unicode-bidi: plaintext;
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 1rem;
+  }
+
+  .event-img {
+    --event-img-height: 160px;
   }
 }
 
 @media screen and (max-width: 580px) {
   #main-wrap {
     gap: 0.2rem;
+  }
+
+  .event-img {
+    --event-img-height: 130px;
   }
 }
