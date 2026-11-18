@@ -45,6 +45,34 @@
   font-weight: bold;
 }
 
+.angle-content {
+  padding: 1rem 2rem;
+}
+
+.year-btns button a,
+.league-btns button a {
+  all: unset;
+}
+
+/* TODO: finish this */
+.year-btns button,
+.league-btns button {
+  background-color: var(--c-datetime);
+  color: var(--c-font);
+  padding: 5px;
+  border-radius: 8px;
+  border: 1px solid var(--c-font);
+}
+
+.year-btns .selected,
+.league-btns .selected {
+  background-color: var(--c-datetime);
+  color: var(--c-font);
+  padding: 5px;
+  border-radius: 8px;
+  border: 1px solid var(--c-font);
+}
+
 @media screen and (max-width: 900px) {
   .box-contents {
     padding: 2vh 0;

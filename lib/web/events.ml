@@ -81,9 +81,9 @@ let container (t : Page_settings.t) ~(year_selected : string)
       div
         [ class_ "box-contents" ]
         [ h1 [ class_ "page-title" ] [ txt "%s" t.translations.events ] ];
-      div [ class_ "angle-content" ] year_buttons;
-      div [ class_ "angle-content" ] league_buttons;
-      div [ class_ "angle-content" ] event_rows;
+      div [ class_ "angle-content year-btns" ] year_buttons;
+      div [ class_ "angle-content league-btns" ] league_buttons;
+      div [ class_ "angle-content event-rows" ] event_rows;
     ]
 
 let page (t : Page_settings.t) ~(year_selected : string)
