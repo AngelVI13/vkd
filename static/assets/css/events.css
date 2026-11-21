@@ -77,7 +77,7 @@
   border: 1px solid var(--c-font);
   box-shadow: 2px 2px var(--c-font);
 
-  transform: scale(1.05) translateY(-2px);
+  transform: scale(1.02) translateY(-2px);
   z-index: 10; /* in case neighbors get covered */
 }
 
@@ -118,7 +118,7 @@
 }
 
 .event-card:hover {
-  transform: scale(1.05) translateY(-4px);
+  transform: scale(1.02) translateY(-4px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   z-index: 10; /* in case neighbors get covered */
 }
@@ -147,10 +147,67 @@
   justify-content: center;
 }
 
+.event-top {
+  display: block;
+  position: relative;
+  line-height: 0;
+}
+
 .event-date {
   font-size: 90%;
   white-space: nowrap;
   unicode-bidi: plaintext;
+}
+
+time {
+  font-size: 90%;
+  opacity: 0.9;
+  white-space: nowrap;
+  unicode-bidi: plaintext;
+}
+
+.event-top time {
+  right: 0;
+  backdrop-filter: blur(6px);
+  border-radius: 0 0 0 7px;
+}
+
+.event-bottom {
+  margin-left: 10px;
+}
+
+.event-bottom > h3 {
+  margin-top: 8px;
+}
+
+.event-map-info {
+  margin: 5px;
+  font-size: 12px;
+}
+
+.over-img {
+  --over-img-font-size: 20px;
+  padding: 5px 5px;
+  font-size: var(--over-img-font-size);
+  opacity: 1;
+  background: var(--c-evt-over-img);
+  color: var(--c-ublog-post-card-over-image);
+  text-shadow: 0 1px 1px var(--c-evt-over-img-sdw);
+
+  position: absolute;
+  top: 0;
+  line-height: 1.3em;
+}
+
+.event-loc {
+  left: 0;
+  border-radius: 0 7px 0 0;
+  backdrop-filter: blur(6px);
+}
+
+.pos-bottom {
+  top: unset;
+  bottom: 0;
 }
 
 @media screen and (max-width: 900px) {

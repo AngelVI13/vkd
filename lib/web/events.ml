@@ -86,7 +86,8 @@ let event_card (t : Page_settings.t) (event : Db.Types.EventInfoExtra.t) =
         path_attr href Paths.index_w_scope t.translations.lang;
       ]
       [
-        div []
+        span
+          [ class_ "event-top" ]
           [
             img
               [
@@ -96,9 +97,25 @@ let event_card (t : Page_settings.t) (event : Db.Types.EventInfoExtra.t) =
                  else path_attr src Static.Assets.Images.map_placeholder_jpg);
               ];
             time
-              [ class_ "event-date"; datetime "%s" date; title_ "%s" date ]
+              [
+                class_ "event-date over-img";
+                datetime "%s" date;
+                title_ "%s" date;
+              ]
               [ txt "%s" date ];
-            span [ class_ "event-location" ] [ txt "%s" event.location ];
+            span
+              [ class_ "event-location over-img pos-bottom" ]
+              [ txt "%s" event.league_name ];
+          ];
+        span
+          [ class_ "event-bottom" ]
+          [
+            h3 [ class_ "event-league" ] [ txt "%s" event.location ];
+            (if Option.is_some event.map_info then
+               p
+                 [ class_ "event-map-info" ]
+                 [ txt "%s" (Option.value_exn event.map_info) ]
+             else null []);
           ];
       ]
   in
