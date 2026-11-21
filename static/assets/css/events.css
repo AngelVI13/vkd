@@ -76,6 +76,9 @@
   color: var(--c-font);
   border: 1px solid var(--c-font);
   box-shadow: 2px 2px var(--c-font);
+
+  transform: scale(1.05) translateY(-2px);
+  z-index: 10; /* in case neighbors get covered */
 }
 
 .year-btns .selected,
@@ -86,6 +89,42 @@
   border: 1px solid var(--c-font);
   font-weight: bold;
   box-shadow: 2px 2px var(--c-font);
+}
+
+.year-btns .selected:hover,
+.league-btns .selected:hover {
+  transform: none;
+}
+
+.event-card {
+  display: flex;
+  background: var(--c-bg-zebra);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  color: var(--c-font);
+  position: relative;
+  direction: ltr;
+  text-align: left;
+  box-shadow:
+    0 2px 2px 0 rgba(0, 0, 0, 0.08),
+    0 3px 1px -2px rgba(0, 0, 0, 0.18),
+    0 1px 5px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border-radius: 7px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.event-card:hover {
+  transform: scale(1.05) translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 10; /* in case neighbors get covered */
+}
+
+.event-details-lnk {
+  color: var(--c-font);
+  overflow: hidden;
 }
 
 .event-img {
