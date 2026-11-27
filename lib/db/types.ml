@@ -142,3 +142,21 @@ module ResultStats = struct
   }
   [@@deriving fields, yojson]
 end
+
+module SimpleCourse = struct
+  type t = {
+    league_id : int;
+    event_nr : int;
+    event_date : string;
+    (* --- *)
+    course_id : string;
+    (* --- *)
+    distance : float;
+    num_controls : int;
+    controls : string;
+    (* --- *)
+    num_men : int option;
+    num_women : int option;
+  }
+  [@@deriving fields, yojson]
+end

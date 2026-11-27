@@ -309,6 +309,12 @@ WHERE league_id = @league_id
     AND event_date = @event_date
     AND course_id = @course_id;
 
+--@courses_for_year
+SELECT c.*, cs.num_men, cs.num_women FROM courses c
+LEFT JOIN course_stats cs ON c.event_date = cs.event_date
+WHERE strftime('%Y', c.event_date) == @year
+ORDER BY c.event_date DESC;
+
 -- @create_age_groups
 CREATE TABLE IF NOT EXISTS age_groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

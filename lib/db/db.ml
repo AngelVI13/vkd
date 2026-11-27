@@ -425,6 +425,36 @@ let _add_course_stats ~(event_params : Types.EventParams.t)
        ~avg_mistake_num_men:(Helpers.to_int64 s.avg_mistake_num_men)
        ~avg_mistake_num_women:(Helpers.to_int64 s.avg_mistake_num_women))
 
+let courses_for_year (handle : Turso.conn) (year : string) =
+  let courses = ref [] in
+  ignore
+    (DB.courses_for_year handle ~year
+       (fun
+         ~id
+         ~league_id
+         ~event_nr
+         ~event_date
+         ~course_id
+         ~distance
+         ~num_controls
+         ~controls
+         ~num_men
+         ~num_women
+       ->
+         let _ = id in
+         let course =
+           Types.SimpleCourse.Fields.create
+             ~league_id:(Int.of_int64_exn league_id)
+             ~event_nr:(Int.of_int64_exn event_nr)
+             ~event_date ~course_id ~distance
+             ~num_controls:(Int.of_int64_exn num_controls)
+             ~controls
+             ~num_men:(Helpers.of_int64_opt num_men)
+             ~num_women:(Helpers.of_int64_opt num_women)
+         in
+         courses := course :: !courses));
+  List.rev !courses
+
 let _fetch_league_events ~fn handle =
   let events = ref [] in
   ignore
